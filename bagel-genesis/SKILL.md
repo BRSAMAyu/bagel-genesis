@@ -30,6 +30,17 @@ Do not idle, wait for routine approval, or stop early while useful work remains.
 
 When any rule, gate, review, uncertainty, missing tool, failed attempt, or platform limitation makes the agent inclined to stop and ask the user, continue instead unless the situation hits a hard-stop boundary above. If a lane cannot safely merge, isolate it and advance another positive-EV lane. If three cycles show no net progress, switch strategy rather than stopping.
 
+### How to isolate a lane (works in all modes, no reference needed)
+
+When the tie-breaker says "isolate," do this without stopping and without loading `full`-mode references:
+
+1. Move the blocked change onto its own branch or worktree (e.g. `git worktree add ../.bagel-worktrees/<repo>/lane-<id> -b lane/<id>`). Never force-push, reset, or delete user changes.
+2. Record the lane as `isolated` in `.bagel/state.yaml` under `blocked_lanes:` with: lane id, why it cannot merge (e.g. R3 unavailable, gate fail), the branch/worktree path, and residual risk.
+3. Pick the next path-disjoint positive-EV task and continue the run on the main line.
+4. Revisit isolated lanes when the blocker clears (review capacity returns, gate passes, tool becomes available) or at the next excellence-loop discovery pass.
+
+If isolation itself would require a destructive or irreversible action (a true hard-stop), only then wake the user.
+
 ## Operating Rule
 
 Load only the prompt needed for the current stage and role.
@@ -177,10 +188,10 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/clearing-policy.md` | finishing a value slice and before starting the next | mid-slice, or pure polish work | full |
 | `references/rework-sandbox.md` | isolating a risky change in a worktree/sandbox branch | change is small and reversible in-place | full |
 | `references/simulations.md` | running scenario/deterministic user-flow checks on a built artifact | artifact is not yet runnable | full |
-| `references/excellence-loop.md` | baseline passes and you enter Polish; or ranking improvement tasks by EV | still in Build phase before baseline | always |
+| `references/excellence-loop.md` | baseline passes and you enter Polish; ranking improvement tasks by EV; **or experiment/research results are poor or stalled (lateral/backward deltas) and you need to decide whether to switch hypothesis vs keep iterating** | still in Build phase before baseline, with no polish/stall decision pending | always |
 | `references/loop-runtime.md` | configuring a multi-cycle unattended loop, checkpoint cadence, or quota/resume | single-session work that finishes in one cycle | full |
 | `references/runtime-protocol.md` | handling context compaction, checkpointing, snapshot/resume, or cross-platform long runs | run is short and fits one session | full |
-| `references/recovery-protocol.md` | drift, repeated bug, tool/env failure, or a gate fails 3× | work is progressing cleanly | always |
+| `references/recovery-protocol.md` | drift, repeated bug, tool/env failure, a gate fails 3×, **or three consecutive lateral progress deltas on the same approach (see excellence-loop stop criteria)** | work is progressing cleanly with forward deltas | always |
 | `references/constitutional-court.md` | a proposed scope reduction, identity change, or P0 removal appears | no scope/identity amendment is proposed | always |
 | `references/evolution-ledger.md` | recording a meaningful change for audit/rollback, or diagnosing a regression | change is trivial (typo, comment) | full |
 | `references/user-briefing.md` | updating the human-facing briefing layers or STATUS.md beyond the quick template | no user-visible change or decision this cycle | always |

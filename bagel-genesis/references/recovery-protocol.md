@@ -76,7 +76,7 @@ If a repair crosses a real hard-stop boundary, write a recovery option, continue
 
 Repeated failure does not mean stop. It means switch strategy or switch lane.
 
-After three failures of the same kind:
+After three failures of the same kind (or three consecutive `lateral` progress deltas on the same approach):
 
 - do not retry the same prompt,
 - write a root-cause hypothesis,
@@ -85,6 +85,17 @@ After three failures of the same kind:
 - attempt one alternative route,
 - if still blocked, choose another positive-EV task or discovery lens,
 - then decide whether a hard-stop boundary truly requires user input.
+
+### What counts as a strategy switch (not a parameter tweak)
+
+A retry that only adjusts a value inside the same approach (a hyperparameter, a threshold, a wording change, a renamed variable) is the **same strategy** and still counts toward the three-attempt limit. A genuine strategy switch changes at least one of:
+
+- the **approach** (e.g. greedy → dynamic programming; supervised → self-supervised; REST → event-driven),
+- the **core assumption** (e.g. "users want speed" → "users want safety"; "single-tenant" → "multi-tenant"),
+- the **artifact structure** (e.g. monolith → modular; one big PR → staged slices),
+- the **evidence source** (e.g. unit tests → property tests; intuition → benchmark; one dataset → another).
+
+If you cannot name what changed across at least one of those axes, you have not switched strategy — keep counting attempts. When in doubt, treat a borderline change as a parameter tweak and keep counting; this avoids gaming the counter to loop forever.
 
 ## User Wake Conditions
 
