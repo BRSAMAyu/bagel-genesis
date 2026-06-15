@@ -21,16 +21,28 @@ target_set[0] = baseline targets + agent-generated metrics (see Metric Self-Gene
 while iteration < max_iterations and run_budget_allows and autonomy_contract_allows:
     iteration += 1
 
-    # --- Inner loop: drive current target_set to all-green ---
+    # --- Inner loop: drive current target_set to all-green WITHOUT regressing prior iterations ---
     while not target_set[iteration].all_green():
         run_current_metrics()
-        discover_improvements()       # independent review + multiple lenses
-        if all_green and review_finds_no_P0_P1_P2:
-            break                     # target set met → this iteration is complete
+        # REGRESSION GATE: before declaring all-green, verify no metric from any
+        # previously-green iteration has dropped below its achieved value.
+        # The floor is the last-known-good value, not the original target.
+        if all_green and review_finds_no_P0_P1_P2 and no_regression_vs_prior_iterations:
+            break                     # target set met AND nothing regressed → iteration complete
+        if all_green and not no_regression_vs_prior_iterations:
+            # All current targets met but a prior floor was broken — do NOT complete.
+            # Treat as backward: rollback the offending change or fix the regression first.
+            handle_regression()
+            continue
         select_and_execute_best_improvement()
         verify(); review(); record_progress_delta()
         if blocked: recover_or_switch_lane()
-        if iteration_budget_exhausted: break  # can't finish, record partial
+        if cycles_in_this_iteration >= iteration_cycle_cap: break  # concrete cap (see below)
+        if run_budget_exhausted: break
+
+    # Record the green floor of this iteration for the next iteration's regression gate
+    if iteration_completed_normally:
+        record_green_floor(iteration, metric_values_at_completion)
 
     # --- Record this iteration in the evolution ledger ---
     record_iteration(iteration, target_set[iteration], metrics_trajectory, bar_raises, cost)
@@ -42,6 +54,27 @@ while iteration < max_iterations and run_budget_allows and autonomy_contract_all
 
 # Stop: max_iterations reached, or budget exhausted, or hard-stop
 write_final_summary(iterations_completed, trajectory, final_quality_state)
+```
+
+### Per-iteration guards (prevent collapse and death-loops)
+
+**Iteration cycle cap:** each iteration gets a concrete cycle budget, not an open-ended inner loop. Compute it at iteration start:
+
+```text
+iteration_cycle_cap = max(3, floor(run_budget_remaining_cycles / (max_iterations - iterations_completed)))
+```
+
+If `cycles_in_this_iteration >= iteration_cycle_cap`, the iteration ends as `partial` regardless of all-green status. Record which targets were unmet. This guarantees one broken build or one hard metric cannot consume the entire run — the flywheel advances to the next iteration (or stops if it was the last).
+
+**Stuck-metric detector:** if a single metric stays red for >K cycles (K = iteration_cycle_cap / 2) despite ≥2 genuine strategy switches (per recovery-protocol.md's definition — not parameter tweaks), classify it:
+
+- **impossible:** the target cannot be met given current constraints (e.g. "100% type safety" on dynamically-typed code, "0 a11y violations" needs an external service that's down). Reclassify to `unmet_impossible`, carry forward to the iteration record with a user note, and exclude from the all-green gate. The iteration can complete without it.
+- **needs-deescalation:** the target is achievable but the current approach is wrong. Relax the target to the last-known-green value for this iteration and record the higher target as a future goal.
+
+This prevents the "impossible target" death-loop where the inner loop hammers an unreachable metric until budget death.
+
+**Automatic rollback on self-inflicted breakage:** if the agent's own change breaks the build/tests and one local repair attempt fails, immediately roll back the change (do not climb the full 9-rung recovery ladder). The tie-breaker already authorizes "rollback the agent's own bad change and retry." This prevents one broken change from burning the iteration cap on recovery.
+
 ```
 
 **Why iteration-count stopping is more reliable than judgment-based stopping:** the agent never decides "should I stop?" — the user already decided by setting `max_iterations`. The agent's autonomy is fully directed at *how to optimize within each iteration* and *what higher targets to set for the next*. This eliminates the single most unreliable judgment in the loop (self-assessed "no improvement remains") and replaces it with a counter.
@@ -191,6 +224,9 @@ excellence:
   open_P1: 0
   metrics:                          # agent-generated, refreshed per artifact type
     # - {metric, target, command, direction, current_value, met: bool}
+  iteration_cycle_cap: null          # concrete per-iteration cycle budget, computed at iteration start
+  green_floors: {}                   # {iteration_number: {metric: last_known_good_value}} — regression gate floor
+  stuck_metrics: []                  # metrics red >K cycles despite strategy switches; classified impossible/needs-deescalation
 ```
 
 **Within an iteration,** `consecutive_lateral_cycles` and `open_P0/P1` drive strategy switches (not stopping). Three lateral cycles or any backward cycle → switch hypothesis/lens/lane, but keep going — the iteration isn't over until the target set is all-green or budget is exhausted. The run as a whole stops only per Stop Criteria (iteration count / budget / user / hard-stop).
@@ -266,6 +302,32 @@ The run stops when any of these is true:
 **Anti-laziness guarantee:** because stopping is counter-based, the only way to "stop early" is to declare a target set green when it isn't, or to generate a weak next target set. Both are prevented: target-set-green requires independent review confirmation (Track 1) + metric verification (Track 2); next target sets must pass the Bar-Raising Protocol's five moves. An agent that tries to game either will fail the independent review check and the iteration won't complete legitimately — it will keep running until it either meets the bar honestly or exhausts budget.
 
 If the runtime cannot schedule resume after budget exhaustion, mark `manual_resume_required`; do not imply automatic continuation.
+
+## Flat-Climbing Detector (efficiency guard)
+
+The lateral counter catches *zero* movement. But a flywheel can produce *tiny* movement every cycle (coverage 80.0%→80.1%→80.2%) that is technically `forward`, never trips the lateral counter, and burns full budget on negligible gain. This is the efficiency failure the user named: the wheel turns but produces nothing worth the cost.
+
+**Detection:** after each iteration completes, compute the **best metric delta magnitude** of that iteration (the largest real movement across all metrics, in absolute terms). Compare across the last 2 completed iterations:
+
+```yaml
+# in state.yaml excellence section, updated after each iteration
+trajectory_slope:
+  iteration_1_best_delta: 5.2     # e.g. coverage +5.2%
+  iteration_2_best_delta: 0.3     # coverage +0.3%
+  flat_climbing: false            # true if last 2 iterations each <epsilon AND no P0/P1 closed
+```
+
+**`flat_climbing` is true when ALL hold:**
+- last 2 completed iterations each delivered <ε real metric movement (ε is metric-specific: e.g. <1% coverage, <0.5 Lighthouse points, <2% benchmark — set per metric at generation time), AND
+- no P0/P1 was closed in either iteration, AND
+- the bar was raised (so it's not that targets were already maxed — the agent is climbing a near-flat slope).
+
+**Action when `flat_climbing`:**
+1. Surface in STATUS.md Morning Briefing: "Flywheel turning but low-yield — iterations {N-1},{N} each moved metrics <ε. Consider: (a) reduce remaining iterations, (b) redirect to a different quality dimension, (c) the artifact may be near its achievable ceiling."
+2. If the autonomy contract permits mid-run adjustment: reduce `max_iterations` to `iterations_completed + 1` (allow one more iteration to confirm the plateau, then stop). This is the *one controlled exception* to the hard anti-early-stop stance — justified because flat-climbing *is* the efficiency failure, and continuing to spin is worse than stopping with evidence.
+3. Record the flat-climbing detection and the decision in the iteration record so the user can see the plateau was evidence-based, not laziness.
+
+This does NOT permit the agent to self-declare "I think it's flat" — `flat_climbing` is computed from recorded metric deltas, not judgment. The agent acts on a computed signal.
 
 ## Anti-Perfection Rule (re-framed: this guards against *low-value* work, not against *continuing*)
 
