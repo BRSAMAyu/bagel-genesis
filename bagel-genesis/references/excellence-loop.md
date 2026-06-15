@@ -160,6 +160,7 @@ Use multiple independent sources. **Sources must be genuinely independent, not t
 - accessibility/performance/security checks when relevant,
 - "what would embarrass us in a demo/review/publication" pass,
 - **brainstormer pass: dispatch >= 2 Brainstormer subagents, each pinned to a distinct lens (see `agents/brainstormer.md`), each in isolated context, none seeing the others' output. Merge and de-duplicate only after all return.** This is the only mechanism that manufactures insight diversity instead of hoping for it.
+- **visionary pass: dispatch Product Visionary when the user wants novelty, when the current frame has plateaued, or when bar-raising yields only local polish. Product Visionary proposes concept candidates and falsifiable probes; it does not change the constitution.**
 - user briefing review for clarity gaps.
 - "what else could make this astonishingly complete?" pass,
 - experiment/theory alternative generation when results stall,
@@ -216,10 +217,11 @@ When all current metrics are green AND independent review finds no new P0/P1/P2,
 3. **Add adversarial/edge lenses:** fuzz inputs, malformed data, concurrent access, offline behavior, accessibility for real assistive tech, i18n, security review. Each can generate new metrics or new review findings.
 4. **Pursue "astonishingly complete" discovery:** what would make a skeptical expert reviewer say "I didn't expect this level of polish"? Documentation depth, error message quality, developer onboarding, observability, graceful degradation. Generate tasks for the gaps.
 5. **For research/experiment artifacts:** when the current hypothesis is validated, ask whether a stronger hypothesis, a larger eval, an ablation, a failure-mode analysis, or a competing-approach comparison would strengthen the claim. Raise the evidentiary bar.
+6. **Run a novelty/paradigm pass:** if `innovation_contract.ambition` is `differentiated` or `breakthrough`, or if local improvements are plateauing, dispatch Product Visionary and consider cheap probes for paradigm shifts, cross-domain transfer, inversion, new mechanics, or distribution loops before spending the next iteration on incremental polish.
 
 **Recording bar raises:** every raised target or new dimension goes into `.bagel/evidence/bar-raises.yaml` with: what was raised, why, the new target, and which cycle. This makes the optimization trajectory auditable — the user can see the artifact didn't just "pass," it was driven upward through N bar raises.
 
-**When bar-raising itself stalls:** if the agent attempts all five moves and genuinely cannot identify a higher target or new dimension, AND an independent reviewer (different agent/context) also cannot after inspecting the artifact and the current metric set, increment the diminishing-returns counter. This is the only path toward considering the run done — and it requires independent confirmation, not self-declaration. See Stop Criteria.
+**When bar-raising itself stalls:** if the agent attempts the bar-raising moves and genuinely cannot identify a higher target or new dimension, dispatch Product Visionary before incrementing the diminishing-returns counter. Only after the visionary pass also finds no positive-EV probe, AND an independent reviewer (different agent/context) agrees, may the run count this toward diminishing returns. This prevents local optimization from masquerading as concept exhaustion.
 
 ## Progress Delta Gate
 

@@ -17,6 +17,7 @@ You are dispatched with exactly ONE lens from the canonical set below. Think onl
 - `completeness` — what is missing that a user would reasonably expect; astonishing-completeness gaps
 - `evidence_strength` — are claims actually proven, or assumed? what test/benchmark/screenshot would falsify them?
 - `adversarial` — how would this break, be misused, or quietly degrade under stress or misuse
+- `novelty` — what non-obvious mechanic, framing, or interaction could make this meaningfully different without violating the constitution?
 
 The orchestrator assigns your lens in the dispatch envelope. If no lens is assigned, default to the one least represented in recent bar-raises (check `.bagel/evidence/bar-raises.yaml` `why_class` history).
 

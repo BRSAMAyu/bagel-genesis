@@ -47,6 +47,8 @@ A full adversarial audit (2 independent reviewers + self-review) found and fixed
 - **`degraded_resume` is honestly a dead-end.** The spec now states explicitly: degraded_resume has NO wake mechanism; the run dies when the session ends. It's not a loop binding, it's a session-only mode.
 - **12 agent-attested gate predicates are honestly labeled.** `gate-predicates.md` now has an Enforcement Model table distinguishing mechanically-enforced gates (script-verified, cannot be gamed) from agent-attested gates (the agent checks them, but no script independently re-verifies — the Independent Flywheel Audit is the backstop).
 - **Stop Contract propagated** to `constitution-template.md`, `excellence-loop.md`, `loop-runtime.md`, `runtime-protocol.md`.
+- **Innovation layer added.** High-ambition or blank-slate runs now capture `innovation_contract`, dispatch Product Visionary for paradigm/cross-domain/inversion/new-mechanic probes, and record candidates in `.bagel/innovation/ledger.yaml` before local polish converges too early.
+- **Lesson memory added.** Recovery no longer ends at "fixed it." Reusable gotchas and setup/workaround knowledge are promoted into `.bagel/lessons/` or `ledger.yaml#lessons`, and `bagel_memory_check.py` fails recovery-heavy runs that learn nothing durable.
 
 ---
 
@@ -205,10 +207,13 @@ BAGEL never stops at "good enough." Each iteration drives a target set to all-gr
 
 ```bash
 python bagel-genesis/scripts/bagel_run_check.py /path/to/project
+python bagel-genesis/scripts/bagel_memory_check.py /path/to/project
 python bagel-genesis/scripts/flywheel_check.py /path/to/project
 ```
 
 `bagel_run_check.py` verifies that the run is actually wired for autonomy: git rollback exists, a <=25 minute loop/timer is bound, alignment floors were met, agent dispatch records exist, implementer/reviewer roles are separate, STATUS.md is complete, and HTML dashboard ownership is not ambiguous.
+
+`bagel_memory_check.py` verifies that innovation ambitions have concept candidates/probes and that recovery events produce reusable lesson memory instead of transient fixes.
 
 `flywheel_check.py` mechanically verifies six properties of every run: objective deltas, no false independence, no regression below green floors, no budget burning, no redundant bar raises, no flat-spin. All evidence must point to real files/commands/reports.
 
@@ -276,14 +281,15 @@ BAGEL maintains `.bagel/STATUS.md` (with a forced `Morning Briefing` block) and 
     ├── SKILL.md              # entry point
     ├── README.md             # skill-folder-local readme
     ├── agents/               # role prompts (orchestrator, implementer, reviewers, cartographer, ...)
-    ├── references/           # 31 trigger-loaded protocols
+    ├── references/           # 33 trigger-loaded protocols
     ├── scripts/
     │   ├── detect_runtime_capabilities.py
     │   ├── bagel_run_check.py    # operational runtime substrate validator
+    │   ├── bagel_memory_check.py # innovation and lesson-memory validator
     │   ├── flywheel_check.py     # mechanical flywheel integrity validator
     │   └── skill_lint.py         # skill self-consistency lint
     └── evals/
-        └── evals.json        # 48 behavior evals
+        └── evals.json        # 53 behavior evals
 ```
 
 ## Installation
@@ -393,10 +399,13 @@ Validate a BAGEL run's operational substrate and flywheel evidence:
 
 ```bash
 python bagel-genesis/scripts/bagel_run_check.py /path/to/project
+python bagel-genesis/scripts/bagel_memory_check.py /path/to/project
 python bagel-genesis/scripts/flywheel_check.py /path/to/project
 ```
 
 `bagel_run_check.py` verifies that the real `.bagel/` run has git rollback, loop binding, <=25 minute wake interval, alignment floors, agent dispatch records, implementer/reviewer separation, STATUS sections, and HTML dashboard ownership.
+
+`bagel_memory_check.py` verifies that innovation ambitions have concept candidates/probes and that recovery events produce reusable lesson memory instead of transient fixes.
 
 `flywheel_check.py` verifies evidence paths, green-floor regressions, review-level claims, bar-raise value classes, stuck metrics, budget monotonicity, and other failure modes that can make a long run look productive when it is not.
 
@@ -411,7 +420,7 @@ BAGEL Genesis v1.3 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 48 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, verify-dont-trust exploration, baseline manifests, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 53 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, innovation probes, lesson memory, verify-dont-trust exploration, baseline manifests, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 

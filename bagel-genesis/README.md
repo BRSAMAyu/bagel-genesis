@@ -144,6 +144,7 @@ bagel-genesis/
 ├── scripts/
 │   ├── detect_runtime_capabilities.py
 │   ├── bagel_run_check.py
+│   ├── bagel_memory_check.py
 │   ├── flywheel_check.py
 │   └── skill_lint.py
 └── evals/
@@ -285,10 +286,13 @@ Validate a BAGEL run's operational substrate and flywheel evidence:
 
 ```bash
 python /path/to/bagel-genesis/scripts/bagel_run_check.py /path/to/project
+python /path/to/bagel-genesis/scripts/bagel_memory_check.py /path/to/project
 python /path/to/bagel-genesis/scripts/flywheel_check.py /path/to/project
 ```
 
 `bagel_run_check.py` verifies that the real `.bagel/` run has git rollback, loop binding, <=25 minute wake interval, alignment floors, agent dispatch records, implementer/reviewer separation, STATUS sections, and HTML dashboard ownership.
+
+`bagel_memory_check.py` verifies that innovation ambitions have concept candidates/probes and that recovery events produce reusable lesson memory instead of transient fixes.
 
 `flywheel_check.py` verifies evidence paths, green-floor regressions, review-level claims, bar-raise value classes, stuck metrics, budget monotonicity, and other failure modes that can make a long run look productive when it is not.
 
@@ -320,7 +324,7 @@ BAGEL Genesis v1.3 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 48 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, verify-dont-trust exploration, baseline manifests, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 53 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, innovation probes, lesson memory, verify-dont-trust exploration, baseline manifests, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 

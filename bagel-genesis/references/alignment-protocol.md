@@ -239,6 +239,30 @@ options:
     description: "Existing project style dominates unless it clearly conflicts with the goal."
 ```
 
+#### Innovation Ambition
+
+```yaml
+question: "How original should the concept itself be?"
+options:
+  - label: "Differentiated"
+    description: "Recommended for new products: reserve a small budget for novel mechanics, then execute the best fit."
+  - label: "Execution excellence"
+    description: "Use when the concept is already decided; optimize completion, polish, and reliability."
+  - label: "Breakthrough"
+    description: "For ambitious blank-slate work: generate multiple competing concepts and test cheap probes before locking direction."
+```
+
+Persist as:
+
+```yaml
+innovation_contract:
+  ambition: execution_excellence | differentiated | breakthrough
+  exploration_budget_share: 0 | 10 | 20
+  novelty_floor: none | at_least_one_probe | multiple_competing_concepts
+  allow_identity_challenge: false
+  user_must_approve_identity_change: true
+```
+
 #### Research Verification
 
 ```yaml
@@ -498,6 +522,12 @@ autonomy_contract:
     generate_high_ev_improvements: true
     max_excellence_iterations: 3       # how many target-set->all-green cycles; each raises the bar. User-set; default 3.
     write_resume_checkpoint_every_cycle: true
+innovation_contract:
+  ambition: execution_excellence | differentiated | breakthrough
+  exploration_budget_share: 0 | 10 | 20
+  novelty_floor: none | at_least_one_probe | multiple_competing_concepts
+  allow_identity_challenge: false
+  user_must_approve_identity_change: true
 ```
 
 Use the strongest autonomy contract the user will allow. The point of the alignment phase is to make later confirmation unnecessary for reversible, local, beneficial work.

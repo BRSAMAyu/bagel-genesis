@@ -96,6 +96,7 @@ def main() -> int:
 
     failures.extend(check_v11_requirements(root))
     failures.extend(check_v12_requirements(root))
+    failures.extend(check_v13_innovation_memory(root))
     failures.extend(check_loading_matrix_files_exist(root))
 
     if failures:
@@ -293,6 +294,44 @@ def check_loading_matrix_files_exist(root: Path) -> list[str]:
                 full = root / "references" / part
                 if not full.exists():
                     out.append(f"SKILL.md Loading Matrix references 'references/{part}' but the file does not exist.")
+    return out
+
+
+def check_v13_innovation_memory(root: Path) -> list[str]:
+    """v1.3+ innovation and lesson-memory consistency checks."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    align = read("references/alignment-protocol.md")
+    excellence = read("references/excellence-loop.md")
+    recovery = read("references/recovery-protocol.md")
+    governance = read("references/governance-data-model.md")
+    memory_check = read("scripts/bagel_memory_check.py")
+
+    for rel in ("references/innovation-protocol.md", "references/lesson-memory.md", "agents/product-visionary.md", "scripts/bagel_memory_check.py"):
+        if not (root / rel).exists():
+            out.append(f"{rel}: v1.3 requires this innovation/lesson-memory file.")
+
+    if "Product Visionary" not in skill or "innovation-protocol.md" not in skill:
+        out.append("SKILL.md: must include Product Visionary and innovation-protocol in the Loading Matrix.")
+    if "lesson-memory.md" not in skill or "bagel_memory_check.py" not in skill:
+        out.append("SKILL.md: must include lesson-memory and run scripts/bagel_memory_check.py.")
+    if "Innovation Ambition" not in align or "innovation_contract" not in align:
+        out.append("alignment-protocol.md: must capture Innovation Ambition and innovation_contract.")
+    if "Product Visionary" not in excellence or "novelty/paradigm" not in excellence:
+        out.append("excellence-loop.md: must dispatch Product Visionary for novelty/paradigm exploration.")
+    if "Capture lesson" not in recovery or "lesson-memory.md" not in recovery:
+        out.append("recovery-protocol.md: recovery ladder must capture reusable lessons.")
+    if ".bagel/innovation/ledger.yaml" not in governance or ".bagel/lessons" not in governance:
+        out.append("governance-data-model.md: must define innovation ledger and lesson memory canonical files.")
+    for required in ("validate_lessons", "validate_innovation", "innovation_contract", "collect_lessons"):
+        if required not in memory_check:
+            out.append(f"scripts/bagel_memory_check.py: missing {required}.")
+
     return out
 
 

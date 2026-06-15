@@ -18,7 +18,8 @@ Missing local tools, tests, verifiers, screenshots, benchmarks, fixtures, or exp
 6. **Rollback:** return to last known valid checkpoint and replay a safer plan.
 7. **Re-plan:** update task queue and decision map.
 8. **Switch lane:** advance another independent high-value task while the blocked lane is isolated.
-9. **Escalate:** wake user only if required by hard-stop boundaries in the autonomy contract.
+9. **Capture lesson:** distill reusable evidence-backed learning into `.bagel/lessons/` or `ledger.yaml#lessons` before marking recovery complete.
+10. **Escalate:** wake user only if required by hard-stop boundaries in the autonomy contract.
 
 ## Severe Drift
 
@@ -85,6 +86,8 @@ After three failures of the same kind (or three consecutive `lateral` progress d
 - attempt one alternative route,
 - if still blocked, choose another positive-EV task or discovery lens,
 - then decide whether a hard-stop boundary truly requires user input.
+
+After any recovery ladder step 2 or higher, apply `references/lesson-memory.md`. A recovery is not complete until the agent either records a reusable lesson or records why the event was too local to be worth remembering.
 
 ### What counts as a strategy switch (not a parameter tweak)
 

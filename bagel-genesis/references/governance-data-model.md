@@ -14,6 +14,8 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Decisions, recovery, evolution, user decisions | `.bagel/ledger.yaml` | Append concise records or expand to directories when needed |
 | Progress deltas | `.bagel/evidence/progress-deltas.yaml` | Objective cycle-by-cycle evidence |
 | Bar raises | `.bagel/evidence/bar-raises.yaml` | Raised standards and why they are valuable |
+| Innovation candidates | `.bagel/innovation/ledger.yaml` | Novel concepts, probes, and adopt/park/reject decisions |
+| Lesson memory | `.bagel/ledger.yaml#lessons` or `.bagel/lessons/*` | Reusable gotchas, recovery lessons, and playbooks |
 | Loop binding and telemetry | `.bagel/state.yaml.loop_binding`, `.bagel/state.yaml.telemetry` | Timer/scheduler proof and runtime counters |
 | Review registry | `.bagel/state.yaml.review_registry` | Derived review independence levels in quick mode |
 | Flywheel integrity | `.bagel/state.yaml.gates.flywheel_integrity_passed` | Latest `scripts/flywheel_check.py` result |
@@ -37,6 +39,8 @@ In `full_genesis`, these domains may expand to specialized files:
 | Change history | `.bagel/evolution/*` | Audit, rollback, rationale |
 | Git/agents | `.bagel/git/*`, `.bagel/agents/*` | Ownership and integration state |
 | Flywheel evidence | `.bagel/evidence/*` | Progress deltas, bar raises, command output, screenshots, benchmarks |
+| Innovation ledger | `.bagel/innovation/ledger.yaml` | Divergent concept candidates and probe evidence |
+| Lesson memory | `.bagel/lessons/*` | Cross-run operational wisdom and reusable playbooks |
 | Loop binding and telemetry | `.bagel/state.json` or `.bagel/progress.json` | Timer/scheduler proof and runtime counters |
 | Human status entry | `.bagel/STATUS.md` | Single user-readable status entry point |
 | HTML briefing | `.bagel/user_briefing/alignment-dashboard.html` | Optional visual dashboard generated from canonical state |
@@ -88,6 +92,23 @@ Human-facing briefing:
         └── <topic>.md
 ```
 
+Innovation and lesson memory:
+
+```text
+.bagel/
+├── innovation/
+│   └── ledger.yaml
+└── lessons/
+    ├── index.yaml
+    ├── gotchas.yaml
+    ├── environment.yaml
+    ├── engineering.yaml
+    ├── product.yaml
+    ├── research.yaml
+    └── playbooks/
+        └── <slug>.md
+```
+
 `.bagel/STATUS.md` is the single entry point for humans after a long run. It summarizes phase, last verified progress, autonomy safety, current blockers, next action, and links to deeper files. In quick mode it is generated from `state.yaml`, `constitution.yaml`, `context.yaml`, `ledger.yaml`, and `evidence/progress-deltas.yaml`. In full mode it may also draw from `state.json`, `progress.json`, `gates/status.yaml`, `task_queue.json`, `human-decisions.yaml`, and `user_briefing/*`. If canonical files disagree, `STATUS.md` must say "state conflict" and link to the conflict report instead of choosing silently.
 
 ## Schema Registry
@@ -102,6 +123,8 @@ schemas:
   quick_ledger: {path: ".bagel/ledger.yaml", format: yaml, required_for_quick_autonomy: true}
   progress_deltas: {path: ".bagel/evidence/progress-deltas.yaml", format: yaml, required_for_long_run: true}
   bar_raises: {path: ".bagel/evidence/bar-raises.yaml", format: yaml, required_for_excellence_loop: true}
+  innovation_ledger: {path: ".bagel/innovation/ledger.yaml", format: yaml, required_when_innovation_contract_is_differentiated_or_breakthrough: true}
+  lesson_memory: {path: ".bagel/lessons/index.yaml", format: yaml, required_after_recovery_or_repeated_failure: true, optional_in_quick: "store inside ledger.yaml#lessons"}
   loop_binding: {path: ".bagel/state.yaml#loop_binding", format: yaml, required_for_autonomous_iteration: true}
   telemetry: {path: ".bagel/state.yaml#telemetry", format: yaml, required_for_long_run: true}
   html_dashboard: {path: ".bagel/user_briefing/alignment-dashboard.html", format: html, optional: true}

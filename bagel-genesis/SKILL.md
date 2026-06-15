@@ -81,6 +81,7 @@ After loading this skill, the main model **adopts the Orchestrator role**. All p
 | Constitutional Court | constitution, proposed amendment, evidence | accept/reject amendment | consider implementation difficulty as justification |
 | Red-Team Oracle | constitution, decisions, baseline/final candidate | adversarial findings | fix issues directly |
 | Brainstormer | constitution + taste kernel, current artifact, progress-deltas, state.excellence | improvement ideas under ONE assigned lens | read other brainstormers' output, propose implementation, work outside assigned lens |
+| Product Visionary | constitution, taste kernel, artifact state, progress evidence | divergent concept candidates + falsifiable probes | implement, review, or mutate the constitution directly |
 | User Alignment Curator | alignment artifacts, decision ledger, progress state | STATUS.md narrative sections + HTML dashboard + user_briefing/ | hide risks or unresolved decisions, write STATUS.md mechanical sections
 
 Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
@@ -99,6 +100,7 @@ A worker should not browse the `references/` directory freely. The orchestrator 
 | Red-Team Oracle | quality-assurance, recovery-protocol (adversarial lens) | 1-2 |
 | Constitutional Court | constitutional-court, constitution-template | 1-2 |
 | Brainstormer | none beyond its envelope (excellence-loop only if ranking ideas) | 0-1 |
+| Product Visionary | innovation-protocol | 1 |
 | User Alignment Curator | user-briefing, alignment-protocol | 1-2 |
 
 If a worker's task cannot be completed within its ceiling, the orchestrator derives a compact brief and puts that in the envelope instead of widening the ceiling. This is how "read strictly when needed, do not read otherwise" stays enforceable.
@@ -114,8 +116,10 @@ Default quick control state under `.bagel/`:
 ├── context.yaml        # current project facts, conventions, module map, feature inventory
 ├── ledger.yaml         # decisions, recovery, evolution, rejected improvements, user decisions
 ├── STATUS.md           # human-readable live progress
-└── evidence/
-    └── progress-deltas.yaml
+├── evidence/
+│   └── progress-deltas.yaml
+├── innovation/
+└── lessons/
 ```
 
 Expand to detailed state only when it pays for itself. Full mode may create:
@@ -157,7 +161,9 @@ Expand to detailed state only when it pays for itself. Full mode may create:
 ├── simulations/
 ├── ledger/
 ├── snapshots/
-└── crystals/
+├── crystals/
+├── innovation/
+└── lessons/
 ```
 
 Treat `.bagel/` as the memory, not the conversation transcript. Save decisions, evidence, open risks, gate results, and next actions. Do not save chain-of-thought or long narrative logs.
@@ -195,6 +201,8 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/rework-sandbox.md` | isolating a risky change in a worktree/sandbox branch | change is small and reversible in-place | full |
 | `references/simulations.md` | running scenario/deterministic user-flow checks on a built artifact | artifact is not yet runnable | full |
 | `references/excellence-loop.md` | baseline passes and you enter Polish; ranking improvement tasks by EV; **or experiment/research results are poor or stalled (lateral/backward deltas) and you need to decide whether to switch hypothesis vs keep iterating** | still in Build phase before baseline, with no polish/stall decision pending | always |
+| `references/innovation-protocol.md` | user asks for innovation/novelty/wow; blank-slate product needs concept exploration; bar-raising or recovery has locally converged; or `innovation_contract.ambition` is differentiated/breakthrough | execution-only task with a locked concept and no plateau | always |
+| `references/lesson-memory.md` | recovery occurred; the same failure recurred; environment/tooling was repaired; a reviewer finding repeats; or a useful workaround should persist across runs | no recovery/learning trigger this cycle | always |
 | `references/loop-runtime.md` | configuring a multi-cycle unattended loop, checkpoint cadence, or quota/resume | single-session work that finishes in one cycle | full |
 | `references/runtime-protocol.md` | handling context compaction, checkpointing, snapshot/resume, or cross-platform long runs | run is short and fits one session | full |
 | `references/recovery-protocol.md` | drift, repeated bug, tool/env failure, a gate fails 3×, **or three consecutive lateral progress deltas on the same approach (see excellence-loop stop criteria)** | work is progressing cleanly with forward deltas | always |
@@ -283,6 +291,7 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Long-run delegation: whether the user wants maximum autonomous momentum, how much time/token budget to spend, and which hard-stop boundaries remain non-negotiable.
 - Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
 - Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`. Once chosen, the run must reach that depth's floor (see `references/alignment-protocol.md` Run-Mode Depth) before entering Build; the `constitution_approved` gate enforces this.
+- Innovation ambition: whether the system should optimize the supplied concept, differentiate it, or spend explicit budget on breakthrough-level concept probes.
 - **Stop Contract (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml`. This is the single most important alignment artifact — it defines when the overnight run ends.
 - Briefing format: Markdown only or optional HTML dashboard, plus update frequency.
 
@@ -406,9 +415,10 @@ For long autonomous work, run in cycles:
 8. Update loop telemetry: elapsed time, cycles, agents dispatched, compactions, recovery events, timer wakeups, tests, screenshots, token estimate when available.
 9. Run `python scripts/bagel_run_check.py <project-root>` to verify the operational substrate: git rollback, loop binding, agent dispatch, role separation, and briefing ownership.
 10. Run `python scripts/flywheel_check.py <project-root>` when `.bagel/` exists. Treat either script failing as a gate failure: fix the evidence/state, rollback or isolate a bad change, dispatch the missing agent/reviewer/curator, or switch strategy before continuing.
-11. Persist structured output.
-12. Compact: update state and next action, then drop task-local context.
-13. Continue, switch strategy, or wake later depending on platform support.
+11. Run `python scripts/bagel_memory_check.py <project-root>` when `.bagel/` exists. Treat failure as a memory/decision gate: capture reusable lessons from recovery, or record required innovation probes before claiming the run is learning or pursuing novelty.
+12. Persist structured output.
+13. Compact: update state and next action, then drop task-local context.
+14. Continue, switch strategy, or wake later depending on platform support.
 
 If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run should keep converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
 
