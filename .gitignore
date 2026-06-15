@@ -1,0 +1,6 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Exclude the other skill from this repo (share bagel-genesis only)
+course-review-handbook/

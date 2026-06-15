@@ -1,0 +1,101 @@
+# Recovery Protocol
+
+Use when the run encounters severe bugs, tool failures, environment problems, design collapse, drift, or repeated review failures.
+
+## Recovery Bias
+
+Prefer autonomous repair, exploration, rollback, or switching tasks over stopping. Stop only for a hard-stop boundary in the autonomy contract or when all useful autonomous alternatives are exhausted and a checkpoint/resume plan exists.
+
+Missing local tools, tests, verifiers, screenshots, benchmarks, fixtures, or experiment harnesses are not external blockers. Create or configure the smallest project-local capability needed to continue, then record the command and trust boundary. Treat this as normal recovery work.
+
+## Recovery Ladder
+
+1. **Local repair:** fix the immediate issue and rerun verification.
+2. **Shrink scope:** create a smaller task that isolates the failing behavior.
+3. **Diagnose independently:** dispatch reviewer/debugger with failing evidence only.
+4. **Alternative path:** try a different implementation/design/research approach.
+5. **Sandbox rework:** use worktree/sandbox for risky cascade changes.
+6. **Rollback:** return to last known valid checkpoint and replay a safer plan.
+7. **Re-plan:** update task queue and decision map.
+8. **Switch lane:** advance another independent high-value task while the blocked lane is isolated.
+9. **Escalate:** wake user only if required by hard-stop boundaries in the autonomy contract.
+
+## Severe Drift
+
+Signals:
+
+- current work no longer serves the constitution,
+- repeated local choices changed the product/artifact identity,
+- user-facing briefing cannot explain why current work matters,
+- reviewers find global incoherence,
+- implementation constraints are driving product decisions.
+
+Actions:
+
+1. Stop only the drifting lane; continue safe independent work if possible.
+2. Write `.bagel/ledger/drift-report.md`.
+3. Compare current artifact to vision canon and constitution.
+4. Identify last valid checkpoint.
+5. Choose repair, rollback, fork, or amendment.
+6. Use Constitutional Court for any scope/identity change.
+
+## Environment and Tool Failures
+
+Allowed autonomous repairs:
+
+- inspect logs,
+- install missing local dependencies if normal for the project,
+- repair scripts/config,
+- use alternative command,
+- create minimal verifier when tool is absent,
+- create browser/screenshot/layout checks when UI quality must be verified,
+- create benchmark or experiment harnesses when research or optimization needs evidence,
+- document external service outage,
+- mock only when contract-backed and recorded.
+
+Default rule for the gray zone: long-run delegation means the agent keeps moving. A repair that writes package/dependency manifests, lockfiles, environment files, CI config, deployment config, auth config, database config, or shared root config should **continue** whenever it satisfies any of: the autonomy contract pre-authorized that class of change; the change is small, reversible, and project-local (verifier, setup, dev dependency, config for a non-production target); or the change is isolated in a worktree/sandbox branch that can be discarded. Record the change in the evolution ledger and continue. The list below marks items that are hard-stops **only when not pre-authorized and not safely isolable**; an item that is pre-authorized or isolated to a disposable branch is not a hard-stop.
+
+Wake the user (hard-stop) only when an item below is **neither pre-authorized nor isolable to a disposable branch**, or when it crosses a true hard-stop boundary:
+
+- using paid services or creating cloud resources,
+- adding credentials, tokens, or external accounts,
+- running destructive migrations or deleting user data,
+- changing production infrastructure,
+- upgrading major dependencies or replacing frameworks,
+- adding or upgrading dependencies that change lockfiles unless pre-approved,
+- editing `.env`, secrets files, package manager config, CI/deploy config, or root toolchain config unless pre-approved,
+- mocking an external service in a way that could be mistaken for real integration,
+- weakening security/privacy/legal guarantees,
+- force-pushing, rewriting history, or destructive git cleanup,
+- installing system-wide tools outside the project,
+- broad scope reduction or product/artifact identity changes.
+
+If a repair crosses a real hard-stop boundary, write a recovery option, continue with safe adjacent positive-EV work on other tasks, and surface the blocked decision in the user briefing. Do not idle.
+
+## Repeated Failure Policy
+
+Repeated failure does not mean stop. It means switch strategy or switch lane.
+
+After three failures of the same kind:
+
+- do not retry the same prompt,
+- write a root-cause hypothesis,
+- reduce the task,
+- use independent diagnosis,
+- attempt one alternative route,
+- if still blocked, choose another positive-EV task or discovery lens,
+- then decide whether a hard-stop boundary truly requires user input.
+
+## User Wake Conditions
+
+Wake the user when:
+
+- irreversible or non-recoverable destructive action is needed,
+- serious security/privacy/legal/financial/production-data risk would be introduced,
+- external credentials, accounts, or paid access are required,
+- production infrastructure or production data would be changed,
+- core promise, target audience, business model, or research identity would change,
+- an explicit user-forbidden boundary would be crossed,
+- no useful autonomous path remains after recovery, rollback, alternative exploration, and independent task switching.
+
+Otherwise continue, document, and brief.

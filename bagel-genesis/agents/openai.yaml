@@ -1,0 +1,4 @@
+interface:
+  display_name: "BAGEL Genesis"
+  short_description: "Autonomous excellence for new or existing projects"
+  default_prompt: "Use $bagel-genesis to deeply align with this vision or existing project, then autonomously iterate to an excellent finished deliverable."

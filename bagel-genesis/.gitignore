@@ -1,0 +1,6 @@
+# macOS
+.DS_Store
+
+# BAGEL runtime state (created by agents at runtime, not part of the skill)
+.bagel/
+*.bagel-worktrees/
