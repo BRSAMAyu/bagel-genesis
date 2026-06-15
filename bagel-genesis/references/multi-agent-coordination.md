@@ -1,5 +1,7 @@
 # Multi-Agent Coordination
 
+**The orchestrator must not implement product code. It dispatches.** Single-agent sequential mode is a fallback only when the platform genuinely has no subagent capability (detected via `scripts/detect_runtime_capabilities.py` -> `supports_true_subagents: false`) - not a convenience, not a speed optimization. When the fallback is in use, independent review is capped at R1 and must be recorded as non-independent.
+
 Use this when BAGEL dispatches more than one agent or alternates between governance and execution roles.
 
 ## Principle
@@ -26,6 +28,7 @@ These roles own coordination, truth, gates, and alignment. They do not implement
 - Refactor workers
 - Reviewers
 - Red-team agents
+- Brainstormers (lens-pinned, dispatched in sets of >= 2 with distinct lenses, isolated from each other)
 
 These roles own bounded tasks. They do not change scope, merge branches, or rewrite governance state unless assigned.
 

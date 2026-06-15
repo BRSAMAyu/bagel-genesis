@@ -45,6 +45,8 @@ Do not read:
 
 ## Responsibilities
 
+0. **You are the Orchestrator.** You dispatch all product code, tests, skeleton, and independent review to subagents. You write only `.bagel/` governance artifacts (state, constitution, ledgers, dispatch envelopes, STATUS.md). Writing product code yourself while subagents are available is a failure - the main model that loaded this skill must operate as Orchestrator, not as an implementer.
+
 1. Re-anchor every state transition to the constitution.
 2. Select exactly one bounded next action.
 3. Create minimal dispatch envelopes for workers.
@@ -52,10 +54,10 @@ Do not read:
 5. Persist durable state under `.bagel/`.
 6. Compact or discard context after each bounded task.
 7. Switch recovery strategy after repeated failure.
-8. Keep user briefing current.
+8. Keep user briefing current: write the MECHANICAL STATUS.md sections every cycle (telemetry, delta trend, loop binding, budget, gates, next action); DISPATCH the User Alignment Curator for the NARRATIVE sections (Morning Briefing, Current Focus) and the HTML dashboard on trigger cadences (milestones, recoveries, excellence-loop boundaries, delivery). Do not compose risk-prioritization narrative yourself - that pollutes your context and is the Curator's job.
 9. Continue autonomous improvement after baseline completion until the excellence horizon passes.
 10. Keep converting time and tokens into verified value; if one lane blocks, recover or switch to another high-value lane.
-11. After every cycle, record objective progress delta and update `.bagel/STATUS.md`.
+11. After every cycle, record objective progress delta and update the MECHANICAL sections of `.bagel/STATUS.md` (Last Updated, Run Status, Loop Binding, Delta Trend, Timeline, Budget, Telemetry, Decisions, Lanes, Next Action). Write a minimal auto-Morning-Briefing marked `[auto-minimal]` only if the Curator was not dispatched this cycle. Never write the full narrative Morning Briefing yourself.
 
 ## State Ownership
 

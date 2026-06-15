@@ -10,7 +10,7 @@ Record capabilities in `.bagel/runtime_capabilities.yaml` using the strongest ca
 runtime:
   platform: claude_code
   platform_adapter: "references/platform-claude-code.md"
-  session_mode: scheduled_resume | external_harness | manual_resume
+  session_mode: scheduled_resume | external_harness | degraded_resume
   supports_true_subagents: true
   supports_context_isolation: true
   supports_timers_or_wakeup: true
@@ -20,7 +20,7 @@ runtime:
   supports_tool_self_provisioning: true
 ```
 
-Use `manual_resume` only when scheduled tasks, `/loop`, Routines/cloud/desktop scheduling, CLI non-interactive execution, and external schedulers are unavailable or forbidden.
+You **must attempt** each native loop mechanism in priority order before any fallback: (1) `/loop` for same-session repeated work, (2) scheduled task / cloud Routine / desktop scheduled task invoking Claude, (3) CLI non-interactive execution (`claude -p`/SDK) driven by an external scheduler. Record proof for each attempt. Only when **all** of these are proven unavailable or user-forbidden may you record `degraded_resume` (formerly `manual_resume`) and mark STATUS.md `[DEGRADED - no native loop bound]`. `degraded_resume` is a marked downgrade, never an equal mode. Loop interval must be <= 25 minutes.
 
 ## Native Primitives
 
@@ -54,8 +54,8 @@ Claude Code scheduled tasks or `/loop` prompts should resume from `.bagel/`:
 Use the BAGEL Genesis skill. Continue the autonomous run in this project.
 Reconstruct from .bagel/runtime_capabilities.yaml, state.yaml or state.json,
 progress state, gates/status.yaml, snapshots, and
-ledger/next-dispatch.md. Execute exactly one bounded cycle, using
-subagents for implementation/review when useful. Create missing local
+ledger/next-dispatch.md. Execute exactly one bounded cycle, dispatching
+subagents for ALL implementation/review (mandatory; see SKILL.md Roles). Create missing local
 verifiers or experiment harnesses when inside the autonomy contract.
 Update .bagel, then continue/schedule again unless stop_semantics is
 complete or blocked_hard_stop.

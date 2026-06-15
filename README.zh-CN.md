@@ -8,6 +8,19 @@
 
 BAGEL Genesis 是一个**技能级运行协议**（skill-level operating protocol），用于把模糊的愿景或半成品项目变成一件完成度高、质量优秀的交付物。它针对的是一个常见工作流：你在睡前与智能体完成对齐，把一项困难任务交给它，然后期望系统持续工作下去，而不是遇到第一个含糊点就停下。
 
+## v1.1 新增什么
+
+四条强制规则收紧了"隔夜契约"，全部有机械 lint 检查：
+
+- **强制 loop，最长 25 分钟。** 第一个自主周期之前，智能体*必须*绑定一个平台原生 loop（`/loop`、计划任务、Codex automation、`codex exec`+cron），间隔 <= 25 分钟，并保持绑定直到运行结束。`degraded_resume`（原 `manual_resume_required`）只有在穷尽所有原生机制仍不可用时才作为标记降级使用。
+- **强制 git。** 工作文件夹在任何文件修改之前必须是 git 仓库 —— 必要时 `git init` + 基线提交，由 `project_under_version_control` 硬门强制。没有它，回滚和分支隔离都不可能。
+- **强制派遣。** skill 加载后，主模型*采用 Orchestrator 角色*，把所有产品代码/测试/审查派遣给 subagent。它只写 `.bagel/` 治理文件。自己动手实现是 #1 失败信号。
+- **深度对齐有数字下限。** `standard` 必须遍历全部 8 张选择卡 + >= 3 个开放问题；`deep` 必须 >= 2 轮、>= 8 个问题。4 题快速通道*仅*在 `snap` 模式有效。constitution 不达到下限不算锁定。
+
+加上一项信息架构升级：显式的 **Context-Isolation 公理**（一次独立的 subagent 调用*就是*一个独立的上下文）、一个 **Brainstormer** 角色（每次提标前派遣 >= 2 个固定 lens、独立上下文的 agent，把洞见多样性"制造"出来而非靠运气）、以及 **STATUS.md 所有权拆分**（orchestrator 写机械数据，Curator 写叙事 + HTML）。
+
+---
+
 它不是一段超长 prompt，而是一个结构化技能，包含：
 
 - 入口文件：[`bagel-genesis/SKILL.md`](bagel-genesis/SKILL.md)
@@ -48,6 +61,96 @@ BAGEL 跑的是一个**持续正向优化循环**：
 硬性停止边界被故意收得很窄：不可逆/不可恢复的破坏性操作、严重的安全/隐私/法律/财务/生产数据风险、凭据或付费外部资源、核心产品/研究身份变更，或用户明确禁止的边界。
 
 **停止规则是机械的，不是自评的。** 一次运行只在以下情况结束：用户设定的 `max_iterations` 耗尽、撞上 Token/预算墙、用户主动停止，或遇到真正的硬性停止边界。"我觉得它已经够好了" 永远不是停止理由。
+
+## 它凭什么做到
+
+上面的循环图本身不是价值所在 —— 任何智能体都能画出这张图。真正的价值在于：在一段无人值守的多小时运行中，智能体的上下文会被压缩、工具会缺失、它的自述不能被信任 —— 而 BAGEL 在每一处能替换的地方，把"智能体来判断"换成"脚本来校验状态"。
+
+下面的每一个机制，我们都标注了它的强制强度，让你清楚哪些是承重墙：
+
+- **代码强制** —— `flywheel_check.py` 违反即判该 cycle 失败，无法被说服绕过。
+- **门禁强制** —— 一道硬门挡住进展（合并、下一个切片、完成判定），直到条件通过。
+- **协议强制** —— 写在角色提示词和 references 里，承重于智能体遵守指令。
+
+### 它专门要打败的失败模式
+
+| 不用 skill 时，智能体容易… | BAGEL 的对抗机制 | 强制 |
+|---|---|---|
+| 上下文变长就漂移 | `constitution.yaml` 锚点，每次状态转移都重新对齐；每个 worker 只看自己的分派信封，不看历史 | 协议 |
+| 一遇困难就停下问你 | 不可覆盖的 tie-breaker：摩擦的默认答案是*继续*；硬停清单故意收得很窄 | 协议 |
+| 把"能跑"当成"完成" | baseline 完成只是 excellence loop 的*起点*，不是终点 | 协议 + 代码 |
+| 自己审自己（橡皮图章） | review registry 记录 `reviewer_id`/`session_id`；独立性是*推导*出来的，不是自报的 | **代码** |
+| 报告根本不存在的进展 | 每条 forward/lateral/backward 增量都必须指向磁盘上真实存在的、非空的 evidence 文件 | **代码** |
+| 悄悄退化一个已经变绿的指标 | 绿色底板退化门；被删/改名的指标也逃不掉保护 | **代码** |
+| 宣布"够好了"然后停下 | 没有自评停止；全绿时必须*提高标准*（5 种规范动作）；平坦爬升检测器专抓几乎无收益的空转 | **代码** |
+| 反复重试同一个死胡同烧预算 | 连续三次 lateral 强制切换策略；改参数/改措辞算*同一个*策略 | **代码** |
+
+`flywheel_check.py` 的头文件写明了它的设计意图：*"这里的每一个检查，都是因为之前某次审计发现对应的保证只是散文或自报。"*
+
+### 怎么做到连续数小时不用你盯着（长程耐久性）
+
+四层叠加，让长跑耐久，而不是依赖模型"记得继续"：
+
+1. **循环是外置的，不是模型内部的。** 一个 cycle = 一个有界单元（一道门 / 一次分派 / 一次审查 / 一次小修）。每个 cycle 结束必须选且只选一个动作：继续 / 进恢复 / 隔离车道去做别的 / 仅硬停才停 / 安排下一个 cycle。
+2. **transcript 是一次性的，`.bagel/` 是持久的。** 这是核心不变量。每个 cycle 写 checkpoint（状态/进度/任务队列/决策/风险/下一步动作），然后丢弃 worker 的原始推理和长日志。下一个 cycle 从 `.bagel/` 重建，绝不依赖"我下次会记得"。
+3. **snapshot 抗崩溃、抗压缩。** 每次压缩前先写一份带 checksum 的紧凑控制态快照。resume 时：加载最新快照 → 校验 checksum → 对比 live state → 只执行保存的 `next-action.md`。如果快照和 live 在 scope/契约/已完成 slice 上打架，它会*停下来写冲突报告，而不是猜*。
+4. **平台定时器绑定。** Claude Code 上绑定 scheduled task / `/loop` / cloud Routine / 外部 cron 调 `claude -p`；Codex 上绑定 automation / cloud task / `codex exec` / `PreCompact`·`SessionStart` 钩子。
+
+**诚实的边界：** 如果平台上没有调度器，BAGEL *必须先绑定一个原生 loop*（`/loop`、计划任务、Codex automation、`codex exec`+cron），间隔 <= 25 分钟，才能开始第一个周期。只有穷尽所有原生机制后，才允许记录 `degraded_resume`（STATUS 标记 `[DEGRADED]`）—— 即便如此也**被禁止**声称能无人值守续跑。隔夜承诺的前提，是真的有一个唤醒机制被配置好并带证据记录下来。
+
+### 遇到问题怎么恢复而不是停下（九级恢复阶梯）
+
+当有东西坏了 —— 门失败、工具缺失、测试退化、假设停滞、审查者反对 —— BAGEL 在考虑叫醒你之前，会爬一条九级的阶梯：
+
+1. 本地修复 + 重跑验证
+2. 缩小任务范围
+3. 派一个 reviewer/debugger，只看失败证据
+4. 换一条路（不同实现/设计/研究方法）
+5. 在隔离的 worktree/sandbox 里重做
+6. 回滚到最后一个有效 checkpoint + 走更安全的计划
+7. 重新规划（更新任务队列 + 决策图）
+8. **换车道** —— 隔离被堵的任务，去做另一个独立的高价值任务
+9. 叫醒用户 —— 只在真正的硬停边界
+
+**防自欺规则：** 改一个超参数、阈值或变量名，算*同一个*策略，继续计入三振计数。真正的策略切换必须改变方法、核心假设、产物结构或证据来源。验证器缺失属于恢复工作 —— 智能体自己造一个最小的本地测试/基准/截图脚本 —— 而不是豁免一道门或停下的理由。
+
+### 多 agent 怎么分工、怎么保持诚实
+
+BAGEL 是 hub-and-spoke 模型：一个 **Orchestrator** 一次只分派*一个有界 worker*，包在一个严格的**分派信封**里（`ROLE / READ-ONLY / WRITE-ONLY / LOCKS / EXIT-CRITERIA`，精确到文件路径而非目录）。worker 永远不读完整 skill、不读历史、不读别的 worker 的 transcript。每个角色的引用预算有上限（Implementer：0–1；reviewer：1–2）。
+
+并行工作是 opt-in（`parallel_advanced`），由 git worktree、path lock、merge queue 守护。"worker 永远不能自己合并自己的工作"这条规则在四个文件里重复出现。合并由 Integration Manager 在五道门通过后执行。
+
+**独立审查是从注册表状态推导的，不是自报的。** `flywheel_check.py` 在 R3/R4 审查复用实现者的 agent/session 身份时直接判失败。在平台没有真 subagent 时，BAGEL 顺序跑角色，并明确标记为 R1（*不是*独立审查）；对任何高风险的无人值守变更，它**拒绝合并那个车道** —— 隔离在分支上、推进安全的工作 —— 而不是偷偷降级审查。
+
+**诚实的边界：** 即便是 Claude Code/Codex 上的 R3"真 subagent"，通常还是同一个底层模型族。所谓独立是*上下文/身份隔离*（独立 context window、独立 session、看不到实现者叙述），不是不同训练。真正的模型多样性独立（R4）需要外部或人类 reviewer。
+
+### 先搭骨架，再填价值
+
+软件类产物：**Skeleton Builder** 先搭一艘可运行的"幽灵船" —— 路由、错误/认证边界、类型化契约、注册的桩、最小测试、mock 核心旅程 —— 然后一道硬的 **Ghost Ship Gate** 在 10 个结构条件全部带真实命令/测试/浏览器输出通过之前，挡住所有价值切片工作。不允许自我认证；文档里提到某个命令名不等于通过。
+
+研究类产物的等价骨架是 **研究协议 + 文献地图**，在任何 claim 被填充之前。"先搭骨架再推进"这条原则对每种产物类型都成立，只是骨架形态不同。
+
+### 工程规范 vs 研究规范
+
+BAGEL 不会把一个研究项目当成"披着研究皮的软件开发"。`artifact-types.md` 按类型切换 baseline unit、骨架门和验证模式：
+
+| 类型 | 基线单元 | 骨架门 | 验证 |
+|---|---|---|---|
+| 软件 | 价值切片 | 幽灵船（可运行壳） | 测试、类型检查、端到端/浏览器 |
+| 已有软件 | 有界改进 | 行为保持门 | 回归检查、diff 审查 |
+| **研究** | **claim / 实验 / 章节** | **研究协议 + 文献地图** | **引文检查、方法论批判、可复现性** |
+| 写作 | 章节 / 场景 / 论点 | 大纲 + 语调/连续性圣经 | 连续性、结构、语调 |
+| 数据分析 | 数据集 / 问题 / 图表 | 数据管线 + 假设地图 | 数据校验、统计批判 |
+
+对计算研究，excellence loop 明确要求：假设台账、benchmark 线束、baseline 对比、ablation/失败记录、胜者保留标准。当结果停滞（连续三次 lateral）时，规定的切换是*换假设* —— 而不是调参数。
+
+**诚实的边界：** `flywheel_check.py` 能校验一个标记为 `stronger_evidence` 的研究标准提升确实带了一个存在的 evidence 文件 —— 但它无法校验那个文件真的是一次合格的证伪实验或真正的 baseline 对比。研究内容的语义严谨性靠独立 reviewer 和周期性独立飞轮审计，而不是脚本。
+
+### 哪些由代码强制、哪些由协议强制 —— 以及那一处缺口
+
+八项反幻觉属性由 `flywheel_check.py` 作为硬门强制：evidence 文件存在性、审查独立性推导、绿色底板退化（方向感知、删指标也逃不掉）、迭代预算、预算单调性、标准提升价值类别、卡住指标分类、平坦爬升重算。
+
+有一项保证**目前仍是纯散文**：周期性的*独立飞轮审计*（一个 R3+ reviewer 把 agent 自己写的 `.bagel/` evidence 重新对照真实仓库核查，以抓出"agent 写了一份内部自洽的 fiction 骗过所有检查"）被写成每 N cycle 必做，但没有任何脚本校验它是否真的被执行了。这是当前最大的散文 vs 代码缺口。现实中的兜底是：另外八项检查已经把"造假成本"抬得足够高，让审计的负担变得有界 —— 但把审计本身也代码强制化，是显而易见的下一步硬化方向。
 
 ## 关键特性
 
@@ -99,7 +202,7 @@ python bagel-genesis/scripts/flywheel_check.py /path/to/project
 - `scheduled_resume`：平台自动化、计划任务或定时器
 - `external_harness`：cron、launchd、云任务、CLI 循环或其他外部驱动
 - `active_session_loop`：当前平台循环正在活跃运行
-- `manual_resume_required`：没有任何真正的唤醒机制，无法保证无人值守续跑
+- `degraded_resume`：所有原生 loop 机制都证明不可用，无法保证无人值守续跑（STATUS 标记 `[DEGRADED]`）
 
 循环状态记录：触发间隔、下次唤醒时间、调度证明、续跑命令、遥测。
 
@@ -135,7 +238,7 @@ BAGEL 维护 `.bagel/STATUS.md`（含强制的 `Morning Briefing` 块）和 `.ba
     │   ├── flywheel_check.py     # 飞轮完整性机械校验器
     │   └── skill_lint.py         # 技能自洽性 lint
     └── evals/
-        └── evals.json        # 38 条行为评测
+        └── evals.json        # 43 条行为评测
 ```
 
 ## 安装
@@ -208,13 +311,13 @@ I want an autonomous experiment loop. Align on the benchmark, baseline, and stop
 python bagel-genesis/scripts/detect_runtime_capabilities.py --out .bagel/runtime_capabilities.yaml
 ```
 
-它会检测平台线索、CLI 工具、调度器可用性、Git 支持、浏览器/视觉检查支持、本地工具自给能力，然后映射为 `single_session` / `manual_resume` / `scheduled_resume` / `external_harness` 之一。
+它会检测平台线索、CLI 工具、调度器可用性、Git 支持、浏览器/视觉检查支持、本地工具自给能力，然后映射为 `single_session` / `degraded_resume` / `scheduled_resume` / `external_harness` 之一。
 
 显式自主迭代时，BAGEL 必须记录循环绑定：
 
 ```yaml
 loop_binding:
-  mode: scheduled_resume | external_harness | active_session_loop | manual_resume_required
+  mode: scheduled_resume | external_harness | active_session_loop | degraded_resume   # 间隔 <= 25 分钟
   platform: codex | claude_code | other
   schedule_id: ""
   trigger_interval_minutes: 10
@@ -224,7 +327,7 @@ loop_binding:
     - "automation id, cron entry, scheduled task, active /loop config, or harness command"
 ```
 
-如果结果是 `manual_resume_required`，智能体不得声称它能无人值守续跑。
+如果结果是 `degraded_resume`，智能体不得声称它能无人值守续跑，且 STATUS.md 标记 `[DEGRADED]`。
 
 ## `.bagel/` 运行时状态
 
@@ -260,7 +363,7 @@ BAGEL Genesis v1 已文档完备并通过内部校验：
 - 技能元数据校验通过
 - BAGEL 自洽性 lint 通过
 - evals JSON 合法且编号连续
-- 38 条行为评测覆盖对齐、项目接管、循环绑定、恢复、飞轮完整性、视觉证据、HTML 晨报
+- 43 条行为评测覆盖对齐深度下限、项目接管、强制 loop/git/dispatch、上下文隔离、brainstormer 多样性、循环绑定、恢复、飞轮完整性、视觉证据、HTML 晨报
 
 剩下的验证是经验性的：在真实项目上跑一夜，把结果和普通智能体用法对比。
 

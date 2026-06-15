@@ -22,6 +22,24 @@ Use this for any BAGEL run that modifies files in a git repository, especially w
 
 ## Repository Preflight
 
+### Step 0: Repo Guarantee (MANDATORY before any file modification)
+
+Before dispatching any write work, guarantee the working folder is a git repository. Rollback, branch isolation, and the `rollback_point_present_for_risk` gate all depend on this and silently break otherwise.
+
+```bash
+git rev-parse --is-inside-work-tree
+```
+
+If it succeeds, continue to Step 1. If it fails (not a repo):
+
+1. Ask the user once: "This folder is not a git repo. BAGEL needs one for safe rollback and branch isolation during the autonomous run. Initialize one now? (recommended: yes)"
+2. On **yes** or default: `git init` -> add a baseline `.gitignore` if none exists -> `git add -A` -> `git commit -m "BAGEL baseline before autonomous run"`. Record the commit SHA as the rollback floor in `.bagel/state.yaml`.
+3. On **explicit no**: set the `project_under_version_control` hard gate to `fail`. Do not start autonomous write work. Explain that without version control every change is irreversible and rollback is impossible - this is a true precondition, not a negotiable preference.
+
+Never modify project files in a non-git folder during an autonomous run. Git init is the single cheapest insurance against an overnight run producing damage you cannot undo.
+
+### Step 1: Worktree state
+
 Before dispatching write work:
 
 ```bash

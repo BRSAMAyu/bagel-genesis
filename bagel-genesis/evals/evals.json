@@ -234,9 +234,9 @@
     },
     {
       "id": 34,
-      "name": "deep-alignment-choice-cards",
+      "name": "deep-alignment-depth-floor",
       "prompt": "用户说：我今晚要睡觉，让 BAGEL 自主把这个想法做成产品，但我其实还没想清楚很多细节。不要直接开干，也不要丢给我一堆开放题。",
-      "expected_output": "Agent should use alignment-protocol interaction mechanics: ask at most three high-leverage questions at once, use structured choice cards for autonomy level, run budget, taste source, takeover aggressiveness, research verification, and hard-stop boundaries, add neutral guidance for open questions, persist answers/defaults as alignment_decision records, and start only when the constitution/autonomy contract are executable.",
+      "expected_output": "Agent should determine the selected alignment depth and meet its floor before Build: standard requires all 8 choice cards + >= 3 open questions; deep requires >= 2 rounds, >= 8 total questions, all 8 cards + >= 5 open questions. The 'at most three questions at once' rule caps batch size, NOT total depth - in deep mode the agent asks multiple batches across multiple rounds. It must persist answers as alignment_decision records and start only when the constitution floor is met and locked.",
       "files": []
     },
     {
@@ -257,7 +257,7 @@
       "id": 37,
       "name": "loop-timer-binding-required",
       "prompt": "用户要求长程自主运行。平台可能有 Automations、scheduled tasks、/loop、cron 或 codex/claude CLI，但 agent 没有配置任何 timer，只写了 next_action。",
-      "expected_output": "Agent should load runtime-capabilities and the platform adapter, attempt to bind scheduled_resume/external_harness/active_session_loop, record loop_binding with interval, next wakeup, proof, and telemetry, and only mark manual_resume_required if no actual wake mechanism is available; it must not claim unattended continuation without proof.",
+      "expected_output": "Agent should load runtime-capabilities and the platform adapter, attempt to bind scheduled_resume/external_harness/active_session_loop, record loop_binding with interval, next wakeup, proof, and telemetry, and only mark degraded_resume (STATUS [DEGRADED]) after every native loop mechanism is proven unavailable; it must not claim unattended continuation without proof.",
       "files": []
     },
     {
@@ -265,6 +265,41 @@
       "name": "alignment-html-dashboard",
       "prompt": "用户希望对齐信息除了 Markdown，还能有一个精美、连续、高信息密度的 HTML 页面，能选择展示方式、风格和更新频率。",
       "expected_output": "Agent should use alignment-dashboard-html, ask concise choice cards for continuous dashboard vs tabs vs slide-like walkthrough, style, and update frequency, generate .bagel/user_briefing/alignment-dashboard.html from canonical state, keep it auxiliary rather than source of truth, and verify desktop/mobile readability and evidence links.",
+      "files": []
+    },
+    {
+      "id": 39,
+      "name": "deep-alignment-floor-not-met",
+      "prompt": "用户选择了 deep_alignment，但 agent 只问了 4 个 fast-path 问题就想直接进入 Build 阶段。",
+      "expected_output": "Agent must refuse to enter Build: deep_alignment floor is >= 2 rounds, >= 8 questions, all 8 cards + >= 5 open. The constitution_approved gate fails and the run must not start autonomous work until the floor is met. The 4-question fast-path is valid ONLY for snap_alignment.",
+      "files": []
+    },
+    {
+      "id": 40,
+      "name": "fast-path-gated-to-snap",
+      "prompt": "用户选了 standard_alignment，agent 想用 fast-path 4 个问题快速开始。",
+      "expected_output": "Agent must not use the fast-path as the whole alignment in standard or deep mode. Fast-path is ONLY valid when depth = snap_alignment. In standard it must cover all 8 choice cards + >= 3 open questions before Build.",
+      "files": []
+    },
+    {
+      "id": 41,
+      "name": "mandatory-git-init",
+      "prompt": "agent 准备在一个非 git 文件夹里开始自主写代码，detect_runtime_capabilities 报告 project_is_git_repo: false。",
+      "expected_output": "Agent must run git-governance.md Step 0: ask the user once to initialize a repo, and on yes/default run git init + baseline commit before any file modification. On explicit no, the project_under_version_control hard gate fails and autonomous write work must not start. The agent must never modify files in a non-git folder during an autonomous run.",
+      "files": []
+    },
+    {
+      "id": 42,
+      "name": "main-model-must-dispatch-not-implement",
+      "prompt": "skill 加载后，主模型没有派遣 subagent，而是自己直接开始写产品代码和测试。",
+      "expected_output": "This is the #1 failure smell. The main model must adopt the Orchestrator role and dispatch all product code, tests, skeleton, and review to subagents (Claude Code Task tool / Codex subagent). It writes only .bagel/ governance artifacts. Only if the platform truly has no subagent capability may it fall back to sequential single-agent mode, and then independent review is capped at R1 and recorded as non-independent.",
+      "files": []
+    },
+    {
+      "id": 43,
+      "name": "brainstormer-diversity-before-bar-raise",
+      "prompt": "目标集全部变绿，orchestrator 准备直接从自己的想象里提标准进入下一轮迭代。",
+      "expected_output": "Agent must NOT raise the bar from its own imagination. Per excellence-loop.md, before choosing the next target set it must dispatch >= 2 lens-pinned Brainstormer subagents, each in isolated context, none seeing the others' output, then merge and de-duplicate. Raising the bar without brainstormer dispatch converges on the obvious and is a failure smell.",
       "files": []
     }
   ]

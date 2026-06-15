@@ -58,13 +58,17 @@ If the user is unsure, do not force premature precision. Record the uncertainty,
 
 ## Run-Mode Depth
 
-Use the lightest alignment depth that makes unattended work executable:
+Use the lightest alignment depth that makes unattended work executable. Each tier has a **mechanical floor** - the run must not enter Build until the floor is met and recorded as `alignment_decision` entries in the constitution.
 
-- `snap_alignment`: urgent or low-stakes. Ask only the essential choices, default the rest, then start. Usually 3-7 minutes.
-- `standard_alignment`: default. Ask the choice cards plus the most relevant open questions. Usually 10-25 minutes.
-- `deep_alignment`: important, ambiguous, high-budget, or large-scope. Keep asking decision cards and open questions until the user says the mental model is clear enough. Multiple rounds are allowed.
+- `snap_alignment`: urgent or low-stakes. **Floor: >= 4 questions (the fast-path set), <= 1 round.** Ask only the essential choices, default the rest, then start. Usually 3-7 minutes.
+- `standard_alignment`: default. **Floor: all 8 choice cards asked + >= 3 open questions, >= 1 round.** Ask the choice cards plus the most relevant open questions. Usually 10-25 minutes.
+- `deep_alignment`: important, ambiguous, high-budget, or large-scope. **Floor: >= 2 rounds, >= 8 total questions, all 8 choice cards + >= 5 open questions.** After each round, explicitly ask the user "Is your mental model clear enough to delegate this overnight?" - only an explicit yes ends alignment. Multiple rounds are the norm, not the exception.
 
-Do not spend the first hours of a run producing governance documents when a bounded, reversible implementation or experiment can already produce evidence.
+**Alignment Floor Checklist (mechanical):** the constitution must contain >= 8 `alignment_decision` records (standard) or >= 12 (deep) before it is considered locked. If the count is below the floor for the selected depth, the `constitution_approved` gate fails and Build must not start. This is what stops alignment from collapsing to native-plan-mode depth.
+
+The "ask at most three questions at once" rule (above) caps **batch size**, not total depth. In standard and deep modes, ask multiple batches across one or more rounds until the floor is met.
+
+Do not spend the first hours of a run producing governance documents when a bounded, reversible implementation or experiment can already produce evidence - but do not use this as an excuse to skip the depth floor. The floor is a minimum, not a maximum.
 
 ## Alignment Question Tree
 
@@ -72,7 +76,9 @@ Ask enough of these to make the next autonomous run safe and useful. Do not ask 
 
 ### Fast path (the 4 questions that carry ~80% of the value)
 
-If the user is tired, time-constrained, or just wants to delegate fast, get crisp answers to these four and start. The rest can be inferred, defaulted, or asked only if a hard-stop ambiguity remains:
+**The fast path is ONLY valid when the selected depth is `snap_alignment`.** In `standard_alignment` or `deep_alignment`, using the fast path as the whole alignment is a violation - it does not meet the depth floor and the `constitution_approved` gate will fail.
+
+If the user is tired, time-constrained, or just wants to delegate fast AND has explicitly chosen `snap_alignment`, get crisp answers to these four and start. The rest can be inferred, defaulted, or asked only if a hard-stop ambiguity remains:
 
 1. **Core vision** (Q1): What are we making, for whom, what pain does it solve?
 2. **Disappointment** (Q3): What outcome would disappoint you even if it technically works? — this is the strongest single alignment signal.

@@ -20,7 +20,7 @@ Create `.bagel/runtime_capabilities.yaml`:
 runtime:
   platform: codex | claude_code | other
   platform_adapter: "references/platform-codex.md | references/platform-claude-code.md | custom | none"
-  session_mode: single_session | manual_resume | scheduled_resume | external_harness
+  session_mode: single_session | degraded_resume | scheduled_resume | external_harness
   supports_true_subagents: detected_true_or_false
   supports_context_isolation: detected_true_or_false
   supports_timers_or_wakeup: detected_true_or_false
@@ -42,22 +42,22 @@ runtime:
 | Level | Meaning | Allowed Promise |
 |---|---|---|
 | `single_session` | One agent call/session only | Finish current bounded task or write handoff |
-| `manual_resume` | User or later agent must restart | Stop with exact resume instruction |
+| `degraded_resume` (was `manual_resume`) | User or later agent must restart; reached only after all native loops/harnesses proven unavailable | Stop with exact resume instruction + STATUS.md `[DEGRADED]` marker |
 | `scheduled_resume` | Platform can wake a thread/task | Schedule/checkpoint and continue later |
 | `external_harness` | Separate loop runner can launch sessions | Run queued tasks under explicit harness policy |
 
-If uncertain, choose the lower capability level. Do not describe manual resume as unattended progress.
+If uncertain, choose the lower capability level. Do not describe degraded resume as unattended progress. Note: on Claude Code and Codex the platform-native loop (`/loop`, automations, scheduled tasks, cloud tasks, `codex exec`) is timer-capable even when crontab/launchctl are absent - do not falsely force `degraded_resume` on these platforms.
 
 For known agentic platforms, uncertainty means "check the adapter," not "assume false":
 
 - Codex: read `references/platform-codex.md`. Codex can use app automations, project/worktree background runs, cloud tasks, `codex exec`, subagents, hooks, in-app browser, and worktrees when enabled by the user's environment.
 - Claude Code: read `references/platform-claude-code.md`. Claude Code can use scheduled tasks, `/loop`, cloud/desktop scheduling, subagents, background agents/teams, hooks, worktrees, and `claude -p`/SDK automation when enabled by the user's environment.
-- Other platforms: document the equivalent native loop/scheduler/agent primitives or fall back to `manual_resume`.
+- Other platforms: document the equivalent native loop/scheduler/agent primitives or fall back to `degraded_resume` (only after proving native mechanisms unavailable).
 
 ## Preflight
 
 1. Detect platform and load the matching adapter reference when available.
-2. Map native scheduling/loop capability to `scheduled_resume` or `external_harness` before considering `manual_resume`.
+2. Map native scheduling/loop capability to `scheduled_resume` or `external_harness` - attempt every native mechanism first; `degraded_resume` is only for after all are proven unavailable.
 3. Map native subagents/background agents to R3 review capability when they have isolated context and inspect artifacts rather than worker self-justification.
 4. Map native hooks/non-interactive mode/cloud tasks to gate enforcement, resume, and automation options.
 5. Record unsupported features explicitly only after checking the adapter and current environment.
@@ -70,7 +70,7 @@ For explicit autonomous iteration, manual planning is not an acceptable terminal
 - configured loop/timer/automation/scheduled task,
 - configured external harness or CLI command that will relaunch cycles,
 - active platform loop with checkpoint cadence,
-- `manual_resume_required` with a clear statement that true unattended continuation is unavailable.
+- `degraded_resume` with a clear statement that true unattended continuation is unavailable AND a red `[DEGRADED - no native loop bound]` marker in STATUS.md - only reached after all native mechanisms are proven unavailable.
 
 Do not ask the user to enter a generic Plan mode after they have delegated autonomous iteration. Use alignment choices to capture decisions, then start or bind the loop.
 
@@ -84,8 +84,8 @@ Every cycle must end in one of:
 
 - `progressing`: another cycle is already scheduled or running.
 - `waiting_for_capacity`: quota/runtime unavailable; resume artifact exists.
-- `manual_resume_required`: no scheduler exists; exact next action exists.
-- `blocked_hard_stop`: a genuine hard-stop boundary was hit (credentials, paid resources, production data, irreversible action, or no safe autonomous path remains after recovery). Not laziness — the run tried and exhausted alternatives. Distinct from `manual_resume_required` (no scheduler) and `waiting_for_capacity` (temporary).
+- `degraded_resume`: no scheduler exists after exhausting native mechanisms; exact next action exists; STATUS.md marked `[DEGRADED]`.
+- `blocked_hard_stop`: a genuine hard-stop boundary was hit (credentials, paid resources, production data, irreversible action, or no safe autonomous path remains after recovery). Not laziness — the run tried and exhausted alternatives. Distinct from `degraded_resume` (no scheduler) and `waiting_for_capacity` (temporary).
 - `complete`: completion and excellence gates passed.
 
 Never leave the state ambiguous.

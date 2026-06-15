@@ -25,26 +25,40 @@ For Codex and Claude Code, load the matching platform adapter before deciding th
 
 ## Autonomous Iteration Start Gate
 
-When the user says to start autonomous iteration, do not remain in planning-only mode. Complete the required alignment choices, then start the loop only after recording one of:
+When the user says to start autonomous iteration, do not remain in planning-only mode. Complete the required alignment choices, then **bind a loop before the first autonomous cycle**. Loop binding is MANDATORY, not optional. Work through the mechanisms in priority order; record proof for each attempt. Only when every native mechanism is proven unavailable may you record `degraded_resume`.
 
-- `scheduled_resume`: platform timer/automation/scheduled task configured and schedule id recorded.
-- `external_harness`: loop runner, cron/launchd, cloud task, or CLI harness configured and command recorded.
-- `active_session_loop`: current platform loop is actively running and checkpoint cadence is recorded.
+**P1 - Native platform loop (must attempt first on Claude Code / Codex):**
+- Claude Code: `/loop`, scheduled task, cloud Routine, or desktop scheduled task invoking Claude.
+- Codex: thread automation (same-thread heartbeat), standalone/project automation, cloud task, or `codex exec` driven by a scheduler.
 
-If none is possible, record `manual_resume_required` and state that unattended continuation is not guaranteed. Do not present this as successful autonomous iteration.
+**P2 - External harness (fallback when P1 is unavailable):**
+- cron, launchd, CI scheduler, SDK/CLI loop, or other external process that relaunches cycles. Record the exact command and schedule.
+
+**P3 - Degraded resume (only after P1 AND P2 are both proven unavailable):**
+- `degraded_resume`: no native loop and no external harness could be bound. The run continues in the current session only. STATUS.md must carry a red `[DEGRADED - no native loop bound]` marker. This is a marked downgrade, never an equal mode, and must never be presented as successful autonomous iteration.
+
+If a mechanism binds, record `scheduled_resume` (P1), `external_harness` (P2), or `active_session_loop` (an in-session platform loop is actively running with checkpoint cadence). Do not record `degraded_resume` while any P1/P2 option remains unattempted.
 
 ```yaml
 loop_binding:
-  mode: scheduled_resume | external_harness | active_session_loop | manual_resume_required
+  mode: scheduled_resume | external_harness | active_session_loop | degraded_resume   # degraded_resume only after P1+P2 exhausted
   platform: codex | claude_code | other
   schedule_id: ""
-  trigger_interval_minutes: 10
+  trigger_interval_minutes: 10   # HARD MAX 25; lower is better for overnight runs. Must not exceed 25.
   created_at: "ISO-8601"
   next_wakeup_at: "ISO-8601"
   resume_command_or_action: ""
   proof:
     - "automation id, cron entry, scheduled task, active /loop config, or harness command"
+  attempts:                       # record every P1/P2 mechanism tried, pass or fail
+    - mechanism: "/loop"
+      result: bound | unavailable | forbidden
+      note: ""
 ```
+
+### Loop Persistence Rule
+
+Once a loop/timer is bound, it **must stay bound until the run ends**. The run ends only when: the user-set `max_iterations` is exhausted, the token/budget wall is hit, the user stops it, or a true hard-stop boundary is reached. Do not close, cancel, or unregister the schedule mid-run. Only during end-of-run cleanup (after the final cycle) may the schedule/automation be torn down. Closing the loop early to "take a break" or because the current cycle finished is a violation - the next cycle must still be able to wake.
 
 ## Required State
 
@@ -183,11 +197,11 @@ The user should not wake up to an ambiguous stopped state. The project must eith
 Use the detected capability level:
 
 - `single_session`: finish one bounded unit, then write handoff and stop.
-- `manual_resume`: write the exact command/message/action needed to continue.
+- `degraded_resume` (was `manual_resume`): write the exact command/message/action needed to continue, and mark STATUS.md `[DEGRADED - no native loop bound]`. Only reached after P1+P2 in the Start Gate are exhausted.
 - `scheduled_resume`: schedule the next cycle if the platform exposes a scheduler; record schedule id.
 - `external_harness`: write machine-readable task queue and allow the harness to launch the next agent session.
 
-If a scheduler is unavailable, do not claim that the run will wake itself. State `manual_resume_required` in `.bagel/state.yaml` or `.bagel/state.json`.
+If a scheduler is unavailable after exhausting P1+P2, do not claim that the run will wake itself. State `degraded_resume` in `.bagel/state.yaml` or `.bagel/state.json` and mark STATUS.md.
 
 ## Cycle Stop Check
 
@@ -195,7 +209,7 @@ At the end of every cycle, write:
 
 ```json
 {
-  "stop_semantics": "progressing | waiting_for_capacity | manual_resume_required | blocked_hard_stop | complete",
+  "stop_semantics": "progressing | waiting_for_capacity | degraded_resume | blocked_hard_stop | complete",
   "next_action": "",
   "resume_artifact": ".bagel/runs/<run_id>/handoff.json"
 }

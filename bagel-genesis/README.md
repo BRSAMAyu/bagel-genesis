@@ -74,7 +74,7 @@ When the user says "start autonomous iteration," BAGEL should not park in planni
 - `scheduled_resume`: platform automation, scheduled task, or timer
 - `external_harness`: cron, launchd, cloud task, CLI loop, or other harness
 - `active_session_loop`: current platform loop is actively running
-- `manual_resume_required`: no true wake mechanism is available, so unattended continuation is not guaranteed
+- `degraded_resume`: every native loop mechanism was proven unavailable, so unattended continuation is not guaranteed (STATUS `[DEGRADED]`)
 
 Loop state records trigger interval, next wake time, schedule proof, resume command, and telemetry.
 
@@ -228,7 +228,7 @@ python scripts/detect_runtime_capabilities.py --out .bagel/runtime_capabilities.
 This detects platform clues, CLI tools, scheduler availability, Git support, browser/visual-check support, and local tool-provisioning capability. The agent then maps those facts to one of:
 
 - `single_session`
-- `manual_resume`
+- `degraded_resume`
 - `scheduled_resume`
 - `external_harness`
 
@@ -236,7 +236,7 @@ For explicit autonomous iteration, BAGEL must record a loop binding:
 
 ```yaml
 loop_binding:
-  mode: scheduled_resume | external_harness | active_session_loop | manual_resume_required
+  mode: scheduled_resume | external_harness | active_session_loop | degraded_resume   # <= 25 min
   platform: codex | claude_code | other
   schedule_id: ""
   trigger_interval_minutes: 10
@@ -246,7 +246,7 @@ loop_binding:
     - "automation id, cron entry, scheduled task, active /loop config, or harness command"
 ```
 
-If the result is `manual_resume_required`, the agent must not claim it will continue unattended.
+If the result is `degraded_resume`, the agent must not claim it will continue unattended and STATUS.md is marked `[DEGRADED]`.
 
 ## `.bagel/` Runtime State
 

@@ -16,11 +16,23 @@ Read only assigned files, usually:
 - `.bagel/evolution/change-records/`
 - recent review or recovery reports
 
-## Outputs
+## Outputs (v1.1 ownership)
 
-Create or update `.bagel/STATUS.md` plus canonical `.bagel/user_briefing/` files from `references/governance-data-model.md`:
+You own the **narrative and user-facing** surfaces. The Orchestrator owns the **mechanical** surfaces. Never edit a section you do not own - dual-writers cause race conditions and context pollution.
 
-- `.bagel/STATUS.md`
+**STATUS.md - you write ONLY these sections** (the Orchestrator writes the rest):
+
+- `Morning Briefing` (the 4-line block: status / nothing-irreversible / decision-needed / revert-command). This is the single most important thing you produce - a groggy user reads it in 10 seconds.
+- `Current Focus` (one-sentence narrative framing).
+
+On cycles where you are not dispatched, the Orchestrator writes a minimal auto-Morning-Briefing marked `[auto-minimal]`; you rewrite the full version at your next trigger.
+
+**HTML dashboard - you own this exclusively** (the Orchestrator never writes HTML):
+
+- `.bagel/user_briefing/alignment-dashboard.html` - generated from STATUS.md + progress-deltas at the user-selected frequency (`every_milestone` default, `every_cycle` if the user opted in, `final_only` for short runs).
+
+**Canonical `.bagel/user_briefing/` files** (from `references/governance-data-model.md`):
+
 - `quick-status.md`
 - `decision-dashboard.md`
 - `architecture-or-structure.md`

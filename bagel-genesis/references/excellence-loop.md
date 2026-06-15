@@ -150,7 +150,7 @@ If no P0/P1 work remains, redistribute to the highest-EV improvement classes. Do
 
 ## Improvement Sources
 
-Use multiple independent sources:
+Use multiple independent sources. **Sources must be genuinely independent, not the orchestrator wearing different hats.** Each source below that involves judgment must be a separate subagent dispatch with its own context (see Context-Isolation Axiom in `references/agent-operating-model.md`):
 
 - spec compliance review,
 - code/content/research quality review,
@@ -159,11 +159,13 @@ Use multiple independent sources:
 - environment/setup reproducibility check,
 - accessibility/performance/security checks when relevant,
 - "what would embarrass us in a demo/review/publication" pass,
-- brainstormer pass for missing opportunities,
+- **brainstormer pass: dispatch >= 2 Brainstormer subagents, each pinned to a distinct lens (see `agents/brainstormer.md`), each in isolated context, none seeing the others' output. Merge and de-duplicate only after all return.** This is the only mechanism that manufactures insight diversity instead of hoping for it.
 - user briefing review for clarity gaps.
 - "what else could make this astonishingly complete?" pass,
 - experiment/theory alternative generation when results stall,
 - toolchain/environment improvement pass when setup limits progress.
+
+**Brainstormer dispatch trigger:** when a target set goes all-green and the orchestrator is about to raise the bar (Standard Raise Protocol), it MUST first dispatch >= 2 lens-pinned Brainstormers before choosing the next target set. Raising the bar from the orchestrator's own imagination alone is a failure smell - it converges on the obvious. The brainstormers supply the non-obvious candidates; the orchestrator selects and prioritizes.
 
 For UI, product, game, deck, document, or other visual artifacts, visual verification is part of the loop rather than optional polish:
 
@@ -358,7 +360,7 @@ The run stops when any of these is true:
 
 **Anti-laziness guarantee:** because stopping is counter-based, the only way to "stop early" is to declare a target set green when it isn't, or to generate a weak next target set. Both are prevented: target-set-green requires independent review confirmation (Track 1) + metric verification (Track 2); next target sets must pass the Bar-Raising Protocol's five moves. An agent that tries to game either will fail the independent review check and the iteration won't complete legitimately — it will keep running until it either meets the bar honestly or exhausts budget.
 
-If the runtime cannot schedule resume after budget exhaustion, mark `manual_resume_required`; do not imply automatic continuation.
+If the runtime cannot schedule resume after budget exhaustion (and P1+P2 native mechanisms are exhausted per loop-runtime.md), mark `degraded_resume` and STATUS.md `[DEGRADED]`; do not imply automatic continuation.
 
 ## Flat-Climbing Detector (efficiency guard)
 

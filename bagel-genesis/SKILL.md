@@ -45,7 +45,7 @@ If isolation itself would require a destructive or irreversible action (a true h
 
 Load only the prompt needed for the current stage and role.
 
-Do not paste this whole skill, all references, or all history into workers. The orchestrator reads the minimum stage capsule, dispatches a bounded agent with a small input envelope, verifies the returned artifact, then saves durable state under `.bagel/`.
+Do not paste this whole skill, all references, or all history into workers. The orchestrator (the main model once this skill is loaded) reads the minimum stage capsule, dispatches a bounded subagent with a small input envelope for all product code, tests, skeleton, and review work, verifies the returned artifact, then saves durable state under `.bagel/`. The main model must not write product code itself while subagents are available.
 
 Before any long run or file modification, choose the lightest control plane that can keep the run safe and observable:
 
@@ -55,13 +55,15 @@ Before any long run or file modification, choose the lightest control plane that
 
 Run capability detection first. Prefer `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
 
-If a platform cannot support timers, true subagents, or automatic resume after adapter checks, say so explicitly and downgrade only that capability. Continue useful work in the current session and write a durable resume plan instead of stopping early.
+Before any file modification in an autonomous run, guarantee the working folder is a git repository (`git rev-parse --is-inside-work-tree`). If it is not, initialize one (see `references/git-governance.md` Step 0) or refuse to start autonomous write work. Version control is the precondition for rollback and branch isolation; without it every overnight change is irreversible. The `project_under_version_control` hard gate enforces this.
+
+If a platform cannot support timers, true subagents, or automatic resume after exhausting every native mechanism named in the platform adapter, record `degraded_resume` and mark `.bagel/STATUS.md`. Continue useful work in the current session and write a durable resume plan instead of stopping early. `degraded_resume` is a marked downgrade, never an equal mode - never present it as successful autonomous iteration.
 
 Autonomy is the default reason this skill exists. On Claude Code or Codex, first try to bind BAGEL to the platform-native loop, scheduling, subagent, hook, worktree, browser, computer-use, cloud, and non-interactive capabilities described in `references/platform-claude-code.md` or `references/platform-codex.md`. Treat missing local verifiers, screenshots, test scripts, environment setup, or experiment harnesses as work for the agent system to create inside the autonomy contract, not as a reason to stop.
 
 ## Roles
 
-Use these roles when the platform supports subagents. If the platform does not support subagents, emulate them as sequential modes and clear/compact context between modes. Sequential emulation is not independent review; record the review level from `references/quality-assurance.md`.
+After loading this skill, the main model **adopts the Orchestrator role**. All product code, tests, skeleton, and independent review **must be dispatched to subagents** (Claude Code Task tool / custom subagent, Codex subagent / custom agent). Doing implementation directly while subagents are available is the #1 failure smell (see `references/agent-operating-model.md`). Only if the platform truly has no subagent capability may you fall back to sequential single-agent mode - and then independent review must be downgraded and recorded as non-independent (R1 max), never presented as R3.
 
 | Role | Reads | Writes | Must Not Do |
 |---|---|---|---|
@@ -76,7 +78,8 @@ Use these roles when the platform supports subagents. If the platform does not s
 | Integration Manager | merge queue, branches, locks, reviews, verification | integrated changes, conflict reports | implement features broadly |
 | Constitutional Court | constitution, proposed amendment, evidence | accept/reject amendment | consider implementation difficulty as justification |
 | Red-Team Oracle | constitution, decisions, baseline/final candidate | adversarial findings | fix issues directly |
-| User Alignment Curator | alignment artifacts, decision ledger, progress state | user-facing briefing layers | hide risks or unresolved decisions |
+| Brainstormer | constitution + taste kernel, current artifact, progress-deltas, state.excellence | improvement ideas under ONE assigned lens | read other brainstormers' output, propose implementation, work outside assigned lens |
+| User Alignment Curator | alignment artifacts, decision ledger, progress state | STATUS.md narrative sections + HTML dashboard + user_briefing/ | hide risks or unresolved decisions, write STATUS.md mechanical sections
 
 Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
 
@@ -93,6 +96,7 @@ A worker should not browse the `references/` directory freely. The orchestrator 
 | Spec / Code Quality / Independent Reviewer | quality-assurance, gate-predicates | 1-2 |
 | Red-Team Oracle | quality-assurance, recovery-protocol (adversarial lens) | 1-2 |
 | Constitutional Court | constitutional-court, constitution-template | 1-2 |
+| Brainstormer | none beyond its envelope (excellence-loop only if ranking ideas) | 0-1 |
 | User Alignment Curator | user-briefing, alignment-protocol | 1-2 |
 
 If a worker's task cannot be completed within its ceiling, the orchestrator derives a compact brief and puts that in the envelope instead of widening the ceiling. This is how "read strictly when needed, do not read otherwise" stays enforceable.
@@ -197,8 +201,8 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/user-briefing.md` | updating the human-facing briefing layers or STATUS.md beyond the quick template | no user-visible change or decision this cycle | always |
 | `references/alignment-dashboard-html.md` | user wants visual/HTML briefing, alignment needs a dashboard, or long-run status should be inspectable at a glance | Markdown STATUS is sufficient and user did not request HTML | always |
 | `references/alignment-information-architecture.md` | designing or repairing the progressive-disclosure capsule/context-index system | quick mode with a flat context.yaml suffices | full |
-| `references/agent-operating-model.md` | designing or rewriting a role prompt in `agents/` | using existing role prompts unchanged | full |
-| `references/git-governance.md` | multiple write agents or worktrees are actually active (parallel_advanced) | single-agent serial work | full |
+| `references/agent-operating-model.md` | the skill has just been loaded (binds the main model to the Orchestrator role + Separation Principle + failure smells); or designing/rewriting a role prompt in `agents/` | never - the Separation Principle binds from run start | always |
+| `references/git-governance.md` | before the first file modification of any autonomous run (Step 0 repo guarantee); or multiple write agents/worktrees are active (parallel_advanced) | run has not yet reached any file-writing phase | always |
 | `references/multi-agent-coordination.md` | dispatching more than one worker concurrently with dependencies or shared files | single-agent serial work | full |
 | `references/state-machine.md` | you need the full detailed S-2..S17 transition logic (full_genesis only) | running quick phase loop | full |
 | `references/crystals.md` | extracting a reusable decision pattern after a successful build, with user opt-in | never loaded by default; opt-in only | full |
@@ -244,7 +248,7 @@ These are agent-facing control documents. They must be short, factual, and conti
 
 ## Alignment Before Autonomy
 
-Do more upfront alignment than native plan modes. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
+Do materially more upfront alignment than native plan modes - this is enforced by depth floors in `references/alignment-protocol.md`: standard requires all 8 choice cards + >= 3 open questions; deep requires >= 2 rounds, >= 8 total questions, all 8 cards + >= 5 open questions. The constitution is not locked (and Build must not start) until the floor for the selected depth is met. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
 
 - `.bagel/alignment/vision-canon.md` (full) **or** the `vision:`/`taste:`/`non_goals:`/`assumptions:` sections of `.bagel/constitution.yaml` (quick): user intent, taste, success definition, non-goals, hidden assumptions.
 - `.bagel/agent_context/project-facts.yaml` (full, existing projects) **or** the `project_facts:` section of `.bagel/context.yaml` (quick): the current true project state.
@@ -276,7 +280,7 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Excellence horizon: the quality level expected after autonomous iteration, including polish, robustness, documentation, and "no obvious improvement remains" criteria.
 - Long-run delegation: whether the user wants maximum autonomous momentum, how much time/token budget to spend, and which hard-stop boundaries remain non-negotiable.
 - Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
-- Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`.
+- Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`. Once chosen, the run must reach that depth's floor (see `references/alignment-protocol.md` Run-Mode Depth) before entering Build; the `constitution_approved` gate enforces this.
 - Iteration controls: target/max cycles, timer interval, checkpoint cadence, and failure/lateral-cycle limits.
 - Briefing format: Markdown only or optional HTML dashboard, plus update frequency.
 
@@ -377,6 +381,7 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `decision_mutations_cleared`
 - `red_team_blockers_resolved`
 - `scope_reduction_authorized`
+- `project_under_version_control`
 - `flywheel_integrity_passed`
 - `no_regression_vs_green_floor`
 - `metric_delta_has_evidence_artifact`
@@ -404,7 +409,7 @@ For long autonomous work, run in cycles:
 
 If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run should keep converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
 
-On Codex, Claude Code, or another platform, use only capabilities detected in `.bagel/runtime_capabilities.yaml`, but do not under-detect platform-native autonomy. On Codex and Claude Code, explicitly check the platform adapter reference before falling back to `manual_resume`. When no timer exists, end each cycle with a durable checkpoint and a single next command/action so another agent can resume without the transcript. If true multi-agent isolation is unavailable, downgrade independent review claims according to `references/quality-assurance.md`.
+On Codex, Claude Code, or another platform, use only capabilities detected in `.bagel/runtime_capabilities.yaml`, but do not under-detect platform-native autonomy. On Codex and Claude Code, attempt every native loop mechanism in the platform adapter (in priority order) before falling back to `degraded_resume`; only record `degraded_resume` after all native mechanisms are proven unavailable, and mark STATUS.md `[DEGRADED]`. When no timer exists, end each cycle with a durable checkpoint and a single next command/action so another agent can resume without the transcript. If true multi-agent isolation is unavailable, downgrade independent review claims according to `references/quality-assurance.md`.
 
 ## Completion
 

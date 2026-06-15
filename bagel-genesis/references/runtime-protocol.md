@@ -91,9 +91,23 @@ Also write or update an evolution change record for meaningful changes. The chec
 Every cycle must update two observable surfaces:
 
 - `.bagel/evidence/progress-deltas.yaml`: append the objective delta for the just-finished cycle.
-- `.bagel/STATUS.md`: rewrite the human-readable live status.
+- `.bagel/STATUS.md`: update the human-readable live status.
 
-Use this `STATUS.md` shape. The **Morning Briefing** block at the top is mandatory and must be written first every cycle — it is what a groggy user reads at 8am in 10 seconds:
+### STATUS.md Ownership Split (v1.1)
+
+STATUS.md has two owners with **non-overlapping sections** - this prevents both the dual-ownership conflict and orchestrator context pollution from narrative-writing:
+
+- **Orchestrator writes the mechanical sections every cycle** (it already has this data, no extra reasoning needed):
+  `Last Updated`, `Run Status`, `Loop Binding`, `Delta Trend`, `Timeline`, `Budget`, `Telemetry`, `Recent Autonomous Decisions`, `Blocked or Isolated Lanes`, `Next Action`. These are data fields pulled from `.bagel/` state - no narrative composition, no risk-prioritization reasoning.
+
+- **User Alignment Curator writes the narrative sections on a trigger cadence** (milestones, recoveries, before/after excellence loop, before final delivery, when user instruction changes):
+  `Morning Briefing` (the 4-line block a groggy user reads first), `Current Focus` narrative. The Curator owns risk-prioritization and human-framing because that is a distinct skill from cycle coordination, and it keeps the orchestrator's context free of "how do I explain this to the user" reasoning.
+
+- On cycles where no Curator dispatch fires, the Orchestrator writes a **minimal Morning Briefing** (status line + "nothing irreversible" line) so the file is never stale, then the Curator rewrites the full briefing at the next trigger. The minimal version is explicitly marked `[auto-minimal - full briefing pending]`.
+
+**The HTML dashboard (`.bagel/user_briefing/alignment-dashboard.html`) is owned exclusively by the User Alignment Curator**, generated from STATUS.md + progress-deltas at the user-selected frequency (`every_milestone` default). The orchestrator never writes HTML. See `references/alignment-dashboard-html.md`.
+
+Use this `STATUS.md` shape. The **Morning Briefing** block at the top is mandatory and must be written first every cycle - it is what a groggy user reads at 8am in 10 seconds:
 
 ```markdown
 ## Morning Briefing (read this first)
@@ -112,10 +126,11 @@ Use this `STATUS.md` shape. The **Morning Briefing** block at the top is mandato
 - `waiting_for_capacity` = quota/runtime temporarily exhausted, resume plan exists. The run will continue when capacity returns.
 
 ## Loop Binding
-{scheduled_resume | external_harness | active_session_loop | manual_resume_required}
-Timer interval: {n} minutes
+{scheduled_resume | external_harness | active_session_loop | degraded_resume}
+Timer interval: {n} minutes  (HARD MAX 25)
 Next wakeup: {ISO timestamp | unavailable}
 Proof: {automation id | scheduled task id | cron/launchd entry | active loop config | harness command}
+Degraded marker: {none | [DEGRADED - no native loop bound]}
 
 ## Current Focus
 {one sentence}

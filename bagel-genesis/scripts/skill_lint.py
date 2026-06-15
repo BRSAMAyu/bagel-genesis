@@ -94,6 +94,8 @@ def main() -> int:
                     f"but not implemented in flywheel_check.py (expected function '{func_name}')."
                 )
 
+    failures.extend(check_v11_requirements(root))
+
     if failures:
         print("BAGEL skill lint failed:")
         for failure in failures:
@@ -102,6 +104,91 @@ def main() -> int:
 
     print("BAGEL skill lint passed.")
     return 0
+
+
+def check_v11_requirements(root: Path) -> list[str]:
+    """v1.1 cross-file consistency checks.
+
+    Each v1.1 mandate (mandatory loop <=25min, mandatory git, mandatory dispatch,
+    depth-floored alignment, context-isolation axiom, brainstormer role, STATUS
+    ownership split) asserts something in one file that other files must reflect.
+    These checks catch propagation debt.
+    """
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    align = read("references/alignment-protocol.md")
+    git_gov = read("references/git-governance.md")
+    loop_rt = read("references/loop-runtime.md")
+    aom = read("references/agent-operating-model.md")
+    gate = read("references/gate-predicates.md")
+
+    # 1. Mandatory loop interval <= 25 min
+    if "25" not in loop_rt or "HARD MAX 25" not in loop_rt:
+        out.append("loop-runtime.md: v1.1 requires trigger_interval_minutes HARD MAX 25.")
+
+    # 2. manual_resume_required renamed to degraded_resume (no bare old name left as a live mode)
+    # Allow "formerly manual_resume" / "was manual_resume" explanatory mentions, but not as a mode.
+    for rel, text in (("references/loop-runtime.md", loop_rt),
+                       ("references/runtime-capabilities.md", read("references/runtime-capabilities.md"))):
+        # A live mode line still using manual_resume_required (not in a "formerly/was" context)
+        for m in re.finditer(r"manual_resume_required", text):
+            window = text[max(0, m.start() - 40): m.end() + 10]
+            if "formerly" not in window and "was " not in window and "renamed" not in window:
+                out.append(f"{rel}: stale 'manual_resume_required' mode reference; rename to degraded_resume.")
+
+    # 3. Mandatory git: Step 0 + project_under_version_control gate
+    if "Step 0" not in git_gov or "git init" not in git_gov:
+        out.append("git-governance.md: v1.1 requires Step 0 repo guarantee with git init.")
+    if "project_under_version_control" not in skill:
+        out.append("SKILL.md: v1.1 requires project_under_version_control hard gate.")
+    if "project_under_version_control" not in gate:
+        out.append("gate-predicates.md: v1.1 requires project_under_version_control predicate definition.")
+
+    # 4. Mandatory dispatch: main model adopts Orchestrator role + agent-operating-model is always
+    if "adopts the Orchestrator role" not in skill:
+        out.append("SKILL.md: v1.1 requires 'adopts the Orchestrator role' mandate.")
+    # Loading Matrix row for agent-operating-model must be 'always'
+    m = re.search(r"\| `references/agent-operating-model\.md` \|.*\| (\w+) \|", skill)
+    if m and m.group(1) != "always":
+        out.append(f"SKILL.md Loading Matrix: agent-operating-model.md must be 'always', found '{m.group(1)}'.")
+
+    # 5. Depth-floored alignment: three tiers each need a numeric floor
+    for tier in ("snap_alignment", "standard_alignment", "deep_alignment"):
+        if tier not in align:
+            out.append(f"alignment-protocol.md: missing depth tier {tier}.")
+    if "Floor:" not in align:
+        out.append("alignment-protocol.md: v1.1 requires numeric 'Floor:' per depth tier.")
+    if "ONLY valid when depth = `snap_alignment`" not in align and "ONLY valid when the selected depth is `snap_alignment`" not in align:
+        out.append("alignment-protocol.md: fast-path must be gated to snap_alignment only.")
+
+    # 6. Context-Isolation Axiom + findings/reasoning boundary + orchestrator firewall
+    if "Context-Isolation Axiom" not in aom:
+        out.append("agent-operating-model.md: v1.1 requires the Context-Isolation Axiom section.")
+    if "Findings vs reasoning" not in aom and "findings vs reasoning" not in aom.lower():
+        out.append("agent-operating-model.md: v1.1 requires the findings-vs-reasoning boundary.")
+    if "implementation reasoning" not in aom:
+        out.append("agent-operating-model.md: orchestrator_denied firewall must block implementation reasoning.")
+
+    # 7. Brainstormer agent exists + wired into role table + excellence-loop dispatch rule
+    if not (root / "agents" / "brainstormer.md").exists():
+        out.append("agents/brainstormer.md: v1.1 requires the Brainstormer role prompt.")
+    if "Brainstormer" not in skill:
+        out.append("SKILL.md: role table must include Brainstormer.")
+    excellence = read("references/excellence-loop.md")
+    if ">= 2" not in excellence or "Brainstormer" not in excellence:
+        out.append("excellence-loop.md: v1.1 requires >= 2 lens-pinned Brainstormer dispatch before bar-raise.")
+
+    # 8. STATUS.md ownership split documented
+    runtime_proto = read("references/runtime-protocol.md")
+    if "Ownership Split" not in runtime_proto:
+        out.append("runtime-protocol.md: v1.1 requires STATUS.md Ownership Split (orchestrator mechanical / Curator narrative).")
+
+    return out
 
 
 if __name__ == "__main__":

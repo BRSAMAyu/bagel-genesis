@@ -43,6 +43,7 @@ gates:
 | `metric_delta_has_evidence_artifact` | Each forward/lateral/backward metric delta in progress-deltas.yaml cites a saved artifact/output path containing actual command output, screenshot, benchmark output, rendered file, or checksum, not just the command string. Prevents hallucinated deltas. |
 | `review_level_consistent_with_registry` | The recorded review_level (R0-R4) is consistent with `.bagel/agents/registry.yaml`: R3+ requires ≥2 distinct agent contexts active in the review cycle. If only one context was active, max claimable is R1. Prevents overstating independence. |
 | `bar_raise_has_value_class` | Each new/raised target has a `why_class` from the canonical set: `defect_prevention`, `adversarial`, `growth_dimension`, `astonishing_completeness`, `stronger_evidence`, or `churn`. `churn` requires R3+ reviewer acceptance. The canonical set is defined in `scripts/flywheel_check.py` BAR_RAISE_VALUE_CLASSES and must not diverge. Prevents busywork disguised as bar-raising. |
+| `project_under_version_control` | Before the first file modification of an autonomous run, `git rev-parse --is-inside-work-tree` succeeds in the working folder, OR the user explicitly approved `git init` and a baseline commit exists. Without version control, rollback and branch isolation are impossible, so autonomous write work must not start. See `references/git-governance.md` Step 0. |
 
 ## Detector Rules
 

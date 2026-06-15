@@ -49,6 +49,96 @@ Hard-stops are intentionally narrow: irreversible or non-recoverable destructive
 
 **Stopping rules are mechanical, not self-judged.** A run ends only when the user-set `max_iterations` is exhausted, the token/budget wall is hit, the user stops it, or a true hard-stop boundary is reached. "I think it's good enough" is never a stop reason.
 
+## Why It Works
+
+The loop diagram above is not the value — any agent can draw that. The value is the machinery that makes each step actually hold up over an unattended multi-hour run, where the agent's context will be compacted, its tools will be missing, and its self-reports cannot be trusted. BAGEL replaces "the agent judges" with "a script verifies state" wherever it can.
+
+We label every mechanism below by how hard it is enforced, so you know what is load-bearing:
+
+- **code-forced** — `flywheel_check.py` fails the cycle if the condition is violated. Cannot be talked out of.
+- **gate-forced** — a hard gate blocks progress (merge, next slice, completion) until the condition passes.
+- **protocol-forced** — written into the role prompts and references; load-bearing on the agent following its instructions.
+
+### Failure modes it is built to defeat
+
+| Without a skill, the agent tends to… | BAGEL's counter-mechanism | Enforcement |
+|---|---|---|
+| Drift as context grows | `constitution.yaml` anchor, re-anchored every state transition; each worker sees only its dispatch envelope, not history | protocol |
+| Stop and ask at the first difficulty | Non-overridable tie-breaker: the default answer to friction is *continue*; the hard-stop list is deliberately narrow | protocol |
+| Treat "it runs" as "it's done" | Baseline completion is only the *start* of the excellence loop, not the end | protocol + code |
+| Review its own work (rubber-stamp) | Review registry records `reviewer_id`/`session_id`; independence is *derived*, not asserted | **code** |
+| Report progress that isn't real | Every forward/lateral/backward delta must cite a real, non-empty evidence file on disk | **code** |
+| Silently regress a green metric | Green-floor regression gate; dropped/renamed metrics cannot escape protection | **code** |
+| Declare "good enough" and stop | No self-judged stop; bar must be *raised* (5 canonical moves) when all-green; flat-spin detector catches negligible gains | **code** |
+| Burn budget re-trying the same dead end | Three lateral cycles force a strategy switch; a param/wording tweak counts as the *same* strategy | **code** |
+
+`flywheel_check.py` states its own design intent in its header: *"Every check here exists because a prior audit found the corresponding guarantee was prose-only or self-reported."*
+
+### How it runs for hours without you (long-run durability)
+
+Four layers stack to make a long run durable rather than dependent on the model "remembering to continue":
+
+1. **The loop is external, not model-internal.** One cycle = one bounded unit (one gate, one dispatch, one review, or one small repair). Each cycle ends by choosing exactly one action: continue / enter recovery / isolate the lane and advance another / pause only for a hard-stop / schedule the next cycle.
+2. **The transcript is disposable; `.bagel/` is durable.** This is the core invariant. Every cycle writes a checkpoint (state, progress, task queue, decisions, risks, next action) and then discards raw worker reasoning and long logs. The next cycle rebuilds from `.bagel/`, never from "I'll remember next time."
+3. **Snapshots survive crashes and compaction.** Before each compaction, a compact snapshot of control state is written with checksums. On resume: load the latest snapshot, verify checksums, compare to live state, execute only the saved `next-action.md`. If snapshot and live state disagree on scope, contracts, or completed slices, it *stops and writes a conflict report instead of guessing*.
+4. **Platform timer binding.** On Claude Code this binds to scheduled tasks / `/loop` / cloud Routines / external cron invoking `claude -p`; on Codex to automations / cloud tasks / `codex exec` / `PreCompact`·`SessionStart` hooks.
+
+**Honest caveat:** if no scheduler exists on the platform, BAGEL *must first bind a native loop* (`/loop`, scheduled task, Codex automation, `codex exec`+cron) with an interval <= 25 min before the first cycle. Only after exhausting every native mechanism may it record `degraded_resume` (marked `[DEGRADED]` in STATUS) - and even then it is *forbidden* from claiming unattended continuation. The overnight promise is conditional on a real wake mechanism actually being configured and recorded with proof.
+
+### How it recovers instead of stopping (the recovery ladder)
+
+When something breaks — a gate fails, a tool is missing, a test regresses, a hypothesis stalls, a reviewer disagrees — BAGEL climbs a nine-rung ladder before it ever considers waking you:
+
+1. Local repair + rerun verification
+2. Shrink the task scope
+3. Dispatch a reviewer/debugger with only the failing evidence
+4. Try an alternative path (different implementation/design/research method)
+5. Rework in an isolated worktree/sandbox
+6. Rollback to the last valid checkpoint + replay a safer plan
+7. Re-plan (update task queue + decision map)
+8. **Switch lanes** — isolate the blocked task and advance another independent high-value task
+9. Wake the user — only for a true hard-stop boundary
+
+**Anti-gaming rule:** changing a hyperparameter, threshold, or variable name counts as the *same* strategy and keeps counting toward the three-strike limit. A genuine strategy switch must change the approach, core assumption, artifact structure, or evidence source. A missing verifier is recovery work — the agent builds the smallest local test/benchmark/screenshot script needed — not a reason to waive a gate or stop.
+
+### How the agents divide labor and stay honest
+
+BAGEL is a hub-and-spoke model: one **Orchestrator** dispatches *one bounded worker at a time* inside a strict **dispatch envelope** (`ROLE / READ-ONLY / WRITE-ONLY / LOCKS / EXIT-CRITERIA` with exact file paths, not directories). Workers never read the full skill, never read history, and never read other workers' transcripts. Per-role reference budgets cap how many protocol files a worker may touch (Implementer: 0–1; reviewers: 1–2).
+
+Parallel work is opt-in (`parallel_advanced`) and guarded by git worktrees, path locks, and a merge queue. The rule "a worker may never merge its own work" is repeated across four files. Merging is owned by the Integration Manager after five gate predicates pass.
+
+**Independent review is derived from registry state, not asserted.** `flywheel_check.py` fails if a claimed R3/R4 review reuses the implementer's agent or session identity. On a platform with no real subagents, BAGEL runs roles sequentially, labels that R1 (explicitly *not* independent), and for any high-risk unattended change it **refuses to merge that lane** — isolating it on a branch and advancing safe work — rather than silently downgrading the review.
+
+**Honest caveat:** even an R3 "true subagent" on Claude Code or Codex is usually the same underlying model family. The independence is *contextual/identity isolation* (separate context window, separate session, no implementer narrative), not different training. True model-diversity independence (R4) requires an external or human reviewer.
+
+### Skeleton first, then value
+
+For software, a **Skeleton Builder** erects a runnable "ghost ship" — routes, error/auth boundaries, typed contracts, registered stubs, minimal tests, a mock core journey — and a hard **Ghost Ship Gate** blocks all value-slice work until 10 structural conditions pass with real command/test/browser output. No self-certification; a named command in the doc is not a pass.
+
+For research, the equivalent skeleton is a **research protocol + bibliography map** before any claim is filled in. The "scaffold first, then advance" principle applies to every artifact type; only the skeleton's shape changes.
+
+### Engineering rigor vs. research rigor
+
+BAGEL does not treat a research project as "build software in disguise." `artifact-types.md` switches the baseline unit, skeleton gate, and verification mode by type:
+
+| Type | Baseline unit | Skeleton gate | Verification |
+|---|---|---|---|
+| software | value slice | ghost ship (runnable shell) | tests, typecheck, e2e/browser |
+| existing software | bounded improvement | behavior-preservation gate | regression checks, diff review |
+| **research** | **claim / experiment / section** | **research protocol + bibliography map** | **citation checks, methodology critique, reproducibility** |
+| writing | chapter / scene / argument | outline + voice/continuity bible | continuity, structure, voice |
+| data analysis | dataset / question / chart | data pipeline + assumptions map | data validation, statistical critique |
+
+For computational research the excellence loop explicitly requires a hypothesis ledger, benchmark harness, baseline comparison, ablation/failure notes, and winner-retention criteria. When results stall (three lateral cycles), the prescribed switch is *change the hypothesis* — not tune a parameter.
+
+**Honest caveat:** `flywheel_check.py` enforces that a research bar-raise tagged `stronger_evidence` has an evidence file that exists — but it cannot verify that the file is genuinely a falsification test or a real baseline comparison. Semantic research rigor rests on the independent reviewer and the periodic independent flywheel audit, not on the script.
+
+### What is enforced by code vs. protocol — and the one gap
+
+Eight anti-hallucination properties are enforced by `flywheel_check.py` as a hard gate: evidence-artifact existence, review-independence derivation, green-floor regression (direction-aware, dropped-metric-safe), iteration budget, budget monotonicity, bar-raise value classes, stuck-metric classification, and flat-climbing recompute.
+
+One guarantee is **still prose-only**: the periodic *independent flywheel audit* (an R3+ reviewer that re-checks the agent's own `.bagel/` evidence against the real repo, to catch a determined agent writing internally-consistent fiction) is described as mandatory every N cycles, but no script verifies it was actually performed. This is the largest remaining prose-vs-code gap. The practical defense today is that the other eight checks raise the cost of fabrication high enough that the audit's job is bounded — but a fully code-enforced audit is the obvious next hardening step.
+
 ## Key Features
 
 ### Deep Alignment Before Autonomy
@@ -99,7 +189,7 @@ When the user says "start autonomous iteration," BAGEL must bind to the stronges
 - `scheduled_resume`: platform automation, scheduled task, or timer
 - `external_harness`: cron, launchd, cloud task, CLI loop, or other harness
 - `active_session_loop`: current platform loop is actively running
-- `manual_resume_required`: no true wake mechanism is available, so unattended continuation is not guaranteed
+- `degraded_resume`: every native loop mechanism was proven unavailable, so unattended continuation is not guaranteed (STATUS marked `[DEGRADED]`)
 
 Loop state records trigger interval, next wake time, schedule proof, resume command, and telemetry.
 
@@ -208,13 +298,13 @@ Before promising autonomous continuation, BAGEL should run:
 python bagel-genesis/scripts/detect_runtime_capabilities.py --out .bagel/runtime_capabilities.yaml
 ```
 
-This detects platform clues, CLI tools, scheduler availability, Git support, browser/visual-check support, and local tool-provisioning capability. The agent then maps those facts to one of `single_session`, `manual_resume`, `scheduled_resume`, or `external_harness`.
+This detects platform clues, CLI tools, scheduler availability, Git support, browser/visual-check support, and local tool-provisioning capability. The agent then maps those facts to one of `single_session`, `degraded_resume`, `scheduled_resume`, or `external_harness`.
 
 For explicit autonomous iteration, BAGEL must record a loop binding:
 
 ```yaml
 loop_binding:
-  mode: scheduled_resume | external_harness | active_session_loop | manual_resume_required
+  mode: scheduled_resume | external_harness | active_session_loop | degraded_resume   # <= 25 min interval
   platform: codex | claude_code | other
   schedule_id: ""
   trigger_interval_minutes: 10
@@ -224,7 +314,7 @@ loop_binding:
     - "automation id, cron entry, scheduled task, active /loop config, or harness command"
 ```
 
-If the result is `manual_resume_required`, the agent must not claim it will continue unattended.
+If the result is `degraded_resume`, the agent must not claim it will continue unattended and STATUS.md is marked `[DEGRADED]`.
 
 ## `.bagel/` Runtime State
 
@@ -260,7 +350,7 @@ BAGEL Genesis v1 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 38 behavior evals cover alignment, project takeover, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 43 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 

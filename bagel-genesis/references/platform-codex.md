@@ -10,7 +10,7 @@ Record capabilities in `.bagel/runtime_capabilities.yaml` using the strongest ca
 runtime:
   platform: codex
   platform_adapter: "references/platform-codex.md"
-  session_mode: scheduled_resume | external_harness | manual_resume
+  session_mode: scheduled_resume | external_harness | degraded_resume
   supports_true_subagents: true
   supports_context_isolation: true
   supports_timers_or_wakeup: true
@@ -20,7 +20,7 @@ runtime:
   supports_tool_self_provisioning: true
 ```
 
-Use `manual_resume` only when app automations, cloud tasks, non-interactive execution, and local scheduling are all unavailable or forbidden.
+You **must attempt** each native loop mechanism in priority order before any fallback: (1) thread automation (same-thread heartbeat), (2) standalone/project automation for independent scheduled runs, (3) cloud task, (4) `codex exec` driven by cron/launchd/CI. Record proof for each attempt. Only when **all** of these are proven unavailable or user-forbidden may you record `degraded_resume` (formerly `manual_resume`) and mark STATUS.md `[DEGRADED - no native loop bound]`. `degraded_resume` is a marked downgrade, never an equal mode. Loop interval must be <= 25 minutes.
 
 ## Native Primitives
 
@@ -55,7 +55,7 @@ Use $bagel-genesis. Resume the BAGEL run in this project.
 Read .bagel/runtime_capabilities.yaml, state.yaml or state.json,
 progress state, gates/status.yaml, and ledger/next-dispatch.md.
 Execute exactly one bounded cycle: select or continue the next task,
-dispatch subagents when useful, run verification, update .bagel state,
+dispatch subagents for ALL implementation/review (mandatory; see SKILL.md Roles), run verification, update .bagel state,
 and schedule/continue unless stop_semantics is complete or blocked_hard_stop.
 Do not stop at baseline; continue until the excellence horizon passes.
 ```

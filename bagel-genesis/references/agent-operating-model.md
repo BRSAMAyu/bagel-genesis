@@ -1,5 +1,7 @@
 # Agent Operating Model
 
+**This file binds the main model once the skill is loaded, not only subagents.** If you (the main model that just loaded BAGEL) start writing product features, tests, or implementation code yourself, that is the #1 failure smell. Your job is Orchestrator: read state, dispatch bounded subagents for all implementation/review, verify returned artifacts, persist `.bagel/` state. See `Responsibilities` in `agents/orchestrator.md`.
+
 Use this reference when designing or modifying BAGEL Genesis agent prompts.
 
 ## Separation Principle
@@ -14,6 +16,17 @@ Do not combine these jobs in one context:
 - adversarial red team
 
 Mixed contexts cause rationalization: an agent that struggled to implement a feature will be tempted to redefine the feature as unnecessary. Keep governance agents away from implementation pain, and keep implementers away from scope authority.
+
+## Context-Isolation Axiom
+
+**A separate subagent call IS a separate context.** This is the mechanical foundation every isolation rule below depends on:
+
+- Each dispatched subagent (Claude Code Task tool, Codex subagent/custom agent) starts with only its dispatch envelope - never the orchestrator's conversation, never another worker's transcript, never prior cycles' reasoning.
+- "Clean context" / "fresh context" / "separate context" all mean exactly this: a newly spawned subagent whose input is the dispatch envelope alone.
+- Reusing a subagent session across roles (e.g. implementer session becomes reviewer session) is NOT isolation, even if the role label changes. R3/R4 independence requires a distinct `session_id`, enforced by `scripts/flywheel_check.py`.
+- The orchestrator's own context is also a resource: it must not accumulate implementation reasoning. See the orchestrator firewall below.
+
+**Findings vs reasoning boundary.** A worker MAY receive another worker's *findings* (structured, artifact-grounded: a review report, a test result, a benchmark number, a changed-file list). A worker MUST NOT receive another worker's *reasoning* (chain-of-thought, design debate, debug narrative, "why I chose this approach"). The dispatch envelope carries findings as file references; it never carries reasoning as prose. This is how collaboration happens without context pollution.
 
 ## Agent Types
 
@@ -102,6 +115,10 @@ firewall:
     - worker preference for a library
   orchestrator_denied:
     - long worker transcripts after summary is saved
+    - implementation reasoning, design debate, or debug narrative from workers (the orchestrator coordinates, it does not internalize HOW something was built)
+    - another worker's chain-of-thought - only structured findings/reports may enter
+    - reviewer/red-team/brainstormer deliberation transcripts - only their returned findings
+    - enough implementation detail that it could re-implement the slice itself (if it could, it received too much)
 ```
 
 ## Prompt Capsule Size
@@ -180,6 +197,8 @@ Revise prompts or workflow when you see:
 - orchestrator starts writing features,
 - court cites implementation difficulty,
 - red team suggests fixes instead of findings,
+- bar is raised from the orchestrator's own imagination without dispatching >= 2 lens-pinned brainstormers (converges on the obvious),
+- a single brainstormer is dispatched where >= 2 were required, or brainstormers can see each other's output (destroys the diversity the role exists to manufacture),
 - checkpoints contain prose but no next action,
 - agent-facing project context is stale or absent for existing projects,
 - lock overlap is unresolved,
