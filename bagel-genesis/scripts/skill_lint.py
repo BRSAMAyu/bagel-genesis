@@ -188,6 +188,14 @@ def check_v11_requirements(root: Path) -> list[str]:
     if "Ownership Split" not in runtime_proto:
         out.append("runtime-protocol.md: v1.1 requires STATUS.md Ownership Split (orchestrator mechanical / Curator narrative).")
 
+    # 9. Runtime effectiveness auditor exists and is wired into the run loop.
+    if not (root / "scripts" / "bagel_run_check.py").exists():
+        out.append("scripts/bagel_run_check.py: v1.1 requires an operational run auditor.")
+    if "bagel_run_check.py" not in skill:
+        out.append("SKILL.md: long-run loop must call scripts/bagel_run_check.py.")
+    if "bagel_run_check.py" not in runtime_proto:
+        out.append("runtime-protocol.md: runtime checks must include scripts/bagel_run_check.py.")
+
     return out
 
 

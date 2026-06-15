@@ -143,6 +143,7 @@ bagel-genesis/
 │   └── ...
 ├── scripts/
 │   ├── detect_runtime_capabilities.py
+│   ├── bagel_run_check.py
 │   ├── flywheel_check.py
 │   └── skill_lint.py
 └── evals/
@@ -280,11 +281,14 @@ python /path/to/bagel-genesis/scripts/skill_lint.py /path/to/bagel-genesis
 python3 -m json.tool /path/to/bagel-genesis/evals/evals.json >/dev/null
 ```
 
-Validate a BAGEL run's flywheel evidence:
+Validate a BAGEL run's operational substrate and flywheel evidence:
 
 ```bash
+python /path/to/bagel-genesis/scripts/bagel_run_check.py /path/to/project
 python /path/to/bagel-genesis/scripts/flywheel_check.py /path/to/project
 ```
+
+`bagel_run_check.py` verifies that the real `.bagel/` run has git rollback, loop binding, <=25 minute wake interval, alignment floors, agent dispatch records, implementer/reviewer separation, STATUS sections, and HTML dashboard ownership.
 
 `flywheel_check.py` verifies evidence paths, green-floor regressions, review-level claims, bar-raise value classes, stuck metrics, budget monotonicity, and other failure modes that can make a long run look productive when it is not.
 
@@ -316,7 +320,7 @@ BAGEL Genesis v1 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 38 behavior evals cover alignment, project takeover, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 44 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 

@@ -171,7 +171,14 @@ Token usage: {platform_reported | estimated | unavailable}: {value}
 
 If three consecutive deltas are `lateral`, update `STATUS.md` with the strategy switch. If a delta is `backward`, record the rollback/isolation/repair action before starting unrelated polish.
 
-After updating `STATUS.md`, run `scripts/flywheel_check.py <project-root>` when `.bagel/state.yaml` exists. If the check fails, set Run Status to `recovering`, list the failed gate under Current Focus, and make the Next Action the repair/rollback/isolation/strategy-switch needed to restore flywheel integrity.
+After updating `STATUS.md`, run both runtime validators when `.bagel/state.yaml` exists:
+
+```bash
+python scripts/bagel_run_check.py <project-root>
+python scripts/flywheel_check.py <project-root>
+```
+
+`bagel_run_check.py` validates the operational substrate: git repository/rollback gate, loop binding and <=25 minute timer, alignment floor, agent dispatch records, implementer/reviewer separation, STATUS sections, and HTML dashboard ownership. `flywheel_check.py` validates progress integrity. If either check fails, set Run Status to `recovering`, list the failed gate under Current Focus, and make the Next Action the repair/rollback/isolation/strategy-switch needed to restore integrity.
 
 ## Snapshot Protocol
 

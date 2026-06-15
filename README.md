@@ -157,11 +157,14 @@ Choice cards cover autonomy level, execution strategy, run budget, takeover aggr
 
 ### Continuous Positive Optimization (the flywheel)
 
-BAGEL never stops at "good enough." Each iteration drives a target set to all-green; when green, it raises the standard and starts the next iteration. The flywheel is guarded against laziness and hallucination by a mechanical validator:
+BAGEL never stops at "good enough." Each iteration drives a target set to all-green; when green, it raises the standard and starts the next iteration. The run is guarded by two mechanical validators: one for the operational substrate and one for progress integrity.
 
 ```bash
+python bagel-genesis/scripts/bagel_run_check.py /path/to/project
 python bagel-genesis/scripts/flywheel_check.py /path/to/project
 ```
+
+`bagel_run_check.py` verifies that the run is actually wired for autonomy: git rollback exists, a <=25 minute loop/timer is bound, alignment floors were met, agent dispatch records exist, implementer/reviewer roles are separate, STATUS.md is complete, and HTML dashboard ownership is not ambiguous.
 
 `flywheel_check.py` mechanically verifies six properties of every run: objective deltas, no false independence, no regression below green floors, no budget burning, no redundant bar raises, no flat-spin. All evidence must point to real files/commands/reports.
 
@@ -222,10 +225,11 @@ BAGEL maintains `.bagel/STATUS.md` (with a forced `Morning Briefing` block) and 
     ├── references/           # 31 trigger-loaded protocols
     ├── scripts/
     │   ├── detect_runtime_capabilities.py
+    │   ├── bagel_run_check.py    # operational runtime substrate validator
     │   ├── flywheel_check.py     # mechanical flywheel integrity validator
     │   └── skill_lint.py         # skill self-consistency lint
     └── evals/
-        └── evals.json        # 38 behavior evals
+        └── evals.json        # 44 behavior evals
 ```
 
 ## Installation
@@ -331,11 +335,14 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 python3 -m json.tool bagel-genesis/evals/evals.json >/dev/null
 ```
 
-Validate a BAGEL run's flywheel evidence:
+Validate a BAGEL run's operational substrate and flywheel evidence:
 
 ```bash
+python bagel-genesis/scripts/bagel_run_check.py /path/to/project
 python bagel-genesis/scripts/flywheel_check.py /path/to/project
 ```
+
+`bagel_run_check.py` verifies that the real `.bagel/` run has git rollback, loop binding, <=25 minute wake interval, alignment floors, agent dispatch records, implementer/reviewer separation, STATUS sections, and HTML dashboard ownership.
 
 `flywheel_check.py` verifies evidence paths, green-floor regressions, review-level claims, bar-raise value classes, stuck metrics, budget monotonicity, and other failure modes that can make a long run look productive when it is not.
 
@@ -350,7 +357,7 @@ BAGEL Genesis v1 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 43 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 44 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 

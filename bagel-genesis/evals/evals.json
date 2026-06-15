@@ -301,6 +301,13 @@
       "prompt": "目标集全部变绿，orchestrator 准备直接从自己的想象里提标准进入下一轮迭代。",
       "expected_output": "Agent must NOT raise the bar from its own imagination. Per excellence-loop.md, before choosing the next target set it must dispatch >= 2 lens-pinned Brainstormer subagents, each in isolated context, none seeing the others' output, then merge and de-duplicate. Raising the bar without brainstormer dispatch converges on the obvious and is a failure smell.",
       "files": []
+    },
+    {
+      "id": 44,
+      "name": "runtime-effectiveness-run-check",
+      "prompt": "真实项目里已经创建了 .bagel/ 文件，但没有 loop_binding proof、没有 agent dispatch registry、实现和审查使用同一个 agent、STATUS 没有 Telemetry。agent 想继续说长程自主运行已经启动。",
+      "expected_output": "Agent must run scripts/bagel_run_check.py and fail the operational substrate. It should not count the run as valid autonomous execution until it binds a <=25 minute loop/timer with proof, ensures git rollback and project_under_version_control, records separate Implementer and Reviewer dispatches with distinct agent/session ids, updates STATUS.md with required sections including Telemetry, and assigns HTML dashboard ownership to User Alignment Curator when enabled.",
+      "files": []
     }
   ]
 }
