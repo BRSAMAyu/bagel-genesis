@@ -7,7 +7,7 @@ description: "Use when Codex, Claude Code, or another agent must turn a vague hi
 
 Turn a vague vision or an existing partially built project into an excellent finished deliverable by running a constraint-first, context-sparse, multi-agent build loop.
 
-BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. It first performs deeper-than-native planning alignment, then runs an autonomous external loop that keeps improving until the deliverable reaches an explicitly defined excellence horizon. Persist only the smallest state needed to keep the run moving.
+BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. It first performs deeper-than-native planning alignment, then runs an autonomous external loop that keeps improving the deliverable through continuous positive optimization — generating and raising quality standards as the artifact matures — until budget/token capacity is exhausted, the user stops it, a hard-stop boundary is reached, or genuine optimization exhaustion is independently confirmed. Persist only the smallest state needed to keep the run moving.
 
 ## Core Philosophy
 
@@ -249,7 +249,7 @@ Do more upfront alignment than native plan modes. Before autonomous implementati
 - `.bagel/alignment/human-decisions.yaml` (full) **or** the `human_decisions:` section of `.bagel/ledger.yaml` (quick): approval status for autonomy-sensitive decisions.
 - `.bagel/alignment/autonomy-contract.yaml` (full) **or** the `autonomy_contract:` section of `.bagel/constitution.yaml` (quick): what the system may decide alone, how it challenges user instructions, when to wake the user.
 - `.bagel/user_briefing/README.md` (full) **or** `.bagel/STATUS.md` (quick): layered project explanation.
-- `.bagel/excellence_horizon.yaml` (full) **or** the `excellence_horizon:` section of `.bagel/constitution.yaml` (quick): what "excellent enough to stop" means.
+- `.bagel/excellence_horizon.yaml` (full) **or** the `excellence_horizon:` section of `.bagel/constitution.yaml` (quick): the **starting** quality bar — meeting it is the signal to raise the bar, not to stop (see `references/excellence-loop.md` Bar-Raising Protocol).
 
 If the user's instruction conflicts with project reality, do not silently comply. Explain the risk, propose alternatives, reach consensus, then persist the decision.
 
@@ -412,4 +412,4 @@ Final delivery requires the excellence horizon too:
 - user-facing briefing explains the project at quick, standard, and deep levels,
 - final report includes what was built, how to verify it, decisions made autonomously, residual risks, and suggested future directions.
 
-Do not stop merely because the baseline runs. In delegated long-run mode, stop only when the excellence loop reaches objective diminishing returns, the user stops it, budget/token capacity is exhausted with a resume checkpoint, or a hard-stop boundary requires a pause.
+Do not stop merely because the baseline runs — that is the start of the excellence loop, not the end. In delegated long-run mode the run continues through continuous positive optimization (generating and raising standards, see `references/excellence-loop.md`) until: budget/token capacity is exhausted with a resume checkpoint (the normal, expected end state), the user stops it, a hard-stop boundary requires a pause, or the stringent anti-laziness Stop Criteria bar is met (genuine optimization exhaustion independently confirmed). Stopping early while measurable improvement remains possible is a failure.

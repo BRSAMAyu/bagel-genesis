@@ -185,18 +185,49 @@ Use the strongest autonomy contract the user will allow. The point of the alignm
 
 ## Excellence Horizon
 
-Define what "excellent enough to stop" means:
+Define what "excellent enough to stop" means. **Independent review is the primary assessment axis; quantitative metrics are an optional objective anchor.** During alignment, ask the user whether they can name concrete measurable targets for this artifact — if yes, capture them below; if not (common for writing, taste-driven UI, exploratory research), rely on independent review and mark the run's assessments as `low_confidence` (see excellence-loop Progress Delta Gate).
 
 ```yaml
 excellence_horizon:
   baseline:
     - core workflows complete
     - verification passes
+  # OPTIONAL but high-value: concrete measurable targets the run can check every cycle.
+  # When defined, these become the Track-2 objective anchor for forward/lateral/backward.
+  # Leave empty [] for artifacts that resist quantification; the run then relies on
+  # independent review (Track 1) and marks deltas low_confidence.
+  quantitative: []
+    # examples (use only what applies; delete the rest):
+    # - metric: test_coverage
+    #   target: ">= 80%"
+    #   command: "npm run test:coverage"
+    #   direction: higher_is_better
+    # - metric: lighthouse_performance
+    #   target: ">= 90"
+    #   command: "npx lighthouse --only-categories=performance --output=json http://localhost:3000"
+    #   direction: higher_is_better
+    # - metric: e2e_pass_rate
+    #   target: "100%"
+    #   command: "npx playwright test"
+    #   direction: higher_is_better
+    # - metric: benchmark_score
+    #   target: "> baseline_2026-06-15"
+    #   command: "python benchmarks/run.py --baseline"
+    #   direction: higher_is_better
+    # - metric: a11y_violations
+    #   target: "0"
+    #   command: "npx axe-core http://localhost:3000"
+    #   direction: lower_is_better
+    # - metric: bundle_size_kb
+    #   target: "< 200"
+    #   command: "npm run build && du -sh dist/"
+    #   direction: lower_is_better
   high_finish:
     - no obvious UX/content/research/engineering gaps
     - reviewers at the QA-required independence level find no P0/P1/P2 with positive expected value
     - setup and reproduction are verified
     - documentation/user briefing is clear at multiple depths
+    - if quantitative targets were defined, all are met
   diminishing_returns:
     min_review_rounds_without_high_value_findings: 2
     max_low_value_polish_rounds: 1
@@ -205,7 +236,7 @@ excellence_horizon:
     no_idle_waiting: true
 ```
 
-Do not set the excellence horizon to perfection. Set it to a high, auditable bar where further work has low expected value.
+The excellence horizon defines the **starting** quality bar, not the stopping point. Meeting all targets is not done — it is the signal to raise the bar (see `excellence-loop.md` Bar-Raising Protocol). If the user provides quantitative targets, they are binding minimums: the run must not declare done while one is unmet, a metric regression is always `backward`, and once all are met the agent generates higher targets or new quality dimensions and keeps iterating. Stopping happens only under the stringent conditions in `excellence-loop.md` Stop Criteria, or when budget is exhausted.
 
 ## Pre-Autonomy Gate
 
