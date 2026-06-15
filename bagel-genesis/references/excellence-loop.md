@@ -12,7 +12,7 @@ Stopping early — declaring done while measurable improvement remains possible 
 
 ## Iteration Model
 
-The excellence loop runs as a fixed number of **iterations**, each ending when the current target set is fully met (all metrics green + no open P0/P1). The user sets `max_iterations` during alignment (default 3 if unspecified). Each iteration produces a higher target set for the next. **Stopping is determined by iteration count — a hard, user-set, fully auditable boundary — not by the agent judging "can't improve further."**
+The excellence loop runs as a fixed number of **iterations**, each ending when the current target set is fully met (all metrics green + no open P0/P1). The user sets `max_iterations` during alignment (see `references/alignment-protocol.md` Stop Contract — it is the Stop Contract's hard ceiling, persisted to `.bagel/constitution.yaml`) (default 3 if unspecified). Each iteration produces a higher target set for the next. **Stopping is determined by iteration count — a hard, user-set, fully auditable boundary — not by the agent judging "can't improve further."**
 
 ## Flywheel Integrity Gate
 

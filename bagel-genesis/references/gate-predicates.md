@@ -45,6 +45,29 @@ gates:
 | `bar_raise_has_value_class` | Each new/raised target has a `why_class` from the canonical set: `defect_prevention`, `adversarial`, `growth_dimension`, `astonishing_completeness`, `stronger_evidence`, or `churn`. `churn` requires R3+ reviewer acceptance. The canonical set is defined in `scripts/flywheel_check.py` BAR_RAISE_VALUE_CLASSES and must not diverge. Prevents busywork disguised as bar-raising. |
 | `project_under_version_control` | Before the first file modification of an autonomous run, `git rev-parse --is-inside-work-tree` succeeds in the working folder, OR the user explicitly approved `git init` and a baseline commit exists. Without version control, rollback and branch isolation are impossible, so autonomous write work must not start. See `references/git-governance.md` Step 0. |
 
+## Enforcement Model (honest)
+
+Not every predicate has a mechanical validator behind it. Predicates split into two tiers:
+
+**Mechanically enforced** (a script fails the cycle if violated — cannot be talked out of):
+
+| Predicate | Validator |
+|---|---|
+| `project_under_version_control` | `bagel_run_check.py` |
+| `constitution_approved` (alignment floor + Stop Contract) | `bagel_run_check.py` |
+| `flywheel_integrity_passed` | `flywheel_check.py` (bundles the checks below) |
+| `no_regression_vs_green_floor` | `flywheel_check.py` |
+| `metric_delta_has_evidence_artifact` | `flywheel_check.py` |
+| `review_level_consistent_with_registry` | `flywheel_check.py` + `bagel_run_check.py` |
+| `bar_raise_has_value_class` | `flywheel_check.py` |
+| `bar_raise_preceded_by_brainstormers` | `flywheel_check.py` (>= 2 brainstormer_dispatch_ids per bar-raise) |
+
+**Agent-attested** (the agent records pass/fail based on evidence files, but no script independently re-verifies — these depend on the agent honestly inspecting the cited evidence):
+
+`project_understanding_current`, `evolution_record_present`, `context_fresh_for_dispatch`, `parallel_ownership_safe`, `worker_did_not_merge`, `rollback_point_present_for_risk`, `merge_inputs_clean`, `typed_contracts_present_when_required`, `skeleton_gate_passed_when_required`, `artifact_specific_slice_coverage_present`, `decision_mutations_cleared`, `red_team_blockers_resolved`, `scope_reduction_authorized`, `review_level_satisfied` (the QA-matrix-required-level part).
+
+These agent-attested gates are still mandatory — the agent must check them and record evidence — but they are not independently re-verified by a script. The periodic Independent Flywheel Audit (excellence-loop.md) is the intended backstop: an R3+ reviewer re-checks a sample of agent-attested gates against real repo state. If you need a guarantee that is impossible to self-attest falsely, rely only on the mechanically-enforced set above.
+
 ## Detector Rules
 
 - A predicate is checkable only if it names evidence files, commands, or review reports.

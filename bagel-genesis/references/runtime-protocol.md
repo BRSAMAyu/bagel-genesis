@@ -88,6 +88,8 @@ Also write or update an evolution change record for meaningful changes. The chec
 
 ## Progress and Status Protocol
 
+The run's stop boundary lives in the Stop Contract (`.bagel/constitution.yaml.stop_contract`: max_iterations, budget_limit, hard_stops, deadline) — not in STATUS.md narrative. STATUS.md reports progress; the Stop Contract defines when it ends.
+
 Every cycle must update two observable surfaces:
 
 - `.bagel/evidence/progress-deltas.yaml`: append the objective delta for the just-finished cycle.
@@ -103,7 +105,11 @@ STATUS.md has two owners with **non-overlapping sections** - this prevents both 
 - **User Alignment Curator writes the narrative sections on a trigger cadence** (milestones, recoveries, before/after excellence loop, before final delivery, when user instruction changes):
   `Morning Briefing` (the 4-line block a groggy user reads first), `Current Focus` narrative. The Curator owns risk-prioritization and human-framing because that is a distinct skill from cycle coordination, and it keeps the orchestrator's context free of "how do I explain this to the user" reasoning.
 
-- On cycles where no Curator dispatch fires, the Orchestrator writes a **minimal Morning Briefing** (status line + "nothing irreversible" line) so the file is never stale, then the Curator rewrites the full briefing at the next trigger. The minimal version is explicitly marked `[auto-minimal - full briefing pending]`.
+- **Write order (mandatory, prevents race):** the Orchestrator writes the mechanical sections FIRST (end of cycle), THEN dispatches the Curator with the just-written STATUS.md as input. The Curator does read-modify-write: it reads the full STATUS.md, replaces only its narrative sections (Morning Briefing, Current Focus), preserves all mechanical sections, and writes the complete file back. This serializes the two writers — the Curator never writes simultaneously with the Orchestrator.
+
+**Auto-minimal staleness rule:** if the Morning Briefing is `[auto-minimal]` and its `Last Updated` timestamp is more than 3 cycles old, the Orchestrator must either dispatch the Curator for a full rewrite or promote the auto-minimal block to a current one. A stale auto-minimal briefing that reflects state from 8 cycles ago is a violation — the user's first read on wake must be current.
+
+On cycles where no Curator dispatch fires, the Orchestrator writes a **minimal Morning Briefing** (status line + "nothing irreversible" line) so the file is never stale, then the Curator rewrites the full briefing at the next trigger. The minimal version is explicitly marked `[auto-minimal - full briefing pending]`.
 
 **The HTML dashboard (`.bagel/user_briefing/alignment-dashboard.html`) is owned exclusively by the User Alignment Curator**, generated from STATUS.md + progress-deltas at the user-selected frequency (`every_milestone` default). The orchestrator never writes HTML. See `references/alignment-dashboard-html.md`.
 

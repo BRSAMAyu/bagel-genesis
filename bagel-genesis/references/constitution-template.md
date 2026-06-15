@@ -132,7 +132,29 @@ Use this template to create `.bagel/constitution.yaml` (quick) or `.bagel/consti
   "anti_patterns": [
     "{Pattern to avoid 1}",
     "{Pattern to avoid 2}"
-  ]
+  ],
+
+  "stop_contract": {
+    "max_iterations": 24,
+    "budget_limit": "available_night",
+    "target_iterations": 12,
+    "hard_stops": [
+      "irreversible or non-recoverable destructive action",
+      "credentials, tokens, paid accounts or paid services",
+      "production data or production infrastructure",
+      "serious security/privacy/legal/financial risk",
+      "core product/research identity changes"
+    ],
+    "within_autonomy": [
+      "missing tests/verifiers (agent builds them)",
+      "broken local setup (agent fixes it)",
+      "failing experiments (agent tries alternatives)",
+      "review failures (agent addresses findings)",
+      "tool/env failures (agent recovers or switches lanes)"
+    ],
+    "morning_return": "{what the user wants to see when they wake}",
+    "deadline": "none"
+  }
 }
 ```
 

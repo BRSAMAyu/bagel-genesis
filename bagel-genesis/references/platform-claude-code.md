@@ -51,7 +51,7 @@ For R3 review, use a true subagent, background agent, agent team member, or sepa
 The wake prompt must be a **pointer, not a script**. It must NOT contain run mechanisms (which cycle to run, which files to read, how to dispatch) - those belong in SKILL.md and `.bagel/` state, which the agent loads via progressive disclosure after waking. Stuffing mechanism into the wake prompt causes (a) repetition pollution every cycle, (b) drift from SKILL.md as the skill evolves, (c) token waste. The wake prompt's only job is: orient the agent and point it at its state.
 
 ```text
-You are resuming a BAGEL Genesis autonomous run. Read .bagel/STATUS.md and .bagel/state.yaml to see where the run is, then follow the BAGEL Genesis SKILL.md for the next bounded action.
+You are resuming a BAGEL Genesis autonomous run. Read .bagel/STATUS.md and .bagel/state.yaml to see where the run is, then follow the BAGEL Genesis SKILL.md for the next bounded action. If state.yaml fails to parse (corrupted by a crash), read .bagel/snapshots/manifest.json, restore the latest valid snapshot, and continue from there.
 ```
 
 **Why this is enough:** STATUS.md contains the Morning Briefing (current phase, last delta, next action, blocking issues) and state.yaml contains the full machine state (task queue, gates, budget, loop_binding, telemetry). SKILL.md's Loading Matrix tells the agent exactly which reference to read for the decision at hand. The agent progressively discloses only what the current phase needs - it does not load all 31 references or the full skill on every wake.

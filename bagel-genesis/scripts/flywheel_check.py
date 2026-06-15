@@ -184,7 +184,7 @@ def validate_green_floors(root, state, errors, warnings):
                 fail(errors, f"metric {metric_name} regressed below green floor from iteration {iteration}: {current} < {floor}")
 
 
-def validate_iteration_budget(state, errors, warnings):
+def validate_iteration_budget(root, state, errors, warnings):
     excel = get_excellence_state(state)
     cap = excel.get("iteration_cycle_cap")
     used = excel.get("cycles_in_current_iteration", 0)
@@ -193,6 +193,22 @@ def validate_iteration_budget(state, errors, warnings):
         return
     if isinstance(used, int) and used > cap:
         fail(errors, f"cycles_in_current_iteration={used} exceeds iteration_cycle_cap={cap}")
+
+    # P0-4: cross-check max_iterations against the Stop Contract in constitution
+    # The Stop Contract is authoritative; state.excellence.max_iterations is a cached copy.
+    state_max_iter = excel.get("max_iterations")
+    constitution = load_yaml(root / ".bagel/constitution.yaml", {})
+    if not isinstance(constitution, dict) or not constitution:
+        constitution = load_yaml(root / ".bagel/constitution.json", {})
+    if isinstance(constitution, dict):
+        stop = as_dict(as_dict(constitution.get("stop_contract")))
+        contract_max = stop.get("max_iterations")
+        iterations_completed = excel.get("iterations_completed", 0)
+        if isinstance(contract_max, int) and isinstance(iterations_completed, int) and iterations_completed > contract_max:
+            fail(errors, f"iterations_completed={iterations_completed} exceeds stop_contract.max_iterations={contract_max} - the run has overrun its agreed ceiling")
+        if isinstance(state_max_iter, int) and isinstance(contract_max, int) and state_max_iter != contract_max:
+            fail(errors, f"state.excellence.max_iterations={state_max_iter} disagrees with stop_contract.max_iterations={contract_max} - constitution is authoritative")
+
     remaining = as_dict(state.get("budget")).get("remaining_budget_share") or excel.get("remaining_budget_share")
     if isinstance(remaining, dict):
         p0_open = excel.get("open_P0", 0)
@@ -237,6 +253,10 @@ def validate_bar_raises(root, errors, warnings):
                 fail(errors, f"bar raise {i}: churn requires R3/R4 acceptance, got review_level={review_level} accepted={accepted}")
         if not row.get("evidence"):
             fail(errors, f"bar raise {i}: missing evidence")
+        # P0-9: each bar-raise must be preceded by >=2 brainstormer dispatches
+        bs_ids = as_list(row.get("brainstormer_dispatch_ids"))
+        if len(bs_ids) < 2:
+            fail(errors, f"bar raise {i}: missing or fewer than 2 brainstormer_dispatch_ids - the bar was raised without manufacturing insight diversity (>=2 lens-pinned brainstormers required before every bar-raise)")
 
 
 def validate_stuck_metrics(state, root, errors, warnings):
@@ -310,7 +330,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     validate_progress_deltas(root, state, errors, warnings)
     validate_review_registry(root, state, errors, warnings)
     validate_green_floors(root, state, errors, warnings)
-    validate_iteration_budget(state, errors, warnings)
+    validate_iteration_budget(root, state, errors, warnings)
     validate_budget_monotonic(root, state, errors, warnings)
     validate_bar_raises(root, errors, warnings)
     validate_stuck_metrics(state, root, errors, warnings)

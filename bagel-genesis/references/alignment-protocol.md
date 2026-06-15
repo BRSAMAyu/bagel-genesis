@@ -174,7 +174,9 @@ These are control targets, not excuses to stop while budget and high-value work 
 
 ### Stop Contract (MANDATORY before any autonomous work)
 
-The Stop Contract is a single mandatory alignment artifact that captures *when the run ends*. It is the most important thing to agree on before the user goes to sleep, because once the loop is running, the agent's stop behavior is governed by these numbers, not by self-judgment. **Do not enter Build - and do not bind the loop - until the Stop Contract is captured and persisted to `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full).**
+The Stop Contract is a single mandatory alignment artifact that captures *when the run ends*. It is the most important thing to agree on before the user goes to sleep, because once the loop is running, the agent's stop behavior is governed by these numbers, not by self-judgment.
+
+**Ordering (resolved):** capability detection -> bind loop -> begin Align -> capture Stop Contract as the FIRST alignment artifact -> continue Align to depth floor -> enter Build. The loop is bound before Align (per loop-runtime Start Gate); the Stop Contract is captured as the first thing once Align begins. **Do not enter Build until the Stop Contract is captured and persisted to `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full).**
 
 Ask these explicitly as choice cards or crisp numeric questions. Do not infer or default them silently - the user must consciously set them, because they define the overnight contract:
 

@@ -96,6 +96,7 @@ def main() -> int:
 
     failures.extend(check_v11_requirements(root))
     failures.extend(check_v12_requirements(root))
+    failures.extend(check_loading_matrix_files_exist(root))
 
     if failures:
         print("BAGEL skill lint failed:")
@@ -272,6 +273,26 @@ def check_v12_requirements(root: Path) -> list[str]:
     if "validate_stop_contract" not in run_check:
         out.append("scripts/bagel_run_check.py: must implement validate_stop_contract (Stop Contract presence check).")
 
+    return out
+
+
+def check_loading_matrix_files_exist(root: Path) -> list[str]:
+    """Every File value in the Loading Matrix table must resolve to a real file.
+    Prevents an agent from being told to read a reference that doesn't exist."""
+    out: list[str] = []
+    skill = (root / "SKILL.md").read_text(encoding="utf-8") if (root / "SKILL.md").exists() else ""
+    # Extract all `references/<name>.md` from the Loading Matrix table rows
+    for m in re.finditer(r"\| `references/([^`|]+)` \|", skill):
+        ref_name = m.group(1).strip()
+        # Handle combined entries like "platform-claude-code.md / platform-codex.md"
+        for part in ref_name.split("/"):
+            part = part.strip()
+            if not part:
+                continue
+            if part.endswith(".md") or part.endswith(".yaml"):
+                full = root / "references" / part
+                if not full.exists():
+                    out.append(f"SKILL.md Loading Matrix references 'references/{part}' but the file does not exist.")
     return out
 
 

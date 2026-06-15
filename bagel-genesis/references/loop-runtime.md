@@ -39,6 +39,8 @@ Do not remain in planning-only mode. Do not enter a long Align/Explore phase wit
 **P3 - Degraded resume (only after P1 AND P2 are both proven unavailable):**
 - `degraded_resume`: no native loop and no external harness could be bound. The run continues in the current session only. STATUS.md must carry a red `[DEGRADED - no native loop bound]` marker. This is a marked downgrade, never an equal mode, and must never be presented as successful autonomous iteration.
 
+  **Critical limitation of degraded_resume:** there is NO wake mechanism. If the session ends (compaction limit, timeout, crash), the run is dead until a human manually resumes it. Therefore: in `degraded_resume` mode, the agent must continue working in the current session without ending the cycle with a `stop_semantics` that implies future wakeup. STATUS.md must state explicitly: "This run will end when this session ends; no automatic continuation is possible." The Loop Persistence Rule does not apply (there is nothing to persist). If the session is still alive, the agent should keep doing useful work rather than writing a handoff that nothing will read.
+
 If a mechanism binds, record `scheduled_resume` (P1), `external_harness` (P2), or `active_session_loop` (an in-session platform loop is actively running with checkpoint cadence). Do not record `degraded_resume` while any P1/P2 option remains unattempted.
 
 ```yaml
@@ -60,7 +62,7 @@ loop_binding:
 
 ### Loop Persistence Rule
 
-Once a loop/timer is bound, it **must stay bound until the run ends**. The run ends only when: the user-set `max_iterations` is exhausted, the token/budget wall is hit, the user stops it, or a true hard-stop boundary is reached. Do not close, cancel, or unregister the schedule mid-run. Only during end-of-run cleanup (after the final cycle) may the schedule/automation be torn down. Closing the loop early to "take a break" or because the current cycle finished is a violation - the next cycle must still be able to wake.
+Once a loop/timer is bound, it **must stay bound until the run ends**. The run ends only when: the user-set `max_iterations` (from the Stop Contract in `.bagel/constitution.yaml`) is exhausted, the token/budget wall is hit, the user stops it, or a true hard-stop boundary is reached. Do not close, cancel, or unregister the schedule mid-run. Only during end-of-run cleanup (after the final cycle) may the schedule/automation be torn down. Closing the loop early to "take a break" or because the current cycle finished is a violation - the next cycle must still be able to wake.
 
 ## Required State
 

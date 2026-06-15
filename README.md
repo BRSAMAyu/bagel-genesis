@@ -34,6 +34,20 @@ Three fixes to the *operational substrate*, found by watching a real run:
 - **Immediate loop binding.** The loop is bound *immediately after capability detection*, before the Align phase — not deferred to "when Build starts." Alignment and exploration happen inside the running loop, so a session interruption mid-alignment doesn't lose the run.
 - **Pointer-only wake prompts.** The loop wake prompt was reduced from 5 lines of mechanism instructions to a 1-sentence pointer: *read STATUS.md + state.yaml, then follow SKILL.md.* Mechanism in the wake prompt causes repetition pollution every cycle, drift from SKILL.md, and token waste. The agent progressively discloses what it needs after waking — it doesn't reload the whole skill.
 
+## What's new in v1.3
+
+A full adversarial audit (2 independent reviewers + self-review) found and fixed **29 issues**, including 8 P0 logic holes that would cause a real agent to deadlock, silently fail, or game its own gates:
+
+- **Circular dependency resolved.** The spec said "bind loop before Align" AND "don't bind loop until Stop Contract is captured" AND "Stop Contract is an alignment artifact." An agent following both would deadlock. Resolved: capability detection → bind loop → begin Align → capture Stop Contract first → depth floor → Build.
+- **max_iterations is now cross-checked.** `flywheel_check.py` reads `max_iterations` from the Stop Contract in `constitution.yaml` and fails if `state.excellence.max_iterations` disagrees or if `iterations_completed` exceeds it. Previously the iteration enforcer never read the Stop Contract — an agent could overrun its agreed ceiling.
+- **Brainstormer dispatch is mechanically linked to bar-raises.** Every bar-raise in `bar-raises.yaml` must now carry `brainstormer_dispatch_ids` with ≥ 2 entries. An agent can no longer skip brainstormers and just record a bar-raise — the flywheel gate fails without them.
+- **Non-runnable projects no longer falsely fail.** A LaTeX paper, data notebook, or static site with no build/test commands no longer triggers a false gate failure — if the Cartographer confirms `no_runnable_commands_confirmed` or provisions a local verifier.
+- **Anti-fabrication heuristic on baseline evidence.** Evidence files must be > 50 bytes — a 1-byte placeholder no longer passes.
+- **Wake corruption fallback.** If `state.yaml` fails to parse on wake (crash mid-write), the wake prompt now points to `.bagel/snapshots/manifest.json` for recovery.
+- **`degraded_resume` is honestly a dead-end.** The spec now states explicitly: degraded_resume has NO wake mechanism; the run dies when the session ends. It's not a loop binding, it's a session-only mode.
+- **12 agent-attested gate predicates are honestly labeled.** `gate-predicates.md` now has an Enforcement Model table distinguishing mechanically-enforced gates (script-verified, cannot be gamed) from agent-attested gates (the agent checks them, but no script independently re-verifies — the Independent Flywheel Audit is the backstop).
+- **Stop Contract propagated** to `constitution-template.md`, `excellence-loop.md`, `loop-runtime.md`, `runtime-protocol.md`.
+
 ---
 
 BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. It is designed for the common workflow where you align with an agent before bed, delegate a difficult task, and expect the system to keep working instead of stopping at the first ambiguity.
@@ -392,7 +406,7 @@ BAGEL is autonomy-first, but not reckless. It should continue through ordinary f
 
 ## Current Status
 
-BAGEL Genesis v1.2 is documentation-complete and internally validated:
+BAGEL Genesis v1.3 is documentation-complete and internally validated:
 
 - skill metadata validation passes
 - BAGEL consistency lint passes

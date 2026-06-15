@@ -315,7 +315,7 @@ It should stop or wake the user only for true hard-stops:
 
 ## Current Status
 
-BAGEL Genesis v1 is documentation-complete and internally validated:
+BAGEL Genesis v1.3 is documentation-complete and internally validated:
 
 - skill metadata validation passes
 - BAGEL consistency lint passes

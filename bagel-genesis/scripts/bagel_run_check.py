@@ -303,6 +303,7 @@ def validate_context_verified(root: Path, state: dict[str, Any], errors: list[st
 
     commands, manifest_exists = baseline_manifest(root)
     verified_commands = []
+    all_not_available = len(commands) > 0
     for item in commands:
         command = item.get("command")
         output_path = item.get("output_path") or item.get("evidence")
@@ -319,6 +320,9 @@ def validate_context_verified(root: Path, state: dict[str, Any], errors: list[st
         if not evidence_path.exists() or evidence_path.stat().st_size == 0:
             fail(errors, f"baseline manifest command {command!r} points to missing/empty evidence: {output_path}")
             continue
+        # P0-13: anti-fabrication heuristic - evidence must be >50 bytes (not a 1-byte placeholder)
+        if result != "not_available" and evidence_path.stat().st_size < 50:
+            fail(errors, f"baseline manifest command {command!r} evidence file is only {evidence_path.stat().st_size} bytes - too small to be real command output; likely fabricated")
         if ".bagel/evidence/baseline/" not in str(output_path):
             fail(errors, f"baseline evidence for {command!r} must live under .bagel/evidence/baseline/")
         if not exit_code_present:
@@ -327,11 +331,21 @@ def validate_context_verified(root: Path, state: dict[str, Any], errors: list[st
             fail(errors, f"baseline manifest command {command!r} must record captured_at/executed_at")
         if result != "not_available":
             verified_commands.append(item)
+        else:
+            all_not_available = all_not_available and True
 
     if not manifest_exists:
         fail(errors, "missing .bagel/evidence/baseline/manifest.yaml; baseline command outputs must be indexed, not inferred from arbitrary files")
     elif not verified_commands:
-        fail(errors, "baseline manifest has no executed verifier command; at least one real command output is required before Build")
+        # P0-5: non-runnable projects (LaTeX, data notebooks, static sites with no build step)
+        # may have ALL commands as not_available. Allow through only if the Cartographer
+        # explicitly confirmed no runnable commands OR provisioned a local verifier.
+        no_runnable_confirmed = context.get("no_runnable_commands_confirmed") is True
+        verifiers_provisioned = as_list(context.get("verifiers_provisioned"))
+        if all_not_available and (no_runnable_confirmed or verifiers_provisioned):
+            warn(warnings, "all baseline commands are not_available; passed because no_runnable_commands_confirmed or verifiers_provisioned is set - verify this is a genuine non-runnable artifact, not laziness")
+        else:
+            fail(errors, "baseline manifest has no executed verifier command; at least one real command output is required before Build (if the project genuinely has no runnable commands, set context.no_runnable_commands_confirmed: true or provision a local verifier)")
 
     # Check for doc-vs-reality discrepancies recorded (proves verification happened)
     has_discrepancy_log = any(

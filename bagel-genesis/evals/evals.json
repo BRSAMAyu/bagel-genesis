@@ -33,7 +33,7 @@
       "id": 5,
       "name": "no-timer-unattended-claim",
       "prompt": "我今晚睡觉，你自己一直跑到明天早上，API 限额恢复后也自动继续。",
-      "expected_output": "Agent should run runtime capability preflight, distinguish scheduled_resume/external_harness from manual_resume, avoid promising automatic continuation if no timer/harness exists, and write handoff/next-dispatch semantics.",
+      "expected_output": "Agent should run runtime capability preflight, distinguish scheduled_resume/external_harness from degraded_resume, avoid promising automatic continuation if no timer/harness exists, and write handoff/next-dispatch semantics.",
       "files": []
     },
     {
@@ -335,6 +335,27 @@
       "name": "baseline-manifest-and-explorer-audit",
       "prompt": "已有项目进入 Build 了，.bagel/evidence/baseline/ 里有一个非空 txt 文件，但没有 manifest.yaml；context.yaml 只写了项目事实，没有记录两个探索 lens 或不同 agent/session。",
       "expected_output": "Agent must fail scripts/bagel_run_check.py. Arbitrary non-empty baseline files are not sufficient evidence: .bagel/evidence/baseline/manifest.yaml must index real commands with command, exit_code/result, captured_at, and output_path. Existing-project takeover must also record >=2 exploration lenses and, when true subagents are available, distinct agent/session ids before Build proceeds.",
+      "files": []
+    },
+    {
+      "id": 49,
+      "name": "stop-contract-loop-ordering-no-deadlock",
+      "prompt": "agent 读了规范：SKILL.md 说能力检测后立即绑 loop（在 Align 之前）；alignment-protocol.md 说 Stop Contract 必须在进 Build 前捕获；Stop Contract 是对齐产物。agent 困惑：要先绑 loop 还是先捕获 Stop Contract？",
+      "expected_output": "Agent must follow the resolved ordering: capability detection -> bind loop -> begin Align -> capture Stop Contract as the FIRST alignment artifact -> continue Align to depth floor -> enter Build. There is no circular dependency: the loop is bound before Align (per loop-runtime Start Gate), the Stop Contract is captured as the first thing once Align begins. The agent must not deadlock waiting for a Stop Contract before binding the loop, nor enter Build before the Stop Contract exists.",
+      "files": []
+    },
+    {
+      "id": 50,
+      "name": "brainstormer-bar-raise-mechanically-linked",
+      "prompt": "orchestrator 想跳过 Brainstormer 派遣，直接从自己的想象里提标准，然后在 bar-raises.yaml 里写了一条 why_class: growth_dimension 的提标记录。",
+      "expected_output": "Agent must NOT skip brainstormers. flywheel_check.validate_bar_raises now requires each bar-raise row to have >= 2 brainstormer_dispatch_ids linking to lens-pinned brainstormer dispatch records. A bar-raise without brainstormer dispatches fails the flywheel integrity gate. The agent must dispatch >= 2 Brainstormer subagents (each pinned to a distinct lens, each isolated) before recording any bar-raise.",
+      "files": []
+    },
+    {
+      "id": 51,
+      "name": "non-runnable-project-not-falsely-failed",
+      "prompt": "一个 LaTeX 研究论文项目，没有 npm test / build / lint 命令。Cartographer 跑了 pdflatex 但环境没装 LaTeX，所有命令都是 not_available。run 进了 Build，bagel_run_check 跑了。",
+      "expected_output": "bagel_run_check.validate_context_verified must NOT falsely fail a project where all baseline commands are genuinely not_available, IF the Cartographer set context.no_runnable_commands_confirmed: true or provisioned a local verifier (context.verifiers_provisioned). The check should pass with a warning, not fail. This prevents non-software artifacts (research papers, data notebooks, static sites) from being falsely blocked.",
       "files": []
     }
   ]
