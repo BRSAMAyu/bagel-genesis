@@ -6,6 +6,28 @@
 
 ---
 
+## The one-paragraph pitch
+
+A bare agent stops at the first ambiguity, drifts as its context grows, rubber-stamps its own work, and calls "it runs" done. BAGEL Genesis is a skill-level operating protocol that makes an agent **keep working for hours after you go to sleep** — aligning deeply first, then driving a continuous positive-optimization loop where every quality bar, once met, gets *raised* rather than declared finished. The difference from a long prompt is that the load-bearing guarantees are **verified by scripts, not self-reported**: progress deltas must cite real evidence files, independent review is *derived from registry state*, regressions below a green floor fail the cycle, and a flat-spin detector catches a loop that's "working hard" without actually climbing.
+
+## What's new in v1.1
+
+Four mandates tighten the overnight contract, all mechanically lint-checked:
+
+- **Mandatory loop, max 25 min.** Before the first autonomous cycle the agent *must* bind a platform-native loop (`/loop`, scheduled task, Codex automation, `codex exec`+cron) with an interval ≤ 25 minutes, and keep it bound until the run ends. `degraded_resume` is a marked fallback only after every native mechanism is proven unavailable.
+- **Mandatory git.** The working folder must be a git repo before any file is modified — `git init` + baseline commit if needed, enforced by the `project_under_version_control` hard gate. Without it, rollback and branch isolation are impossible.
+- **Mandatory dispatch.** After loading the skill, the main model *adopts the Orchestrator role* and dispatches all product code/tests/review to subagents. It writes only `.bagel/` governance artifacts. Doing implementation itself is the #1 failure smell.
+- **Depth-floored alignment.** `standard` requires all 8 choice cards + ≥ 3 open questions; `deep` requires ≥ 2 rounds, ≥ 8 questions. The fast-path 4 questions are valid *only* in `snap`.
+
+Plus an **information-architecture upgrade** built on one axiom — *context is the resource to protect*:
+
+- **Context-Isolation Axiom:** a separate subagent call *is* a separate context. Workers share *findings* (structured, artifact-grounded), never *reasoning* (chain-of-thought, design debate).
+- **Brainstormer role:** ≥ 2 lens-pinned, isolated-context agents dispatched before every bar-raise, so insight diversity is *manufactured* rather than hoped for.
+- **STATUS.md ownership split:** the orchestrator writes mechanical data (telemetry, deltas, gates); the Curator writes narrative (Morning Briefing, risks) and owns the HTML dashboard exclusively.
+- **Orchestrator firewall:** widened to block implementation reasoning from entering the coordinator's context — not just "long transcripts."
+
+---
+
 BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. It is designed for the common workflow where you align with an agent before bed, delegate a difficult task, and expect the system to keep working instead of stopping at the first ambiguity.
 
 It is not a single mega-prompt. It is a structured skill with:
@@ -167,6 +189,16 @@ python bagel-genesis/scripts/flywheel_check.py /path/to/project
 `bagel_run_check.py` verifies that the run is actually wired for autonomy: git rollback exists, a <=25 minute loop/timer is bound, alignment floors were met, agent dispatch records exist, implementer/reviewer roles are separate, STATUS.md is complete, and HTML dashboard ownership is not ambiguous.
 
 `flywheel_check.py` mechanically verifies six properties of every run: objective deltas, no false independence, no regression below green floors, no budget burning, no redundant bar raises, no flat-spin. All evidence must point to real files/commands/reports.
+
+### Context Is the Resource to Protect (information architecture)
+
+Long runs fail not from laziness but from *context pollution*: the coordinating agent absorbs implementation detail, the reviewer absorbs the implementer's rationalization, every brainstorm converges on the obvious. BAGEL's v1.1 architecture treats context as a scarce resource and controls its flow explicitly:
+
+- **The orchestrator is a coordinator, not an implementer.** It dispatches, verifies, and persists state — it never writes product code. Its firewall blocks implementation reasoning, design debate, and debug narrative from entering its context.
+- **Every role gets a clean context.** A subagent call *is* a separate context window. Workers receive a dispatch envelope (ROLE / READ-ONLY files / WRITE-ONLY files / EXIT-CRITERIA), never the full skill, never history, never another worker's chain-of-thought.
+- **Findings flow; reasoning does not.** A worker may read another worker's *findings* (a review report, a test result, a benchmark number). It must never read another worker's *reasoning* (why they chose that approach). This is how collaboration happens without contamination.
+- **Insight diversity is manufactured.** Before raising the bar, the orchestrator dispatches ≥ 2 **Brainstormer** subagents, each pinned to one lens (performance / resilience / user_value / simplicity / completeness / evidence_strength / adversarial), each isolated from the others' output. The orchestrator merges *after* all return. This is the only mechanism that produces genuinely divergent ideas instead of converging on the obvious.
+- **Doc ownership is split, not shared.** The orchestrator writes STATUS.md's mechanical sections every cycle (telemetry, delta trend, loop binding, gates); the User Alignment Curator writes the narrative sections (Morning Briefing, risk framing) on a trigger cadence and owns the HTML dashboard exclusively. No file has two writers.
 
 ### Three Execution Strategies
 
@@ -352,7 +384,7 @@ BAGEL is autonomy-first, but not reckless. It should continue through ordinary f
 
 ## Current Status
 
-BAGEL Genesis v1 is documentation-complete and internally validated:
+BAGEL Genesis v1.1 is documentation-complete and internally validated:
 
 - skill metadata validation passes
 - BAGEL consistency lint passes
