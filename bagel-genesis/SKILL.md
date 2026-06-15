@@ -82,6 +82,7 @@ After loading this skill, the main model **adopts the Orchestrator role**. All p
 | Red-Team Oracle | constitution, decisions, baseline/final candidate | adversarial findings | fix issues directly |
 | Brainstormer | constitution + taste kernel, current artifact, progress-deltas, state.excellence | improvement ideas under ONE assigned lens | read other brainstormers' output, propose implementation, work outside assigned lens |
 | Product Visionary | constitution, taste kernel, artifact state, progress evidence | divergent concept candidates + falsifiable probes | implement, review, or mutate the constitution directly |
+| Judgment Councilor | one decision, one judgment dimension, constitution, proposal evidence | dimension verdict for Judgment Council | generate ideas, implement, or see other councilors' verdicts |
 | User Alignment Curator | alignment artifacts, decision ledger, progress state | STATUS.md narrative sections + HTML dashboard + user_briefing/ | hide risks or unresolved decisions, write STATUS.md mechanical sections
 
 Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
@@ -101,6 +102,7 @@ A worker should not browse the `references/` directory freely. The orchestrator 
 | Constitutional Court | constitutional-court, constitution-template | 1-2 |
 | Brainstormer | none beyond its envelope (excellence-loop only if ranking ideas) | 0-1 |
 | Product Visionary | innovation-protocol | 1 |
+| Judgment Councilor | taste-judgment only | 1 |
 | User Alignment Curator | user-briefing, alignment-protocol | 1-2 |
 
 If a worker's task cannot be completed within its ceiling, the orchestrator derives a compact brief and puts that in the envelope instead of widening the ceiling. This is how "read strictly when needed, do not read otherwise" stays enforceable.
@@ -201,6 +203,9 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/rework-sandbox.md` | isolating a risky change in a worktree/sandbox branch | change is small and reversible in-place | full |
 | `references/simulations.md` | running scenario/deterministic user-flow checks on a built artifact | artifact is not yet runnable | full |
 | `references/excellence-loop.md` | baseline passes and you enter Polish; ranking improvement tasks by EV; **or experiment/research results are poor or stalled (lateral/backward deltas) and you need to decide whether to switch hypothesis vs keep iterating** | still in Build phase before baseline, with no polish/stall decision pending | always |
+| `references/taste-judgment.md` | selecting innovation survivors, choosing a bar-raise direction, switching strategy after lateral cycles, final delivery acceptance, or constitution-level direction changes | routine reversible implementation or mechanical telemetry | always |
+| `references/collective-decisions.md` | a high-impact decision needs multiple independent perspectives or you are deciding whether multi-agent judgment is warranted | ordinary slice implementation, naming, test details, or mechanical deltas | always |
+| `references/orchestration-flow.md` | deciding what stage/dispatch/merge rule comes next in a long autonomous run | a single local task is already clearly in progress | always |
 | `references/innovation-protocol.md` | user asks for innovation/novelty/wow; blank-slate product needs concept exploration; bar-raising or recovery has locally converged; or `innovation_contract.ambition` is differentiated/breakthrough | execution-only task with a locked concept and no plateau | always |
 | `references/lesson-memory.md` | recovery occurred; the same failure recurred; environment/tooling was repaired; a reviewer finding repeats; or a useful workaround should persist across runs | no recovery/learning trigger this cycle | always |
 | `references/loop-runtime.md` | configuring a multi-cycle unattended loop, checkpoint cadence, or quota/resume | single-session work that finishes in one cycle | full |

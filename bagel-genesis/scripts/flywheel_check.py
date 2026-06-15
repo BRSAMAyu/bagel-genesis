@@ -71,6 +71,31 @@ def get_excellence_state(state: dict[str, Any]) -> dict[str, Any]:
     return as_dict(state.get("excellence"))
 
 
+def validate_judgment_record(root: Path, judgment_ref: Any, expected_type: str, label: str, errors: list[str]) -> None:
+    if not judgment_ref:
+        fail(errors, f"{label}: missing judgment_ref")
+        return
+    path = root / str(judgment_ref)
+    if not path.exists():
+        fail(errors, f"{label}: judgment_ref does not exist: {judgment_ref}")
+        return
+    record = as_dict(load_yaml(path, {}))
+    if record.get("decision_type") != expected_type:
+        fail(errors, f"{label}: judgment decision_type must be {expected_type}, got {record.get('decision_type')!r}")
+    councilors = [as_dict(item) for item in as_list(record.get("councilors"))]
+    if len(councilors) < 3:
+        fail(errors, f"{label}: Judgment Council requires >=3 councilors")
+    dimensions = {str(item.get("dimension")) for item in councilors if item.get("dimension")}
+    if len(dimensions) < 3:
+        fail(errors, f"{label}: Judgment Council requires >=3 distinct dimensions")
+    ids = {str(item.get("agent_id") or item.get("session_id")) for item in councilors if item.get("agent_id") or item.get("session_id")}
+    if len(ids) < len(councilors):
+        fail(errors, f"{label}: councilor agent/session ids must be distinct and recorded")
+    merge = as_dict(record.get("merge_result"))
+    if merge.get("status") != "passed" or merge.get("judgment_passed") is not True:
+        fail(errors, f"{label}: judgment record must have merge_result.status=passed and judgment_passed=true")
+
+
 def validate_progress_deltas(root, state, errors, warnings):
     deltas = load_yaml(root / ".bagel/evidence/progress-deltas.yaml", [])
     if not isinstance(deltas, list) or not deltas:
@@ -257,6 +282,10 @@ def validate_bar_raises(root, errors, warnings):
         bs_ids = as_list(row.get("brainstormer_dispatch_ids"))
         if len(bs_ids) < 2:
             fail(errors, f"bar raise {i}: missing or fewer than 2 brainstormer_dispatch_ids - the bar was raised without manufacturing insight diversity (>=2 lens-pinned brainstormers required before every bar-raise)")
+        if row.get("judgment_passed") is True:
+            validate_judgment_record(root, row.get("judgment_ref"), "bar_raise", f"bar raise {i}", errors)
+        elif not row.get("judgment_skipped_reason"):
+            fail(errors, f"bar raise {i}: missing judgment_passed=true or judgment_skipped_reason")
 
 
 def validate_stuck_metrics(state, root, errors, warnings):

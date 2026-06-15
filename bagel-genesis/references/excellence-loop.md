@@ -161,6 +161,7 @@ Use multiple independent sources. **Sources must be genuinely independent, not t
 - "what would embarrass us in a demo/review/publication" pass,
 - **brainstormer pass: dispatch >= 2 Brainstormer subagents, each pinned to a distinct lens (see `agents/brainstormer.md`), each in isolated context, none seeing the others' output. Merge and de-duplicate only after all return.** This is the only mechanism that manufactures insight diversity instead of hoping for it.
 - **visionary pass: dispatch Product Visionary when the user wants novelty, when the current frame has plateaued, or when bar-raising yields only local polish. Product Visionary proposes concept candidates and falsifiable probes; it does not change the constitution.**
+- **judgment council pass: for innovation survivors, bar-raise direction, strategy switch, and final delivery, dispatch >=3 Judgment Councilors using `references/taste-judgment.md`. Direction choices need taste judgment, not only EV math.**
 - user briefing review for clarity gaps.
 - "what else could make this astonishingly complete?" pass,
 - experiment/theory alternative generation when results stall,
@@ -219,7 +220,7 @@ When all current metrics are green AND independent review finds no new P0/P1/P2,
 5. **For research/experiment artifacts:** when the current hypothesis is validated, ask whether a stronger hypothesis, a larger eval, an ablation, a failure-mode analysis, or a competing-approach comparison would strengthen the claim. Raise the evidentiary bar.
 6. **Run a novelty/paradigm pass:** if `innovation_contract.ambition` is `differentiated` or `breakthrough`, or if local improvements are plateauing, dispatch Product Visionary and consider cheap probes for paradigm shifts, cross-domain transfer, inversion, new mechanics, or distribution loops before spending the next iteration on incremental polish.
 
-**Recording bar raises:** every raised target or new dimension goes into `.bagel/evidence/bar-raises.yaml` with: what was raised, why, the new target, and which cycle. This makes the optimization trajectory auditable — the user can see the artifact didn't just "pass," it was driven upward through N bar raises.
+**Recording bar raises:** every raised target or new dimension goes into `.bagel/evidence/bar-raises.yaml` with: what was raised, why, the new target, which cycle, `brainstormer_dispatch_ids`, and either `judgment_passed: true` plus `judgment_ref: ".bagel/decisions/judgment-<id>.yaml"` or a narrow `judgment_skipped_reason` for non-directional mechanical target tightening. This makes the optimization trajectory auditable — the user can see the artifact didn't just "pass," it was driven upward through N bar raises.
 
 **When bar-raising itself stalls:** if the agent attempts the bar-raising moves and genuinely cannot identify a higher target or new dimension, dispatch Product Visionary before incrementing the diminishing-returns counter. Only after the visionary pass also finds no positive-EV probe, AND an independent reviewer (different agent/context) agrees, may the run count this toward diminishing returns. This prevents local optimization from masquerading as concept exhaustion.
 
@@ -319,6 +320,7 @@ Prefer high-value, bounded improvements. Accept moderate risk when rollback is c
 Expected value rule:
 
 - Execute when `ev_score > cost_score + risk_score` or the issue is P0/P1.
+- If a candidate has passed Judgment Council (`judgment_passed: true`), use the taste-adjusted threshold: `ev_score >= cost_score + risk_score - 1`. This compensates for EV's bias against high-variance but high-taste ideas. It does not waive cost/risk.
 - Defer only when value is real but a better positive-EV task exists, or the change crosses the autonomy contract.
 - Reject when value is low, speculative, or outside constitution.
 

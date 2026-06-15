@@ -72,7 +72,7 @@ Do not delete rejected concepts. A rejected high-novelty idea is useful memory i
 Normal EV ranking penalizes uncertainty. For innovation lanes, use two-stage selection:
 
 1. Select cheap probes by upside and learning value, not only immediate EV.
-2. After probe evidence exists, route survivors back through normal EV/risk/cost ranking.
+2. After probe evidence exists, route survivors through Judgment Council (`references/taste-judgment.md`), then through normal EV/risk/cost ranking with the taste-adjusted threshold when `judgment_passed: true`.
 
 Reject a concept only when one of these is true:
 
@@ -80,6 +80,13 @@ Reject a concept only when one of these is true:
 - its probe is too costly for the exploration budget,
 - the probe evidence is negative,
 - it is novel but does not improve user value.
+
+Adopt a concept only when:
+
+- its probe evidence exists,
+- Judgment Council status is `passed`,
+- it satisfies the normal or taste-adjusted EV rule,
+- and it does not require an unauthorized constitution change.
 
 ## Constitution Boundary
 

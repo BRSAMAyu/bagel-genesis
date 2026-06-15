@@ -97,6 +97,7 @@ def main() -> int:
     failures.extend(check_v11_requirements(root))
     failures.extend(check_v12_requirements(root))
     failures.extend(check_v13_innovation_memory(root))
+    failures.extend(check_v14_judgment_council(root))
     failures.extend(check_loading_matrix_files_exist(root))
 
     if failures:
@@ -331,6 +332,63 @@ def check_v13_innovation_memory(root: Path) -> list[str]:
     for required in ("validate_lessons", "validate_innovation", "innovation_contract", "collect_lessons"):
         if required not in memory_check:
             out.append(f"scripts/bagel_memory_check.py: missing {required}.")
+
+    return out
+
+
+def check_v14_judgment_council(root: Path) -> list[str]:
+    """v1.4 taste judgment and collective-decision consistency checks."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    taste = read("references/taste-judgment.md")
+    collective = read("references/collective-decisions.md")
+    flow = read("references/orchestration-flow.md")
+    councilor = read("agents/judgment-councilor.md")
+    excellence = read("references/excellence-loop.md")
+    flywheel = read("scripts/flywheel_check.py")
+    run_check = read("scripts/bagel_run_check.py")
+    orchestrator = read("agents/orchestrator.md")
+    innovation = read("references/innovation-protocol.md")
+
+    for rel in (
+        "references/taste-judgment.md",
+        "references/collective-decisions.md",
+        "references/orchestration-flow.md",
+        "agents/judgment-councilor.md",
+    ):
+        if not (root / rel).exists():
+            out.append(f"{rel}: v1.4 requires this Judgment Council file.")
+
+    for ref in ("taste-judgment.md", "collective-decisions.md", "orchestration-flow.md"):
+        if ref not in skill:
+            out.append(f"SKILL.md Loading Matrix must include references/{ref}.")
+    if "Judgment Councilor" not in skill:
+        out.append("SKILL.md role table must include Judgment Councilor.")
+    for phrase in ("strong_no", "strong_yes", "judgment_passed", "taste_adjusted"):
+        if phrase not in taste:
+            out.append(f"taste-judgment.md missing {phrase} rule.")
+    if "Explicit Non-Use Cases" not in collective or "ordinary slice implementation" not in collective:
+        out.append("collective-decisions.md must explicitly exclude routine implementation decisions.")
+    for phrase in ("RUN", "Final Delivery", "Run End", "Judgment Council"):
+        if phrase not in flow:
+            out.append(f"orchestration-flow.md must cover {phrase}.")
+    if "Judgment Councilor" not in councilor or "verdict: strong_yes | yes | neutral | no | strong_no" not in councilor:
+        out.append("agents/judgment-councilor.md must define the verdict schema.")
+    if "judgment_passed" not in excellence or "taste-adjusted" not in excellence:
+        out.append("excellence-loop.md must include judgment_passed taste-adjusted EV selection.")
+    if "validate_judgment_record" not in flywheel or "judgment_skipped_reason" not in flywheel:
+        out.append("flywheel_check.py must validate bar-raise judgment records.")
+    if "final_judgment_ref" not in run_check or "final_delivery" not in run_check:
+        out.append("bagel_run_check.py must require final delivery Judgment Council before complete.")
+    if "orchestration-flow.md" not in orchestrator:
+        out.append("orchestrator.md must point to orchestration-flow.md.")
+    if "Judgment Council" not in innovation:
+        out.append("innovation-protocol.md must route survivor selection through Judgment Council.")
 
     return out
 

@@ -50,6 +50,15 @@
 - **新增创新层。** 高野心或空白产品运行现在会捕获 `innovation_contract`，派遣 Product Visionary 做范式/跨域/反向假设/新机制探针，并在 `.bagel/innovation/ledger.yaml` 记录候选，避免过早收敛到局部打磨。
 - **新增教训记忆层。** 恢复不再止于"修好了"。可复用的坑、环境知识、规避方案会沉淀到 `.bagel/lessons/` 或 `ledger.yaml#lessons`；`bagel_memory_check.py` 会让恢复很多却没有沉淀知识的运行失败。
 
+## v1.4 新增什么
+
+v1.4 补上品味和群体判断层。BAGEL 现在不只是产生大胆方向，还会判断哪些方向真的值得做，并在花掉整晚之前否决"执行得很好但方向不对"的选择：
+
+- **Judgment Council。** 方向性决策派遣 >=3 个独立 Judgment Councilor，从用户影响、优雅性、一致性、耐久性、惊喜感等维度判断。任何 `strong_no` 否决；>=2 个 `strong_yes` 且没有 `no` 才通过；其他情况记录为有价值的分歧。
+- **品味调整 EV。** 通过 Judgment Council 的方向，EV 执行阈值降低 1 分，补偿高方差好想法在有指标前被低估的问题，但不豁免成本和风险。
+- **只在真正有用时使用群体智能。** 创新选择、提标、策略切换、最终交付、constitution 变更使用多视角判断；普通实现、测试、命名明确不使用。
+- **完整编排地图。** `orchestration-flow.md` 定义从 run start 到 run end 的派遣、合并、记录和验证路径。
+
 ---
 
 它不是一段超长 prompt，而是一个结构化技能，包含：
@@ -279,7 +288,7 @@ BAGEL 维护 `.bagel/STATUS.md`（含强制的 `Morning Briefing` 块）和 `.ba
     ├── SKILL.md              # 入口文件
     ├── README.md             # 技能目录内的 readme
     ├── agents/               # 角色提示词（编排器、实现者、审查者、制图师等）
-    ├── references/           # 33 个按需加载的协议
+    ├── references/           # 36 个按需加载的协议
     ├── scripts/
     │   ├── detect_runtime_capabilities.py
     │   ├── bagel_run_check.py    # 运行期地基校验器
@@ -287,7 +296,7 @@ BAGEL 维护 `.bagel/STATUS.md`（含强制的 `Morning Briefing` 块）和 `.ba
     │   ├── flywheel_check.py     # 飞轮完整性机械校验器
     │   └── skill_lint.py         # 技能自洽性 lint
     └── evals/
-        └── evals.json        # 53 条行为评测
+        └── evals.json        # 57 条行为评测
 ```
 
 ## 安装
@@ -418,7 +427,7 @@ BAGEL Genesis v1.3 已文档完备并通过内部校验：
 - 技能元数据校验通过
 - BAGEL 自洽性 lint 通过
 - evals JSON 合法且编号连续
-- 53 条行为评测覆盖对齐深度下限、项目接管、强制 loop/git/dispatch、上下文隔离、brainstormer 多样性、创新探针、教训记忆、验证而非信任的探索、baseline manifest、即时 loop 绑定、指针式唤醒提示词、运行期有效性审计、循环绑定、恢复、飞轮完整性、视觉证据、HTML 晨报
+- 57 条行为评测覆盖对齐深度下限、项目接管、强制 loop/git/dispatch、上下文隔离、brainstormer 多样性、Judgment Council 品味否决、群体决策边界、创新探针、教训记忆、验证而非信任的探索、baseline manifest、即时 loop 绑定、指针式唤醒提示词、运行期有效性审计、循环绑定、恢复、飞轮完整性、视觉证据、HTML 晨报
 
 剩下的验证是经验性的：在真实项目上跑一夜，把结果和普通智能体用法对比。
 

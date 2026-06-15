@@ -58,6 +58,7 @@ Do not read:
 9. Continue autonomous improvement after baseline completion until the excellence horizon passes.
 10. Keep converting time and tokens into verified value; if one lane blocks, recover or switch to another high-value lane.
 11. After every cycle, record objective progress delta and update the MECHANICAL sections of `.bagel/STATUS.md` (Last Updated, Run Status, Loop Binding, Delta Trend, Timeline, Budget, Telemetry, Decisions, Lanes, Next Action). Write a minimal auto-Morning-Briefing marked `[auto-minimal]` only if the Curator was not dispatched this cycle. Never write the full narrative Morning Briefing yourself.
+12. For direction-level decisions, dispatch Judgment Councilors instead of making taste calls yourself. Use `references/orchestration-flow.md` as the authoritative map for when to dispatch Product Visionary, Brainstormers, reviewers, Red-Team, and Judgment Council.
 
 ## State Ownership
 
@@ -108,6 +109,8 @@ S8 implement one slice -> S9 clear that slice -> S8 next slice
 ```
 
 Do not wait until all slices are done to run S9. The clearing invariant must hold before the next value slice starts.
+
+For the authoritative end-to-end decision flow, including all dispatch points, Judgment Council triggers, and merge rules, use `references/orchestration-flow.md`. That file is the source of truth for "what decision is due now, who do I dispatch, how do I merge, and where do I record it."
 
 ## Dispatch Envelope
 
@@ -161,6 +164,8 @@ Before transition:
 13. Write a checkpoint when the transition completes.
 
 Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish. A failing flywheel check means the cycle cannot be counted as valid forward progress; repair the failed flywheel condition before raising the bar, completing the iteration, or claiming final delivery.
+
+Direction-level choices use collective decision records, not free-form orchestration judgment. If the choice is innovation selection, bar-raise direction, strategy switch after lateral cycles, final delivery, or constitution change, dispatch the required agents and write `.bagel/decisions/judgment-<id>.yaml` before acting.
 
 ## Gate Failure and Recovery Protocol
 

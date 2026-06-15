@@ -114,6 +114,31 @@ def baseline_manifest(root: Path) -> tuple[list[dict[str, Any]], bool]:
     return [], manifest_path.exists()
 
 
+def validate_judgment_record(root: Path, judgment_ref: Any, expected_type: str, errors: list[str]) -> None:
+    if not judgment_ref:
+        fail(errors, f"complete run requires {expected_type} judgment_ref")
+        return
+    path = root / str(judgment_ref)
+    if not path.exists():
+        fail(errors, f"judgment_ref does not exist: {judgment_ref}")
+        return
+    record = as_dict(load_yaml(path, {}))
+    if record.get("decision_type") != expected_type:
+        fail(errors, f"judgment decision_type must be {expected_type}, got {record.get('decision_type')!r}")
+    councilors = [as_dict(item) for item in as_list(record.get("councilors"))]
+    if len(councilors) < 3:
+        fail(errors, "final Judgment Council requires >=3 councilors")
+    dimensions = {str(item.get("dimension")) for item in councilors if item.get("dimension")}
+    if len(dimensions) < 3:
+        fail(errors, "final Judgment Council requires >=3 distinct dimensions")
+    ids = {str(item.get("agent_id") or item.get("session_id")) for item in councilors if item.get("agent_id") or item.get("session_id")}
+    if len(ids) < len(councilors):
+        fail(errors, "final Judgment Council agent/session ids must be distinct and recorded")
+    merge = as_dict(record.get("merge_result"))
+    if merge.get("status") != "passed" or merge.get("judgment_passed") is not True:
+        fail(errors, "final delivery judgment must pass before state can be complete")
+
+
 def validate_git(root: Path, state: dict[str, Any], errors: list[str]) -> None:
     if not git_ok(root):
         fail(errors, "project root is not a git repository; rollback and worktree isolation are unavailable")
@@ -266,6 +291,9 @@ def validate_status_and_briefing(root: Path, state: dict[str, Any], errors: list
     run_status = state.get("run_status") or state.get("status")
     if run_status and run_status not in VALID_STOP:
         fail(errors, f"state run status {run_status!r} is not a valid BAGEL status")
+    if run_status == "complete":
+        final_ref = state.get("final_judgment_ref") or as_dict(state.get("final_delivery")).get("judgment_ref")
+        validate_judgment_record(root, final_ref, "final_delivery", errors)
     if "degraded_resume" in str(as_dict(state.get("loop_binding")).get("mode")) and "[DEGRADED" not in status_text:
         fail(errors, "degraded_resume must be visibly marked in STATUS.md")
 

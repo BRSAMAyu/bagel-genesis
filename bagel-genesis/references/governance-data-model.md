@@ -12,6 +12,7 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | User intent, autonomy, horizons, taste | `.bagel/constitution.yaml` | Stable promise and stop/continue policy |
 | Existing project truth | `.bagel/context.yaml` | Only required when modifying an existing project |
 | Decisions, recovery, evolution, user decisions | `.bagel/ledger.yaml` | Append concise records or expand to directories when needed |
+| Judgment records | `.bagel/decisions/judgment-*.yaml` or `.bagel/ledger.yaml#judgments` | Taste and collective-decision verdicts |
 | Progress deltas | `.bagel/evidence/progress-deltas.yaml` | Objective cycle-by-cycle evidence |
 | Bar raises | `.bagel/evidence/bar-raises.yaml` | Raised standards and why they are valuable |
 | Innovation candidates | `.bagel/innovation/ledger.yaml` | Novel concepts, probes, and adopt/park/reject decisions |
@@ -34,6 +35,7 @@ In `full_genesis`, these domains may expand to specialized files:
 | Tasks | `.bagel/task_queue.json` | Pending/running/done/blocked units |
 | Progress | `.bagel/progress.json` | Last verified progress and next action |
 | Gates | `.bagel/gates/status.yaml` | Predicate results |
+| Judgment records | `.bagel/decisions/judgment-*.yaml` | Judgment Council verdicts and merge results |
 | Amendment history | `.bagel/ledger/amendment-history.yaml` | Court verdict counts and rationale classes |
 | Existing project truth | `.bagel/agent_context/*` | Evidence-backed worker context |
 | Change history | `.bagel/evolution/*` | Audit, rollback, rationale |
@@ -121,6 +123,7 @@ schemas:
   quick_constitution: {path: ".bagel/constitution.yaml", format: yaml, required_for_quick_autonomy: true}
   quick_context: {path: ".bagel/context.yaml", format: yaml, required_for_existing_project_quick_autonomy: true}
   quick_ledger: {path: ".bagel/ledger.yaml", format: yaml, required_for_quick_autonomy: true}
+  judgment_records: {path: ".bagel/decisions/judgment-*.yaml", format: yaml, required_for_taste_judgment_decisions: true, optional_in_quick: "store inside ledger.yaml#judgments"}
   progress_deltas: {path: ".bagel/evidence/progress-deltas.yaml", format: yaml, required_for_long_run: true}
   bar_raises: {path: ".bagel/evidence/bar-raises.yaml", format: yaml, required_for_excellence_loop: true}
   innovation_ledger: {path: ".bagel/innovation/ledger.yaml", format: yaml, required_when_innovation_contract_is_differentiated_or_breakthrough: true}

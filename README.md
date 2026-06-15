@@ -50,6 +50,15 @@ A full adversarial audit (2 independent reviewers + self-review) found and fixed
 - **Innovation layer added.** High-ambition or blank-slate runs now capture `innovation_contract`, dispatch Product Visionary for paradigm/cross-domain/inversion/new-mechanic probes, and record candidates in `.bagel/innovation/ledger.yaml` before local polish converges too early.
 - **Lesson memory added.** Recovery no longer ends at "fixed it." Reusable gotchas and setup/workaround knowledge are promoted into `.bagel/lessons/` or `ledger.yaml#lessons`, and `bagel_memory_check.py` fails recovery-heavy runs that learn nothing durable.
 
+## What's new in v1.4
+
+v1.4 adds the missing taste and group-judgment layer. BAGEL can now generate bold options, judge which ones are actually good, and reject polished-but-wrong directions before spending the run on them:
+
+- **Judgment Council.** Directional decisions dispatch >=3 independent Judgment Councilors across user impact, elegance, coherence, durability, and surprise. Any `strong_no` vetoes; >=2 `strong_yes` with no `no` passes; everything else is recorded as a useful disagreement.
+- **Taste-adjusted EV.** A direction that passes Judgment Council gets a one-point EV threshold discount, compensating for high-variance ideas that are undervalued before metrics exist without waiving cost/risk.
+- **Collective decisions only where useful.** Innovation selection, bar-raises, strategy switches, final delivery, and constitution changes use group intelligence; routine implementation/test/naming decisions explicitly do not.
+- **Complete orchestration map.** `orchestration-flow.md` defines the dispatch, merge, record, and validation path from run start to run end.
+
 ---
 
 BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. It is designed for the common workflow where you align with an agent before bed, delegate a difficult task, and expect the system to keep working instead of stopping at the first ambiguity.
@@ -281,7 +290,7 @@ BAGEL maintains `.bagel/STATUS.md` (with a forced `Morning Briefing` block) and 
     ├── SKILL.md              # entry point
     ├── README.md             # skill-folder-local readme
     ├── agents/               # role prompts (orchestrator, implementer, reviewers, cartographer, ...)
-    ├── references/           # 33 trigger-loaded protocols
+    ├── references/           # 36 trigger-loaded protocols
     ├── scripts/
     │   ├── detect_runtime_capabilities.py
     │   ├── bagel_run_check.py    # operational runtime substrate validator
@@ -289,7 +298,7 @@ BAGEL maintains `.bagel/STATUS.md` (with a forced `Morning Briefing` block) and 
     │   ├── flywheel_check.py     # mechanical flywheel integrity validator
     │   └── skill_lint.py         # skill self-consistency lint
     └── evals/
-        └── evals.json        # 53 behavior evals
+        └── evals.json        # 57 behavior evals
 ```
 
 ## Installation
@@ -420,7 +429,7 @@ BAGEL Genesis v1.3 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 53 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, innovation probes, lesson memory, verify-dont-trust exploration, baseline manifests, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 57 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, Judgment Council taste vetoes, collective-decision boundaries, innovation probes, lesson memory, verify-dont-trust exploration, baseline manifests, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 

@@ -371,6 +371,34 @@
       "prompt": "Run 1 里 npm install 因 OpenSSL 失败，agent 找到 NODE_OPTIONS=--openssl-legacy-provider 修好了并继续运行。Run 2 又从零开始重新踩同一个坑，因为 recovery-log 里只有事件，没有 lesson/gotcha/playbook。",
       "expected_output": "Agent must apply lesson-memory.md after recovery ladder step 2 or higher. It should distill the recovery into .bagel/lessons/ or ledger.yaml#lessons with trigger evidence, reusable rule, applies_when, verification command/evidence, confidence, and status. scripts/bagel_memory_check.py must fail when recovery events exist but no reusable lesson was captured.",
       "files": []
+    },
+    {
+      "id": 54,
+      "name": "judgment-council-strong-no-veto",
+      "prompt": "Product Visionary 提出一个很新颖的 AI 社交机制，user_impact 和 surprise 都 strong_yes，但 coherence councilor 给 strong_no：它会稀释 north_star。orchestrator 想用多数赞成直接采纳。",
+      "expected_output": "Agent must not use majority vote. Per taste-judgment.md, any strong_no vetoes the direction. It should record .bagel/decisions/judgment-*.yaml with status=vetoed, preserve the concept as parked/rejected with rationale, and not mutate the constitution or task queue toward that direction.",
+      "files": []
+    },
+    {
+      "id": 55,
+      "name": "bar-raise-requires-judgment",
+      "prompt": "当前目标集全绿，已经有两个 Brainstormer 的提标建议。orchestrator 直接写 bar-raises.yaml，带了 brainstormer_dispatch_ids，但没有 judgment_passed、judgment_ref 或 judgment_skipped_reason。",
+      "expected_output": "Agent must fail flywheel_check.py. Directional bar-raises require Judgment Council; each bar-raise needs judgment_passed:true with judgment_ref, or a narrow judgment_skipped_reason for mechanical non-directional tightening. The agent should dispatch >=3 Judgment Councilors before choosing the next target set.",
+      "files": []
+    },
+    {
+      "id": 56,
+      "name": "final-delivery-requires-judgment-council",
+      "prompt": "Spec Reviewer、Code Quality Reviewer 和 Red-Team 都过了，agent 把 state.run_status 设为 complete，但没有 final delivery Judgment Council 记录。",
+      "expected_output": "Agent must not mark complete. bagel_run_check.py requires final_judgment_ref or final_delivery.judgment_ref pointing to a passed decision_type=final_delivery Judgment Council record with >=3 independent dimensions. Any strong_no blocks delivery.",
+      "files": []
+    },
+    {
+      "id": 57,
+      "name": "collective-decisions-not-for-routine-slices",
+      "prompt": "Implementer 要给一个函数补单元测试，orchestrator 想派 Product Visionary、Brainstormer 和 Judgment Council 做多 agent 评审。",
+      "expected_output": "Agent must reject ceremonial multi-agent usage. collective-decisions.md explicitly excludes routine implementation, test-writing details, naming, mechanical deltas, and STATUS telemetry. Use the implementer and normal reviewer path; reserve Judgment Council for high-impact direction decisions.",
+      "files": []
     }
   ]
 }
