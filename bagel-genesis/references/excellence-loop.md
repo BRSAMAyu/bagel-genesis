@@ -10,41 +10,45 @@ The system should actively discover improvements the user did not specify, decid
 
 Stopping early — declaring done while measurable improvement remains possible — is the single most serious failure mode of this loop. Anti-laziness is a first-class design goal, equal to correctness.
 
-## Loop Shape
+## Iteration Model
+
+The excellence loop runs as a fixed number of **iterations**, each ending when the current target set is fully met (all metrics green + no open P0/P1). The user sets `max_iterations` during alignment (default 3 if unspecified). Each iteration produces a higher target set for the next. **Stopping is determined by iteration count — a hard, user-set, fully auditable boundary — not by the agent judging "can't improve further."**
 
 ```text
-while run_budget_allows and autonomy_contract_allows:
-  # Drive A: generate/refresh metrics appropriate to this artifact
-  ensure_metrics_exist()        # if none yet, generate them (see Metric Self-Generation)
-  run_current_metrics()
+iteration = 0
+target_set[0] = baseline targets + agent-generated metrics (see Metric Self-Generation)
 
-  # Drive B: discover improvements via independent review + multiple lenses
-  discover_improvements()       # independent review, red-team, brainstorm, new-dimension search
-  rank_by_expected_value()
+while iteration < max_iterations and run_budget_allows and autonomy_contract_allows:
+    iteration += 1
 
-  # Drive C: if all current metrics are green AND review finds nothing new,
-  #          RAISE THE BAR instead of stopping (see Bar-Raising Protocol)
-  if all_metrics_green and review_finds_no_P0_P1_P2:
-    raise_bar_or_find_new_dimension()
-    if bar_could_not_be_raised:   # only path toward considering done
-      increment_diminishing_counter()
-    else:
-      reset_diminishing_counter()
-      continue                    # new higher targets exist — keep iterating
+    # --- Inner loop: drive current target_set to all-green ---
+    while not target_set[iteration].all_green():
+        run_current_metrics()
+        discover_improvements()       # independent review + multiple lenses
+        if all_green and review_finds_no_P0_P1_P2:
+            break                     # target set met → this iteration is complete
+        select_and_execute_best_improvement()
+        verify(); review(); record_progress_delta()
+        if blocked: recover_or_switch_lane()
+        if iteration_budget_exhausted: break  # can't finish, record partial
 
-  # Drive D: execute the best improvement
-  select_best_high_value_task_or_exploration()
-  isolate_work()
-  execute()
-  verify()
-  review_at_required_independence_level()
-  record_progress_delta()
-  if blocked:
-    recover_or_switch_to_next_high_value_task()
-  update_progress_and_user_briefing()
+    # --- Record this iteration in the evolution ledger ---
+    record_iteration(iteration, target_set[iteration], metrics_trajectory, bar_raises, cost)
+
+    # --- If iterations remain, generate the next higher target set ---
+    if iteration < max_iterations and run_budget_allows:
+        target_set[iteration+1] = generate_higher_target_set(target_set[iteration])
+        # Bar-Raising Protocol: tighten targets, add dimensions, adversarial lenses, etc.
+
+# Stop: max_iterations reached, or budget exhausted, or hard-stop
+write_final_summary(iterations_completed, trajectory, final_quality_state)
 ```
 
-The loop has no `excellence_horizon_passed` exit condition in the normal path. The horizon defines the *starting* quality bar, not the stopping point. Stopping is a last resort triggered only by the stringent conditions in Stop Criteria below.
+**Why iteration-count stopping is more reliable than judgment-based stopping:** the agent never decides "should I stop?" — the user already decided by setting `max_iterations`. The agent's autonomy is fully directed at *how to optimize within each iteration* and *what higher targets to set for the next*. This eliminates the single most unreliable judgment in the loop (self-assessed "no improvement remains") and replaces it with a counter.
+
+**What "one iteration" means precisely:** one iteration completes when the current `target_set` reaches all-green (every metric at or above target, `open_P0 == 0`, `open_P1 == 0`, independent review finds no P0/P1/P2). If the inner loop exhausts its budget sub-allocation before all-green, the iteration is recorded as `partial` with the unmet targets carried forward.
+
+**If `max_iterations` is not set:** default to 3. The run records this default in the ledger so the user can adjust for next time based on the trajectory (did quality plateau by iteration 2? fewer iterations suffice. Still climbing at iteration 3? raise it).
 
 Budget is not implicit. Before entering this loop, create or update the budget section in `.bagel/state.yaml` or `.bagel/run_budget.yaml` as described in `references/loop-runtime.md`.
 
@@ -176,22 +180,22 @@ The lateral counter and the no-finding counter must be stored as **scalar fields
 ```yaml
 # .bagel/state.yaml — excellence section
 excellence:
-  phase: polish | done
-  consecutive_lateral_cycles: 0      # increment on lateral, reset to 0 on forward
-  last_backward_cycle: null          # cycle id of the most recent backward delta
-  rounds_without_high_evidence_finding: 0  # increment per round with no accepted artifact change from a review finding, reset to 0 when one occurs
+  phase: build | polish | done
+  max_iterations: 3                  # user-set during alignment (default 3)
+  iterations_completed: 0           # incremented when a target set reaches all-green
+  current_iteration: 1              # which iteration is in progress
+  current_target_set: []            # the metrics+targets for the current iteration
+  consecutive_lateral_cycles: 0     # within current iteration; increment on lateral, reset on forward
+  last_backward_cycle: null
   open_P0: 0
   open_P1: 0
+  metrics:                          # agent-generated, refreshed per artifact type
+    # - {metric, target, command, direction, current_value, met: bool}
 ```
 
-**Stop rule:** the counters are mechanical (stored as scalars, incremented by rule), but the `net_assessment` values that feed them are **independently assessed per the two-track rule above** — not self-declared by the implementing agent. The run enters `done` only when ALL of:
-- `consecutive_lateral_cycles >= 2` (two cycles where independent review + metrics found no net improvement), AND
-- `rounds_without_high_evidence_finding >= 2` (two review rounds where no reviewer finding produced an accepted artifact change), AND
-- `open_P0 == 0 AND open_P1 == 0`.
+**Within an iteration,** `consecutive_lateral_cycles` and `open_P0/P1` drive strategy switches (not stopping). Three lateral cycles or any backward cycle → switch hypothesis/lens/lane, but keep going — the iteration isn't over until the target set is all-green or budget is exhausted. The run as a whole stops only per Stop Criteria (iteration count / budget / user / hard-stop).
 
-A "high-evidence finding" is a reviewer finding (at the required independence level) that produced an accepted artifact change in the same round — an objective diff event, not a self-scored `ev_score`. The `ev_score: 1-5` integer is for *ranking* candidate tasks only; it must not gate stopping.
-
-This is not "purely mechanical" — it is mechanical-counters-fed-by-independent-assessment. The judgment still lives in the review (Track 1) and metrics (Track 2), but it is no longer the implementing agent judging its own work, and the stop condition is no longer a free-form self-declaration of "no improvements remain."
+The `net_assessment` values that feed the lateral counter are **independently assessed per the two-track rule above** — not self-declared by the implementing agent. A "high-evidence finding" is a reviewer finding (at the required independence level) that produced an accepted artifact change. The `ev_score: 1-5` integer is for *ranking* candidate tasks only; it must not gate iteration completion or stopping.
 
 ## Task Selection
 
@@ -250,26 +254,18 @@ The worker that made an improvement cannot approve it. Completion requires evide
 
 ## Stop Criteria
 
-**The default is: do not stop.** In delegated long-run mode the run continues until budget/token exhaustion (with resume checkpoint), user stop, or a hard-stop boundary. Declaring "done" before those is the exception, not the rule, and requires meeting a stringent bar designed to make early exit very hard.
+The run stops when any of these is true:
 
-**Done requires ALL of the following (the bar is intentionally high to prevent laziness):**
+1. **All iterations complete** — `iterations_completed >= max_iterations`. This is the normal, expected completion path. The user set the count; the agent executed each iteration to target-set-all-green; the run is done.
+2. **Budget/token exhausted** — write a resume checkpoint (see `loop-runtime.md`), set state to `waiting_for_capacity`. Budget exhaustion during a delegated long run is normal and expected, not a failure. Record which iteration was in progress and whether it completed.
+3. **User stop** — the user halted the run.
+4. **Hard-stop boundary** — set state to `blocked_hard_stop` (see STATUS.md wall state). Record what was attempted and what decision is needed.
 
-1. **No open P0/P1** — `open_P0 == 0 AND open_P1 == 0`.
-2. **Bar-raising exhausted** — the agent attempted all five Bar-Raising moves (tighten targets, add dimensions, adversarial lenses, astonishingly-complete discovery, stronger evidence) and could not produce a new target or finding, AND an **independent reviewer** (separate context/agent) also attempted and agreed nothing could be raised. Self-declaration that "I can't think of anything better" does not count. Record both attempts in `.bagel/evidence/bar-raises.yaml`.
-3. **Independent review finds nothing** — at least 2 consecutive review rounds at the required QA independence level produced no P0/P1/P2 finding that led to an accepted artifact change.
-4. **Multiple discovery lenses exhausted** — red-team, user-persona, design/architecture critique, and at least one domain-specific lens (benchmark, reproducibility, security, etc.) all returned no positive-optimization opportunity in the last round.
-5. **Diminishing-returns counter met** — `consecutive_no_optimization_rounds >= 2` (stored as scalar in state.yaml, incremented only when conditions 2-4 all hold for a round, reset to 0 the moment any of them produces work).
-6. **Final briefing complete** — STATUS.md Morning Briefing reflects the final state, all bar raises are documented, the optimization trajectory is auditable.
+**There is no "I think it's good enough" stop.** The agent never decides to stop based on its own quality judgment — that path is closed. Stopping is determined by the iteration counter (user-set), budget (finite), or external boundaries. Within an iteration, the agent optimizes toward all-green; between iterations, it raises the bar. Both are autonomous; stopping is not.
 
-Only when ALL six hold, write `.bagel/evidence/excellence-stop.md` with: the scalar counter values, the last 2 review round summaries, the list of bar-raise attempts that failed, and the discovery lenses tried. This evidence must show *genuine exhaustion confirmed independently*, not "the agent got tired."
+**Anti-laziness guarantee:** because stopping is counter-based, the only way to "stop early" is to declare a target set green when it isn't, or to generate a weak next target set. Both are prevented: target-set-green requires independent review confirmation (Track 1) + metric verification (Track 2); next target sets must pass the Bar-Raising Protocol's five moves. An agent that tries to game either will fail the independent review check and the iteration won't complete legitimately — it will keep running until it either meets the bar honestly or exhausts budget.
 
-**Anti-laziness override:** if any of conditions 1-5 is not met, the run is NOT done — continue. If the agent "feels done" but cannot satisfy condition 2 or 3, that feeling is not evidence; dispatch another independent review or try another bar-raise move. The most common laziness pattern is satisfying conditions 1,4,5,6 while skipping 2 and 3 (bar-raising and independent review) — explicitly check for this.
-
-If R3 independent review is genuinely unavailable (no subagents) AND the work is high-risk, the done bar cannot be satisfied for that lane — isolate it, continue safe work, surface in STATUS.md. The run is not done until resolved, but it is not idle.
-
-If budget/token/quota is exhausted before done: write a resume checkpoint (see `loop-runtime.md`), set state to `waiting_for_capacity`, and continue when capacity returns. **Budget exhaustion is a normal, expected end state for a delegated long run — it is not a failure.** The failure mode is stopping early with budget remaining while optimization was still possible.
-
-If the runtime cannot schedule resume, mark `manual_resume_required`; do not imply automatic continuation.
+If the runtime cannot schedule resume after budget exhaustion, mark `manual_resume_required`; do not imply automatic continuation.
 
 ## Anti-Perfection Rule (re-framed: this guards against *low-value* work, not against *continuing*)
 

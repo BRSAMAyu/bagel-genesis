@@ -63,6 +63,44 @@ change:
     changes_constitution: false
 ```
 
+## Iteration Record
+
+For excellence-loop runs, write one iteration record per completed iteration. This gives the user a clear, auditable view of the quality trajectory across iterations — essential for deciding whether to raise `max_iterations` next time.
+
+```yaml
+iteration_record:
+  id: "ITER-003"
+  iteration_number: 3
+  timestamp_start: "ISO-8601"
+  timestamp_end: "ISO-8601"
+  status: complete | partial           # complete = target set all-green; partial = budget exhausted mid-iteration
+  target_set:                          # the metrics+targets that defined "done" for this iteration
+    - metric: test_coverage
+      target: ">= 90%"
+      achieved: true
+      final_value: "93.2%"
+    - metric: lighthouse_performance
+      target: ">= 95"
+      achieved: true
+      final_value: "97"
+  metrics_trajectory:                  # how metrics moved during this iteration
+    - cycle 12: coverage 80% -> 87%
+    - cycle 15: coverage 87% -> 91%, lighthouse 88 -> 94
+    - cycle 18: coverage 91% -> 93.2%, lighthouse 94 -> 97, all-green
+  bar_raises_this_iteration: 2         # how many times targets were tightened within this iteration before all-green
+  next_target_set_preview:             # what the agent generated for iteration 4 (higher bar)
+    - metric: test_coverage
+      target: ">= 95%"
+    - metric: cold_start_ms
+      target: "< 1500"                 # new dimension added
+  cost: {cycles: 7, tokens_est: 45000}
+  linked_change_records: ["CHG-20260615-014", "CHG-20260615-015"]
+```
+
+The user reads `.bagel/evolution/iteration-records/ITER-*.yaml` (or the timeline summary) to see: did quality climb steeply early then plateau? Did iteration 3 barely move from iteration 2? That signals diminishing returns → lower `max_iterations` next time. Still climbing at the last iteration? Raise it.
+
+If an iteration ends `partial` (budget exhausted before all-green), record which targets were unmet — the user sees exactly what was sacrificed to the budget limit.
+
 ## Rollback Point
 
 Create rollback points before risky changes:

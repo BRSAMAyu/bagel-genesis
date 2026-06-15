@@ -178,6 +178,7 @@ autonomy_contract:
     prefer_alternative_work_over_waiting: true
     self_provision_missing_local_tools: true
     generate_high_ev_improvements: true
+    max_excellence_iterations: 3       # how many target-set->all-green cycles; each raises the bar. User-set; default 3.
     write_resume_checkpoint_every_cycle: true
 ```
 
