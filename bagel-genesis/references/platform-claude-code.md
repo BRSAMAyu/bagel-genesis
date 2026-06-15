@@ -58,7 +58,7 @@ ledger/next-dispatch.md. Execute exactly one bounded cycle, using
 subagents for implementation/review when useful. Create missing local
 verifiers or experiment harnesses when inside the autonomy contract.
 Update .bagel, then continue/schedule again unless stop_semantics is
-complete or blocked_by_contract.
+complete or blocked_hard_stop.
 ```
 
 Use `/loop` for same-session repeated work and polling. Use cloud/desktop scheduled tasks or external CLI scheduling when the run must persist independently of an open session.
@@ -85,7 +85,7 @@ Use read-only tools for reviewers and cartographers unless the role owns a `.bag
 
 Use hooks to make autonomy more reliable:
 
-- Notify only when BAGEL reaches `blocked_by_contract`.
+- Notify only when BAGEL reaches `blocked_hard_stop`.
 - Format or lint after edits when project-local commands exist.
 - Block protected files unless the current lock/dispatch permits them.
 - Re-inject `.bagel/ledger/next-dispatch.md` after compaction or resume.

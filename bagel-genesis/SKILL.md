@@ -206,8 +206,12 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 
 - When a trigger fires, read the whole file for the decision at hand. Do not skim the heading and guess.
 - When no trigger fires, do not load the file "just in case." Idle reads cost tokens and dilute attention.
+- **Read-once caching:** several `always` files (runtime-capabilities, platform adapters, artifact-types, constitution-template) establish stable facts that do not change cycle-to-cycle. Read them once at run start, record the key facts into `.bagel/state.yaml` or `.bagel/constitution.yaml`, and consult the recorded facts on later cycles instead of re-reading the file. Only re-read if the underlying capability/artifact type actually changes.
+- The per-cycle `always` files (quality-assurance, gate-predicates, recovery-protocol, excellence-loop) contain decision rules that apply every cycle — read them when their decision is due, not proactively.
 - In `quick_autonomy`, the `full` rows are skipped unless a hard gate fails or the run escalates to `full_genesis`.
 - If a worker needs content from a file not in its dispatch envelope, it must request a smaller derived brief, not the whole file (see Dispatch Envelope).
+
+**Token-budget awareness:** governance overhead must stay proportionate to the task. For a quick_autonomy task touching one module, the orchestrator should spend well under 30% of the cycle on governance reads/writes; the rest goes to the product artifact. If governance consumes most of a simple task's budget, you are over-reading — cache more, read fewer rows.
 
 ## Blank Project vs Existing Project
 

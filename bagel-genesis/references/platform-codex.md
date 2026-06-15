@@ -56,7 +56,7 @@ Read .bagel/runtime_capabilities.yaml, state.yaml or state.json,
 progress state, gates/status.yaml, and ledger/next-dispatch.md.
 Execute exactly one bounded cycle: select or continue the next task,
 dispatch subagents when useful, run verification, update .bagel state,
-and schedule/continue unless stop_semantics is complete or blocked_by_contract.
+and schedule/continue unless stop_semantics is complete or blocked_hard_stop.
 Do not stop at baseline; continue until the excellence horizon passes.
 ```
 

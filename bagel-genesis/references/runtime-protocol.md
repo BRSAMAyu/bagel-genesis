@@ -93,17 +93,30 @@ Every cycle must update two observable surfaces:
 - `.bagel/evidence/progress-deltas.yaml`: append the objective delta for the just-finished cycle.
 - `.bagel/STATUS.md`: rewrite the human-readable live status.
 
-Use this `STATUS.md` shape:
+Use this `STATUS.md` shape. The **Morning Briefing** block at the top is mandatory and must be written first every cycle — it is what a groggy user reads at 8am in 10 seconds:
 
 ```markdown
+## Morning Briefing (read this first)
+1. **Status:** {finished | still running | hit a wall}
+2. **Nothing irreversible happened while you slept:** {yes | NO: <one-line what>} — no production data, credentials, or destructive actions were touched except: {none | <item>}.
+3. **Decision you need to make now:** {none, safe to ignore | <one-line decision>} — {why it can't be auto-decided}.
+4. **Revert the biggest overnight decision:** {nothing to revert | `git revert <sha>` / `<one command>`}.
+
 ## Last Updated
 {ISO timestamp}
 
 ## Run Status
-{progressing | recovering | excellence_loop | waiting_for_capacity | complete}
+{progressing | recovering | excellence_loop | waiting_for_capacity | blocked_hard_stop | complete}
+
+- `blocked_hard_stop` = the run exhausted all autonomous avenues and hit a genuine hard-stop boundary (credentials, paid resources, production data, irreversible action, or no safe path remains). This is NOT laziness — the run tried: {list 2-3 things attempted}. It needs your decision on: {item}.
+- `waiting_for_capacity` = quota/runtime temporarily exhausted, resume plan exists. The run will continue when capacity returns.
 
 ## Current Focus
 {one sentence}
+
+## Delta Trend
+{last 6 deltas as sparkline, e.g. f f l f b f} — latest: {forward | lateral | backward}
+Mechanical stop counters: lateral={n}/2, no-finding rounds={n}/2, open P0/P1={n}/{n}
 
 ## Timeline
 - [x] 14:00 Alignment complete
@@ -115,11 +128,8 @@ Use this `STATUS.md` shape:
 Runtime/token estimate: {used} / {limit or unknown}
 Remaining allocation: P0 {..}%, P1 {..}%, polish {..}%
 
-## Latest Progress Delta
-{forward | lateral | backward}: {evidence-backed reason}
-
-## Recent Autonomous Decisions
-1. {decision + reason + reversibility}
+## Recent Autonomous Decisions (top 5 by impact)
+1. {decision + reason + reversibility + revert command}
 
 ## Blocked or Isolated Lanes
 - {lane}: {why not merged, what continues instead}
@@ -127,6 +137,8 @@ Remaining allocation: P0 {..}%, P1 {..}%, polish {..}%
 ## Next Action
 {single executable next action}
 ```
+
+**Mandatory regardless of mode:** the Morning Briefing block and the `blocked_hard_stop` status must exist in both quick and full mode. A run that hits a hard-stop must never leave the user with a STATUS.md that reads as silence or "waiting." The difference between "I hit a real wall after trying X, Y, Z" and "I gave up" is the entire bedtime contract.
 
 If three consecutive deltas are `lateral`, update `STATUS.md` with the strategy switch. If a delta is `backward`, record the rollback/isolation/repair action before starting unrelated polish.
 

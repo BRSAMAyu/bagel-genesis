@@ -102,6 +102,28 @@ Every build, recovery, research, and excellence cycle must append to `.bagel/evi
 
 Three consecutive `lateral` cycles or any `backward` cycle requires a strategy change: switch hypothesis, dispatch independent diagnosis, reduce scope, create a better verifier, rollback agent-owned changes, or advance another high-EV lane. It is not a reason to stop unless the change needed crosses a hard-stop boundary.
 
+### Mechanical stop counters (store in state.yaml, do not recompute from narrative)
+
+The lateral counter and the no-finding counter must be stored as **scalar fields** in `.bagel/state.yaml`, updated every cycle, never recomputed from memory or from reading the delta file tail (which fails under context compaction):
+
+```yaml
+# .bagel/state.yaml — excellence section
+excellence:
+  phase: polish | done
+  consecutive_lateral_cycles: 0      # increment on lateral, reset to 0 on forward
+  last_backward_cycle: null          # cycle id of the most recent backward delta
+  rounds_without_high_evidence_finding: 0  # increment per round with no accepted artifact change from a review finding, reset to 0 when one occurs
+  open_P0: 0
+  open_P1: 0
+```
+
+**Mechanical stop rule (replaces self-judged "no positive-EV remains"):** the run enters `done` only when ALL of:
+- `consecutive_lateral_cycles >= 2`, AND
+- `rounds_without_high_evidence_finding >= 2`, AND
+- `open_P0 == 0 AND open_P1 == 0`.
+
+A "high-evidence finding" is an **objective event**: a reviewer finding that produced an accepted artifact change in the same round (a diff landed). It is NOT a self-scored `ev_score`. The `ev_score: 1-5` integer is for *ranking* tasks only; it must not gate stopping. This removes self-assessment from the termination path entirely.
+
 ## Task Selection
 
 Every improvement task needs:
@@ -159,25 +181,22 @@ The worker that made an improvement cannot approve it. Completion requires evide
 
 ## Stop Criteria
 
-In delegated long-run mode, stop before final delivery only for user stop, budget/token exhaustion with a resume checkpoint, or a hard-stop boundary. Final delivery requires all of these:
+In delegated long-run mode, stop before final delivery only for user stop, budget/token exhaustion with a resume checkpoint, or a hard-stop boundary.
+
+**The stop condition is mechanical, read from `state.yaml.excellence`, not self-judged.** Final delivery requires ALL of:
 
 - baseline completion passes,
-- excellence horizon passes,
-- at least two review/brainstorm/red-team rounds at the required QA independence level find no unresolved high or medium expected-value improvement,
-- remaining items are low value, out of scope, or require user decision,
-- final user briefing is coherent and complete.
+- `consecutive_lateral_cycles >= 2` (two cycles with no measurable improvement),
+- `rounds_without_high_evidence_finding >= 2` (two review rounds where no reviewer finding produced an accepted artifact change — an objective diff event, not a self-score),
+- `open_P0 == 0 AND open_P1 == 0`,
+- final user briefing is coherent and complete,
 - objective stop evidence exists in `.bagel/evidence/excellence-stop.md`.
 
-Objective stop evidence should include at least two of:
+When these hold, write `.bagel/evidence/excellence-stop.md` with the scalar values and the two most recent review round summaries as proof. Do NOT add "no unresolved high/medium EV improvement" as a separate self-judged criterion — that path is closed; the `rounds_without_high_evidence_finding` scalar replaces it.
 
-- consecutive review rounds produce no new P0/P1 and no new high/medium EV tasks,
-- issue counts by severity are flat or decreasing across rounds,
-- attempted improvements in the last round produced no accepted artifact changes,
-- verification coverage has reached the artifact-specific target,
-- reproducibility/setup check passes from a clean or documented environment,
-- user-facing `STATUS.md` and briefing have no stale/conflicting state.
+If R3 independent review is genuinely unavailable (no subagents) AND the work is high-risk, the mechanical stop cannot be satisfied for that lane. Do not fake R3 or call R1 independent. Instead: isolate the lane (see SKILL.md tie-breaker isolation procedure), mark `state.yaml.excellence.phase = done_for_safe_lanes`, continue safe work, and surface in STATUS.md that high-risk lane X awaits R3 or user review. The run is not "done" until that lane is resolved, but it is also not idle.
 
-The EV formula supports ranking; it is not by itself proof of final quality.
+The EV formula supports ranking only; it is not by itself proof of final quality and must not gate stopping.
 
 If budget or quota runs out before this, write a resume checkpoint and continue when capacity returns.
 

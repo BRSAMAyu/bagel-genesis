@@ -30,6 +30,21 @@ Do not spend the first hours of a run producing governance documents when a boun
 
 Ask enough of these to make the next autonomous run safe and useful. Do not ask them mechanically; skip answers already supplied.
 
+### Fast path (the 4 questions that carry ~80% of the value)
+
+If the user is tired, time-constrained, or just wants to delegate fast, get crisp answers to these four and start. The rest can be inferred, defaulted, or asked only if a hard-stop ambiguity remains:
+
+1. **Core vision** (Q1): What are we making, for whom, what pain does it solve?
+2. **Disappointment** (Q3): What outcome would disappoint you even if it technically works? — this is the strongest single alignment signal.
+3. **Hard-stops** (Q7): Which choices are true hard-stops I must wake you for (irreversible, paid, credentialed, production, legal/privacy, core identity)?
+4. **Budget + return** (Q13 + Q14): How long may I run, and what do you want to see in STATUS.md when you wake?
+
+Taste/exemplars (Q8/Q10) are high-value if the user has them ready, but if not, default to the constitution's taste kernel and surface style options in the morning briefing instead of guessing all night.
+
+### For existing projects: questions 17-19 are answered by the cartographer, not the user
+
+For a takeover, the user often cannot answer "which conventions are protected" or "what already works." Route 17-19 to the **Project Cartographer**: it inspects the repo, infers protected vs. replaceable conventions, and produces a draft the user only **vetoes or approves**. Do not block alignment waiting for the user to articulate repo facts they may not know. Ask the user only for items the cartographer cannot infer (intentional product promises, business constraints).
+
 ### Core Vision
 
 1. What are we making, for whom, and what pain or desire does it solve?

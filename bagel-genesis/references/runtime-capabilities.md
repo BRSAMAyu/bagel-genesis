@@ -76,7 +76,7 @@ Every cycle must end in one of:
 - `progressing`: another cycle is already scheduled or running.
 - `waiting_for_capacity`: quota/runtime unavailable; resume artifact exists.
 - `manual_resume_required`: no scheduler exists; exact next action exists.
-- `blocked_by_contract`: user decision or external access is required.
+- `blocked_hard_stop`: a genuine hard-stop boundary was hit (credentials, paid resources, production data, irreversible action, or no safe autonomous path remains after recovery). Not laziness — the run tried and exhausted alternatives. Distinct from `manual_resume_required` (no scheduler) and `waiting_for_capacity` (temporary).
 - `complete`: completion and excellence gates passed.
 
 Never leave the state ambiguous.

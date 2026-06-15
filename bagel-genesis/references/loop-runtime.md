@@ -149,7 +149,7 @@ At the end of every cycle, write:
 
 ```json
 {
-  "stop_semantics": "progressing | waiting_for_capacity | manual_resume_required | blocked_by_contract | complete",
+  "stop_semantics": "progressing | waiting_for_capacity | manual_resume_required | blocked_hard_stop | complete",
   "next_action": "",
   "resume_artifact": ".bagel/runs/<run_id>/handoff.json"
 }
