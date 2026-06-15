@@ -283,7 +283,7 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Long-run delegation: whether the user wants maximum autonomous momentum, how much time/token budget to spend, and which hard-stop boundaries remain non-negotiable.
 - Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
 - Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`. Once chosen, the run must reach that depth's floor (see `references/alignment-protocol.md` Run-Mode Depth) before entering Build; the `constitution_approved` gate enforces this.
-- Iteration controls: target/max cycles, timer interval, checkpoint cadence, and failure/lateral-cycle limits.
+- **Stop Contract (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml`. This is the single most important alignment artifact — it defines when the overnight run ends.
 - Briefing format: Markdown only or optional HTML dashboard, plus update frequency.
 
 Use `references/alignment-protocol.md` for the question tree and choice cards. When the platform supports structured user choices, use them for autonomy level, run budget, takeover aggressiveness, taste source, research verification, and hard-stop boundaries. For open questions, include why the question matters, neutral examples, and the default if skipped.

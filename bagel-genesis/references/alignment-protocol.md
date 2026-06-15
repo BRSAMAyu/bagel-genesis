@@ -172,6 +172,45 @@ If the user does not know the numbers, choose defaults from execution strategy:
 
 These are control targets, not excuses to stop while budget and high-value work remain.
 
+### Stop Contract (MANDATORY before any autonomous work)
+
+The Stop Contract is a single mandatory alignment artifact that captures *when the run ends*. It is the most important thing to agree on before the user goes to sleep, because once the loop is running, the agent's stop behavior is governed by these numbers, not by self-judgment. **Do not enter Build - and do not bind the loop - until the Stop Contract is captured and persisted to `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full).**
+
+Ask these explicitly as choice cards or crisp numeric questions. Do not infer or default them silently - the user must consciously set them, because they define the overnight contract:
+
+```yaml
+stop_contract:
+  # When does the run end? (any one of these triggers a stop)
+  max_iterations: 24              # hard ceiling on iterations; default from execution strategy
+  budget_limit: "available_night" # "available_night" | "strict_cap: <hours or tokens>" | "baseline_first"
+  target_iterations: 12           # soft target; reaching it is NOT a stop - it means "raise the bar"
+
+  # What stops the run immediately (hard-stops, non-negotiable)?
+  hard_stops:
+    - "irreversible or non-recoverable destructive action"
+    - "credentials, tokens, paid accounts or paid services"
+    - "production data or production infrastructure"
+    - "serious security/privacy/legal/financial risk"
+    - "core product/research identity changes"
+    # + any user-specific hard-stops captured here
+
+  # What does NOT stop the run? (autonomy scope)
+  within_autonomy:
+    - "missing tests/verifiers (agent builds them)"
+    - "broken local setup (agent fixes it)"
+    - "failing experiments (agent tries alternatives)"
+    - "review failures (agent addresses findings)"
+    - "tool/env failures (agent recovers or switches lanes)"
+
+  # What does the user want to see when they wake?
+  morning_return: "a working baseline + polish pass + honest STATUS with what's done/undone/blocked"
+
+  # May the agent run all night, or is there a wall-clock deadline?
+  deadline: "none"   # "none" | ISO-8601 timestamp | "wake_by_08:00_local"
+```
+
+**The Stop Contract is enforced mechanically:** `bagel_run_check.py` fails the run if `stop_contract` is missing from constitution after alignment. `flywheel_check.py` uses `max_iterations` as the iteration-budget gate. The loop wake prompt does not need to repeat these - they live in `.bagel/constitution.yaml`, which the agent reads on every wake via progressive disclosure.
+
 #### Existing Project Takeover
 
 ```yaml

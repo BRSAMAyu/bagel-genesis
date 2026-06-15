@@ -179,6 +179,44 @@ def validate_alignment_floor(state: dict[str, Any], errors: list[str], warnings:
         fail(errors, f"unknown alignment depth {depth!r}")
 
 
+def validate_stop_contract(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    """Verify the Stop Contract was captured before autonomous work began.
+
+    The Stop Contract (max_iterations, budget_limit, hard_stops, within_autonomy,
+    morning_return, deadline) is the single most important alignment artifact:
+    it defines when the overnight run ends. If the loop is bound (alignment done,
+    run started) but the Stop Contract is missing, the agent began autonomous
+    work without agreeing with the user on when it stops.
+    """
+    loop = as_dict(state.get("loop_binding"))
+    has_progress = (root / ".bagel" / "evidence" / "progress-deltas.yaml").exists()
+    run_started = bool(loop) or has_progress or as_list(state.get("task_queue"))
+    if not run_started:
+        return  # still in alignment; not yet enforceable
+
+    bagel = root / ".bagel"
+    constitution = load_yaml(bagel / "constitution.yaml", {})
+    if not isinstance(constitution, dict) or not constitution:
+        constitution = load_yaml(bagel / "constitution.json", {})
+    if not isinstance(constitution, dict):
+        constitution = {}
+
+    stop = as_dict(constitution.get("stop_contract"))
+    if not stop:
+        stop = as_dict(state.get("stop_contract"))
+
+    if not stop:
+        fail(errors, "stop_contract is missing from constitution - the run started without agreeing with the user on when it ends (max_iterations, budget, hard_stops, deadline). This is the core overnight contract and must be captured before Build.")
+        return
+
+    max_iter = stop.get("max_iterations")
+    if max_iter is None and stop.get("budget_limit") is None:
+        fail(errors, "stop_contract must specify max_iterations or budget_limit - without one, the run has no defined end")
+
+    if not as_list(stop.get("hard_stops")):
+        fail(errors, "stop_contract.hard_stops is empty - the user was never asked what should wake them")
+
+
 def validate_dispatch(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
     records = collect_registry(root, state)
     telemetry = as_dict(state.get("telemetry"))
@@ -354,6 +392,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     validate_git(root, state, errors)
     validate_loop(state, errors, warnings)
     validate_alignment_floor(state, errors, warnings)
+    validate_stop_contract(root, state, errors, warnings)
     validate_dispatch(root, state, errors, warnings)
     validate_context_verified(root, state, errors, warnings)
     validate_status_and_briefing(root, state, errors, warnings)

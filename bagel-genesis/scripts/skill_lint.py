@@ -261,6 +261,17 @@ def check_v12_requirements(root: Path) -> list[str]:
         if required not in run_check:
             out.append(f"scripts/bagel_run_check.py: v1.2 runtime audit missing {required}.")
 
+    # 6. Stop Contract mandatory (v1.2) - the overnight "when do I stop" agreement
+    align = read("references/alignment-protocol.md")
+    if "Stop Contract" not in align or "MANDATORY" not in align:
+        out.append("references/alignment-protocol.md: v1.2 requires a MANDATORY Stop Contract section.")
+    if "stop_contract" not in align or "max_iterations" not in align:
+        out.append("references/alignment-protocol.md: Stop Contract must include stop_contract schema with max_iterations.")
+    if "Stop Contract" not in skill:
+        out.append("SKILL.md: Vision Intake must reference the mandatory Stop Contract.")
+    if "validate_stop_contract" not in run_check:
+        out.append("scripts/bagel_run_check.py: must implement validate_stop_contract (Stop Contract presence check).")
+
     return out
 
 
