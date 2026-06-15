@@ -368,6 +368,11 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `decision_mutations_cleared`
 - `red_team_blockers_resolved`
 - `scope_reduction_authorized`
+- `flywheel_integrity_passed`
+- `no_regression_vs_green_floor`
+- `metric_delta_has_evidence_artifact`
+- `review_level_consistent_with_registry`
+- `bar_raise_has_value_class`
 
 After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core identity changes, explicit forbidden boundaries, or genuine impossibility after useful alternatives are exhausted. Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 

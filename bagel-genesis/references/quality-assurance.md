@@ -45,7 +45,22 @@ Use when user is absent, sleeping, or wants maximum reliability.
 
 - Prefer sequential integration even if parallel exploration is allowed.
 - Keep write parallelism low.
-- Require R3/R4 review for all behavior changes. On Claude Code and Codex, prefer a real subagent (Task tool / Codex subagent) to satisfy R3 so high-risk behavior changes can be reviewed and merged without idling. If R3 is genuinely unavailable, do not merge that lane; isolate it, keep working on safe independent positive-EV tasks, and wake the user only when no useful autonomous path remains.
+- Require R3/R4 review for all **behavior** changes. On Claude Code and Codex, prefer a real subagent (Task tool / Codex subagent) to satisfy R3 so high-risk behavior changes can be reviewed and merged without idling. If R3 is genuinely unavailable, do not merge that lane; isolate it, keep working on safe independent positive-EV tasks, and wake the user only when no useful autonomous path remains.
+
+### Review cadence (efficiency: don't burn R3 budget on low-risk polish)
+
+An R3 independent review is a full separate-context subagent (~4-8k tokens). Running it every cycle on low-risk polish where metrics are already green wastes ~15-25k tokens/run confirming what Track-2 metrics already showed. Scale review cadence to risk:
+
+| Trigger | Required review |
+|---|---|
+| backward delta (metric regressed) | R3 immediately — something broke |
+| P0 or P1 touched/changed | R3 before merge — high blast radius |
+| shared contract / schema / auth / data migration | R3 before merge |
+| any behavior change in `unattended_stable` | R3 before merge (the rule above) |
+| low-risk polish (P2 fix, copy, styling, internal refactor) with all metrics green | R1 diff inspection suffices; R3 every 4th cycle in the same lane as a periodic audit, not every cycle |
+| metric-only change (test added, benchmark run) with no artifact behavior change | orchestrator diff review suffices; no subagent needed |
+
+The anti-self-approval guarantee is preserved: the implementer still cannot approve its own work — the orchestrator (separate role) does diff inspection for low-risk cycles, and R3 fires the moment risk escalates or every 4th cycle as an audit. This cuts ~40-60% of review tokens in steady-state Polish without weakening the guarantee where it matters.
 - Require stronger verification before merge.
 - Avoid broad refactors, dependency upgrades, migrations, and shared-file edits unless necessary for the agreed goal or explicitly preapproved by the autonomy contract.
 - Continue progress aggressively through bounded implementation, local verifier creation, tests, docs, experiments, isolated improvements, recovery, and review loops.

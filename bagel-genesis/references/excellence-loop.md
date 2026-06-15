@@ -33,9 +33,42 @@ This is a gate, not a report. If it fails, the run must repair the failed condit
 
 When the validator fails, use recovery protocol: fix missing evidence, dispatch an independent reviewer, rollback or isolate a regressing change, switch hypothesis/lane, or update the budget/target state. Do not continue to the next cycle with a failing flywheel integrity gate.
 
+### Independent flywheel audit (the meta-guarantee)
+
+`flywheel_check.py` validates the agent's own `.bagel/` state — but every file it checks was written by the agent under audit. A determined agent can write internally-consistent fiction that passes every check. To close this meta-gap, every N cycles (N = iteration_cycle_cap, i.e. once per iteration) dispatch an **R3+ independent reviewer** to audit `.bagel/evidence/` against the actual repo:
+
+- Do cited evidence files exist and contain real command output (not placeholders)?
+- Do the cited metric commands actually produce the recorded values when re-run?
+- Is the baseline-snapshot's `key_artifact_state` accurate vs the actual repo at that git_ref?
+- Are green-floor values plausible (not fabricated)?
+
+Record the audit as `flywheel_independent_audit` in the evolution ledger. If the auditor finds fabrication, the run enters `blocked_hard_stop` (the integrity contract is broken). This is the one place where the skill applies its own independence guarantee to its own state, not just to product code.
+
+### Run-start artifact snapshot (mandatory before iteration 1)
+
+Before the first iteration begins, capture a **baseline artifact snapshot** so the user can judge whether the run was worth it. This is NOT a control-state snapshot (those are for resumability) — it is evidence of the artifact's starting state:
+
+```yaml
+# .bagel/evidence/baseline-snapshot.yaml — written once at run start
+captured_at: "ISO-8601"
+artifact_type: "software|research|writing|..."
+baseline_metrics:                     # the metric values BEFORE any optimization
+  coverage: 65%
+  lighthouse: 72
+  bundle_kb: 340
+key_artifact_state:                   # 2-3 sentences: what does the artifact look/feel like now
+  - "dashboard renders but no loading states; 3 console errors; no mobile layout"
+  - "tests pass but only cover happy path; no error-path tests"
+git_ref: "commit-sha-or-branch"       # for diff-based before/after
+screenshot_paths: []                  # for visual artifacts: baseline screenshots
+```
+
+At run end (or budget exhaustion), write `.bagel/evidence/final-diff-summary.yaml` comparing baseline to final: which metrics moved, by how much, what artifact states changed, what screenshots show the visual delta. **The Morning Briefing must cite this summary** so the user sees concrete before→after evidence, not just "iterations completed."
+
 ```text
 iteration = 0
 target_set[0] = baseline targets + agent-generated metrics (see Metric Self-Generation)
+capture_baseline_snapshot()            # MANDATORY before iteration 1
 
 while iteration < max_iterations and run_budget_allows and autonomy_contract_allows:
     iteration += 1
