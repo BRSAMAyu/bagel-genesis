@@ -320,7 +320,7 @@ BAGEL Genesis v1 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 44 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 47 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, verify-dont-trust exploration, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 
