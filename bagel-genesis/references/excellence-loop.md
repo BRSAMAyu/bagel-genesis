@@ -14,6 +14,25 @@ Stopping early — declaring done while measurable improvement remains possible 
 
 The excellence loop runs as a fixed number of **iterations**, each ending when the current target set is fully met (all metrics green + no open P0/P1). The user sets `max_iterations` during alignment (default 3 if unspecified). Each iteration produces a higher target set for the next. **Stopping is determined by iteration count — a hard, user-set, fully auditable boundary — not by the agent judging "can't improve further."**
 
+## Flywheel Integrity Gate
+
+After every build, recovery, research, or polish cycle, run:
+
+```bash
+python scripts/flywheel_check.py <project-root>
+```
+
+This is a gate, not a report. If it fails, the run must repair the failed condition before claiming progress. The validator mechanically checks the six load-bearing properties of the autonomy flywheel:
+
+1. **Objective deltas:** every cycle has saved artifact/output evidence and independent assessment.
+2. **No fake independence:** review levels are derived from registry/context, not self-reported.
+3. **No regression:** current metric values do not fall below prior green floors.
+4. **No budget burn:** iteration cycle caps and remaining budget allocation protect core scope.
+5. **No churn bar-raises:** raised standards have a valid `why_class` and evidence.
+6. **No low-yield spinning:** `trajectory_slope.flat_climbing` is surfaced with an action.
+
+When the validator fails, use recovery protocol: fix missing evidence, dispatch an independent reviewer, rollback or isolate a regressing change, switch hypothesis/lane, or update the budget/target state. Do not continue to the next cycle with a failing flywheel integrity gate.
+
 ```text
 iteration = 0
 target_set[0] = baseline targets + agent-generated metrics (see Metric Self-Generation)
@@ -181,8 +200,13 @@ Every build, recovery, research, and excellence cycle must append to `.bagel/evi
   defects_open: "7 -> 4"
   artifact_state: "P1 slices 8/12, 2 blocked, 0 idle"
   evidence:
-    - "npm test"
-    - "screenshots/dashboard-mobile.png"
+    - command: "npm test"
+      path: ".bagel/evidence/cycle-047/npm-test.txt"
+    - path: "screenshots/dashboard-mobile.png"
+  independent_assessment:
+    reviewer_id: "agent-review-vs003"
+    review_level: "R3"
+    review_report: ".bagel/reviews/REV-047.yaml"
   net_assessment: forward | lateral | backward
   next_strategy: "continue current lane | switch hypothesis | isolate lane | repair verifier | advance independent task"
 ```

@@ -138,6 +138,41 @@ If a matrix entry says "independent reviewer", satisfy it with R3 or R4. If the 
 
 When platform routing allows model choice, prefer cross-model or cross-family review for Red-Team Oracle, Independent Reviewer, and final visual/product critique. Cross-model review is preferred, not required; do not stop useful work just because it is unavailable.
 
+## Review Registry Gate
+
+Review independence is derived from structured registry state, never from a reviewer saying "I am independent." In quick mode store this under `.bagel/state.yaml.review_registry`; in full/parallel mode store it in `.bagel/agents/registry.yaml`.
+
+Minimum shape:
+
+```yaml
+review_registry:
+  reviews:
+    - review_id: "REV-012"
+      task_id: "VS-003"
+      worker_id: "agent-impl-vs003"
+      worker_session_id: "sess-impl-003"
+      reviewer_id: "agent-review-vs003"
+      session_id: "sess-review-009"
+      model_family: "gpt | claude | other | unknown"
+      claimed_level: "R3"
+      derived_level: "R3"
+      inspected:
+        - "diff"
+        - "tests"
+        - "screenshots"
+      result: pass | fail
+```
+
+Derivation rules:
+
+- `R0`: same worker self-check.
+- `R1`: same session role switch.
+- `R2`: fresh context but same platform/model family, no true subagent isolation.
+- `R3`: true subagent or separate agent context with different `reviewer_id` and different `session_id`, inspecting artifacts rather than worker narrative.
+- `R4`: external human/domain reviewer or separately authorized external review.
+
+`scripts/flywheel_check.py` fails if `claimed_level` exceeds `derived_level`, or if an R3/R4 review reuses the implementer's agent/session identity.
+
 ## Independent Review Rules
 
 Independent reviewers:

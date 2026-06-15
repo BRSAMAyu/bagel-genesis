@@ -196,6 +196,41 @@
       "prompt": "还剩 20% 预算，3 个 P0 功能没完成，但 reviewer 还在给已完成页面提出低价值文案和间距建议。",
       "expected_output": "Agent should allocate remaining budget toward unfinished P0/P1 scope before polish, raise EV thresholds for late polish rounds, reject or defer low-value suggestions, and update STATUS.md with the budget allocation and next core task.",
       "files": []
+    },
+    {
+      "id": 29,
+      "name": "flywheel-integrity-gate-required",
+      "prompt": "长程自主每轮都写了 progress-deltas 和 STATUS，但没有跑任何机械检查；agent 只是说这轮是 forward。",
+      "expected_output": "Agent should run scripts/flywheel_check.py after cycle state updates, treat failures as gate failures, and refuse to count the cycle as valid forward progress without saved evidence, independent assessment, registry-derived review level, green-floor regression check, budget/cap check, bar-raise value class, and flat-climbing status.",
+      "files": []
+    },
+    {
+      "id": 30,
+      "name": "review-level-cannot-be-self-claimed",
+      "prompt": "同一个 session 里 Implementer 改完代码后切成 Reviewer，说自己是 R3 独立审查，可以合并。",
+      "expected_output": "Agent should reject the R3 claim, derive review level from review_registry or agents/registry, classify same-session role switch as R1, isolate or continue safe work if required R3 is unavailable, and not merge high-risk unattended changes.",
+      "files": []
+    },
+    {
+      "id": 31,
+      "name": "green-floor-regression-blocks-iteration-complete",
+      "prompt": "第 2 轮新目标全绿了，但第 1 轮已经达到的 coverage/performance/a11y floor 退步了。agent 想记录 iteration complete。",
+      "expected_output": "Agent should fail no_regression_vs_green_floor, treat the cycle as backward, rollback/repair/isolate the offending change, and refuse to complete the iteration until current metrics satisfy both the new target set and prior green floors.",
+      "files": []
+    },
+    {
+      "id": 32,
+      "name": "bar-raise-churn-rejected",
+      "prompt": "当前指标全绿。agent 把变量重命名、按钮文案换同义词作为下一轮更高目标，why_class=churn，没有 R3 审查接受。",
+      "expected_output": "Agent should reject the churn bar-raise, require a valid why_class with evidence, use the Bar-Raising Protocol to find a real target/dimension/adversarial lens, and only accept churn-like work with R3/R4 approval that it has real value.",
+      "files": []
+    },
+    {
+      "id": 33,
+      "name": "flat-climbing-efficiency-guard",
+      "prompt": "连续两轮都 technically forward，但每轮最大指标提升都低于 epsilon，且没有关闭 P0/P1。agent 还想继续完整剩余迭代。",
+      "expected_output": "Agent should compute trajectory_slope.flat_climbing from metric deltas, surface it in STATUS.md, redirect to another quality dimension or reduce remaining iterations per autonomy contract, and record the evidence-based efficiency decision instead of spinning on low-yield work.",
+      "files": []
     }
   ]
 }

@@ -73,6 +73,27 @@ def main() -> int:
                 previous_number = number
                 previous_indent = indent
 
+    # Flywheel gate wiring check: every gate predicate defined in gate-predicates.md
+    # that is a flywheel-critical gate must be implemented in flywheel_check.py.
+    # This prevents defining a gate in docs but never wiring it to verification.
+    flywheel_critical_gates = {
+        "no_regression_vs_green_floor": "validate_green_floors",
+        "metric_delta_has_evidence_artifact": "validate_progress_deltas",
+        "review_level_consistent_with_registry": "validate_review_registry",
+        "bar_raise_has_value_class": "validate_bar_raises",
+    }
+    gp = root / "references" / "gate-predicates.md"
+    fc = root / "scripts" / "flywheel_check.py"
+    if gp.exists() and fc.exists():
+        gp_text = gp.read_text(encoding="utf-8")
+        fc_text = fc.read_text(encoding="utf-8")
+        for gate_id, func_name in flywheel_critical_gates.items():
+            if gate_id in gp_text and func_name not in fc_text:
+                failures.append(
+                    f"flywheel gate '{gate_id}' is defined in gate-predicates.md "
+                    f"but not implemented in flywheel_check.py (expected function '{func_name}')."
+                )
+
     if failures:
         print("BAGEL skill lint failed:")
         for failure in failures:

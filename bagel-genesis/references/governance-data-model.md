@@ -13,6 +13,9 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Existing project truth | `.bagel/context.yaml` | Only required when modifying an existing project |
 | Decisions, recovery, evolution, user decisions | `.bagel/ledger.yaml` | Append concise records or expand to directories when needed |
 | Progress deltas | `.bagel/evidence/progress-deltas.yaml` | Objective cycle-by-cycle evidence |
+| Bar raises | `.bagel/evidence/bar-raises.yaml` | Raised standards and why they are valuable |
+| Review registry | `.bagel/state.yaml.review_registry` | Derived review independence levels in quick mode |
+| Flywheel integrity | `.bagel/state.yaml.gates.flywheel_integrity_passed` | Latest `scripts/flywheel_check.py` result |
 | Human status entry | `.bagel/STATUS.md` | Single user-readable status entry point |
 
 In `full_genesis`, these domains may expand to specialized files:
@@ -31,6 +34,7 @@ In `full_genesis`, these domains may expand to specialized files:
 | Existing project truth | `.bagel/agent_context/*` | Evidence-backed worker context |
 | Change history | `.bagel/evolution/*` | Audit, rollback, rationale |
 | Git/agents | `.bagel/git/*`, `.bagel/agents/*` | Ownership and integration state |
+| Flywheel evidence | `.bagel/evidence/*` | Progress deltas, bar raises, command output, screenshots, benchmarks |
 | Human status entry | `.bagel/STATUS.md` | Single user-readable status entry point |
 
 UPMG is optional. If used, it is the graph backend for complex software/product runs. If not used, `.bagel/product_graph.yaml` plus the files above are canonical.
@@ -92,6 +96,9 @@ schemas:
   quick_context: {path: ".bagel/context.yaml", format: yaml, required_for_existing_project_quick_autonomy: true}
   quick_ledger: {path: ".bagel/ledger.yaml", format: yaml, required_for_quick_autonomy: true}
   progress_deltas: {path: ".bagel/evidence/progress-deltas.yaml", format: yaml, required_for_long_run: true}
+  bar_raises: {path: ".bagel/evidence/bar-raises.yaml", format: yaml, required_for_excellence_loop: true}
+  flywheel_integrity: {path: ".bagel/state.yaml#gates.flywheel_integrity_passed", format: yaml, required_for_long_run: true}
+  quick_review_registry: {path: ".bagel/state.yaml#review_registry", format: yaml, required_when_reviews_claim_independence: true}
   # Full-genesis detailed files. Quick mode stores equivalents inside state.yaml/constitution.yaml/ledger.yaml.
   constitution_full: {path: ".bagel/constitution.json", format: json, required_for_full_genesis: true}
   completion_horizon: {path: ".bagel/completion_horizon.yaml", format: yaml, required_for_full_genesis: true, optional_in_quick: "store inside constitution.yaml"}

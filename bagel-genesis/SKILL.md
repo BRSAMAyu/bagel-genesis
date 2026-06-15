@@ -382,9 +382,10 @@ For long autonomous work, run in cycles:
 5. Verify with tests/reviews/gates.
 6. Write a progress delta in `.bagel/evidence/progress-deltas.yaml`.
 7. Update `.bagel/STATUS.md` with: run status, current focus, timeline, budget allocation, latest delta assessment, recent autonomous decisions, blocked lanes, and next action. See `references/runtime-protocol.md` for the full template.
-8. Persist structured output.
-9. Compact: update state and next action, then drop task-local context.
-10. Continue, switch strategy, or wake later depending on platform support.
+8. Run `python scripts/flywheel_check.py <project-root>` when `.bagel/` exists. Treat failures as gate failures: fix the evidence/state, rollback or isolate a bad change, or switch strategy before continuing.
+9. Persist structured output.
+10. Compact: update state and next action, then drop task-local context.
+11. Continue, switch strategy, or wake later depending on platform support.
 
 If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run should keep converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
 

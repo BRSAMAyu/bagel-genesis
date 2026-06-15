@@ -151,13 +151,14 @@ Before transition:
 5. Verify exit conditions with artifacts or commands.
 6. Append `.bagel/evidence/progress-deltas.yaml` with `forward`, `lateral`, or `backward` evidence.
 7. Update `.bagel/STATUS.md`.
-8. Update `.bagel/state.yaml` or `.bagel/state.json`.
-9. Write an evolution change record for meaningful changes.
-10. Update git/agent registries only when branches, locks, merge queue, or agents actually change.
-11. Append a short fact log to `.bagel/ledger.yaml` or `.bagel/ledger/activity_log.md`.
-12. Write a checkpoint when the transition completes.
+8. Run `python scripts/flywheel_check.py <project-root>` when `.bagel/state.yaml` exists.
+9. Update `.bagel/state.yaml` or `.bagel/state.json`.
+10. Write an evolution change record for meaningful changes.
+11. Update git/agent registries only when branches, locks, merge queue, or agents actually change.
+12. Append a short fact log to `.bagel/ledger.yaml` or `.bagel/ledger/activity_log.md`.
+13. Write a checkpoint when the transition completes.
 
-Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish.
+Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish. A failing flywheel check means the cycle cannot be counted as valid forward progress; repair the failed flywheel condition before raising the bar, completing the iteration, or claiming final delivery.
 
 ## Gate Failure and Recovery Protocol
 

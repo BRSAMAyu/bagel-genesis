@@ -117,6 +117,7 @@ Use this `STATUS.md` shape. The **Morning Briefing** block at the top is mandato
 ## Delta Trend
 {last 6 deltas as sparkline, e.g. f f l f b f} — latest: {forward | lateral | backward}
 Mechanical stop counters: lateral={n}/2, no-finding rounds={n}/2, open P0/P1={n}/{n}
+Flywheel integrity: {pass | fail | not_run} — latest `scripts/flywheel_check.py`: {one-line result}
 
 ## Timeline
 - [x] 14:00 Alignment complete
@@ -141,6 +142,8 @@ Remaining allocation: P0 {..}%, P1 {..}%, polish {..}%
 **Mandatory regardless of mode:** the Morning Briefing block and the `blocked_hard_stop` status must exist in both quick and full mode. A run that hits a hard-stop must never leave the user with a STATUS.md that reads as silence or "waiting." The difference between "I hit a real wall after trying X, Y, Z" and "I gave up" is the entire bedtime contract.
 
 If three consecutive deltas are `lateral`, update `STATUS.md` with the strategy switch. If a delta is `backward`, record the rollback/isolation/repair action before starting unrelated polish.
+
+After updating `STATUS.md`, run `scripts/flywheel_check.py <project-root>` when `.bagel/state.yaml` exists. If the check fails, set Run Status to `recovering`, list the failed gate under Current Focus, and make the Next Action the repair/rollback/isolation/strategy-switch needed to restore flywheel integrity.
 
 ## Snapshot Protocol
 
