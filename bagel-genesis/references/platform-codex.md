@@ -48,17 +48,13 @@ For R3 review, the reviewer must be a true subagent or separate Codex run with a
 
 ## Automation Prompt Contract
 
-Codex automations should be durable and resume from `.bagel/`, not from chat memory:
+The wake prompt must be a **pointer, not a script**. It must NOT contain run mechanisms (which cycle to run, which files to read, how to dispatch) - those live in SKILL.md and `.bagel/` state. Stuffing mechanism into the wake prompt causes repetition pollution every cycle, drift from SKILL.md, and token waste. The wake prompt's only job is: orient the agent and point it at its state.
 
 ```text
-Use $bagel-genesis. Resume the BAGEL run in this project.
-Read .bagel/runtime_capabilities.yaml, state.yaml or state.json,
-progress state, gates/status.yaml, and ledger/next-dispatch.md.
-Execute exactly one bounded cycle: select or continue the next task,
-dispatch subagents for ALL implementation/review (mandatory; see SKILL.md Roles), run verification, update .bagel state,
-and schedule/continue unless stop_semantics is complete or blocked_hard_stop.
-Do not stop at baseline; continue until the excellence horizon passes.
+You are resuming a BAGEL Genesis autonomous run. Read .bagel/STATUS.md and .bagel/state.yaml to see where the run is, then follow the BAGEL Genesis SKILL.md for the next bounded action.
 ```
+
+**Why this is enough:** STATUS.md carries the Morning Briefing (phase, last delta, next action, blockers); state.yaml carries the full machine state (task queue, gates, budget, loop_binding, telemetry). SKILL.md's Loading Matrix tells the agent which reference to read for the current decision. The agent progressively discloses only what the current phase needs.
 
 Use a thread automation when continuity in the current conversation matters. Use a standalone/project automation or cloud task when each cycle should start fresh from `.bagel/` and report findings independently.
 

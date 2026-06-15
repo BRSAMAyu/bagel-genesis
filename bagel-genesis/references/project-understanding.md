@@ -8,6 +8,27 @@ Do not overwrite the user's existing project mental model with assumptions. Buil
 
 Existing-project understanding is not a one-time scan. It is a living operational model that must be refreshed whenever code, tests, commands, conventions, or user intent change.
 
+## Verify, Don't Trust (mandatory)
+
+**Documentation lies. READMEs drift. `.bagel/` context from a prior run may be wrong.** Every project fact recorded in `.bagel/context.yaml` or `.bagel/agent_context/` must be verified against the live repository — not accepted from a document.
+
+- Every fact cites a real file path, command output, or grep result — never "the README says."
+- If a document claims something (e.g. "run `npm test` to test"), **actually run the command** and record the real result. A documented command that fails is recorded as `documented_but_broken`, not as the project's verification method.
+- Existing `.bagel/` context is a *hint to re-verify*, not a source of truth. Before relying on a prior context entry, re-verify its key claim against live code. If it cannot be re-verified, mark it `disputed`.
+
+### Multi-Agent Cross-Verification
+
+A single agent reading docs tends to accept them wholesale. To prevent this, the orchestrator dispatches **≥ 2 exploration subagents in parallel** for the discovery pass, each with a different lens and isolated context:
+
+- **structure explorer** — verifies directory structure, entrypoints, module count by `find`/`ls`/reading actual files.
+- **behavior explorer** — actually runs build/test/lint/typecheck/dev commands, records real exit codes and output.
+- **convention explorer** — verifies naming/state/architecture patterns by `grep` and reading representative modules.
+- **surface explorer** — verifies routes/APIs/data contracts by reading the actual route/controller/schema files and counting endpoints.
+
+The Cartographer cross-verifies the explorers' findings against each other. If the structure explorer reports "8 modules" but the behavior explorer's test output references 10, the contradiction must be resolved before context is written. **Do not merge contradictory findings without resolution.**
+
+On platforms without subagent capability, the Cartographer performs these lenses sequentially, but the verification requirement (run commands, read real code) does not weaken — only the parallelism does.
+
 ## Two Audiences
 
 Maintain two separate documentation surfaces:
@@ -93,6 +114,14 @@ Run evidence-backed passes. Keep the scope proportional, but do not skip the dom
 13. **Change impact map:** which files or modules are likely affected by the requested goal and which nearby files must be watched for regressions.
 
 Prefer repository evidence: docs, package files, tests, routes, schemas, snapshots, screenshots, commits when available, and actual commands.
+
+**Verification requirement:** every pass above must verify its findings against live code or real command output, not accept documentation claims. Specifically:
+
+- Pass 3 (Behavior): actually run the build/test/lint/typecheck commands. Record real exit codes and output paths. A command documented but not run is not a verified behavior baseline.
+- Pass 4 (Features): grep/read actual implementations to confirm what is implemented vs stubbed — do not trust a feature list doc.
+- Pass 6 (Integrations): read the actual integration code (API client, DB schema, auth middleware), not just an integrations doc.
+- Pass 9 (Protected surface): count actual routes/endpoints by reading the route files, not by trusting an API reference.
+- Pass 11 (Verification baseline): this is the most critical — the recorded baseline must come from commands that were actually executed, with output saved to `.bagel/evidence/baseline/`. `not_available` is only acceptable when the command genuinely cannot run (missing runtime, missing credentials); it must never be a shortcut for "I didn't try."
 
 ## Baseline Snapshot
 

@@ -25,7 +25,9 @@ For Codex and Claude Code, load the matching platform adapter before deciding th
 
 ## Autonomous Iteration Start Gate
 
-When the user says to start autonomous iteration, do not remain in planning-only mode. Complete the required alignment choices, then **bind a loop before the first autonomous cycle**. Loop binding is MANDATORY, not optional. Work through the mechanisms in priority order; record proof for each attempt. Only when every native mechanism is proven unavailable may you record `degraded_resume`.
+**The loop must be bound immediately after capability detection, before the Align phase begins** — not deferred to "when Build starts." The trigger is: runtime capabilities have been detected AND the user has expressed intent for autonomous work (overnight delegation, "start autonomous iteration," "keep improving," or equivalent). At that point, bind the loop. Alignment, project exploration, and baseline capture all happen *inside* the running loop.
+
+Do not remain in planning-only mode. Do not enter a long Align/Explore phase without a bound loop — if the session is interrupted mid-alignment with no loop, the run is lost. Work through the mechanisms in priority order; record proof for each attempt. Only when every native mechanism is proven unavailable may you record `degraded_resume`.
 
 **P1 - Native platform loop (must attempt first on Claude Code / Codex):**
 - Claude Code: `/loop`, scheduled task, cloud Routine, or desktop scheduled task invoking Claude.

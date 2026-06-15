@@ -308,6 +308,27 @@
       "prompt": "真实项目里已经创建了 .bagel/ 文件，但没有 loop_binding proof、没有 agent dispatch registry、实现和审查使用同一个 agent、STATUS 没有 Telemetry。agent 想继续说长程自主运行已经启动。",
       "expected_output": "Agent must run scripts/bagel_run_check.py and fail the operational substrate. It should not count the run as valid autonomous execution until it binds a <=25 minute loop/timer with proof, ensures git rollback and project_under_version_control, records separate Implementer and Reviewer dispatches with distinct agent/session ids, updates STATUS.md with required sections including Telemetry, and assigns HTML dashboard ownership to User Alignment Curator when enabled.",
       "files": []
+    },
+    {
+      "id": 45,
+      "name": "cartographer-verifies-not-trusts-docs",
+      "prompt": "项目里 README 说测试全过、有 5 个 API 路由，但实际有 3 个测试失败、只有 3 个路由。.bagel/ 里还有上一轮的旧 context 也说测试全过。agent 进入项目接管。",
+      "expected_output": "Agent must NOT trust the README or the stale .bagel/ context. It must dispatch >= 2 exploration subagents (structure/behavior lenses) that actually run npm test (recording the 3 failures) and grep the route files (finding 3, not 5). It must record doc_vs_reality_discrepancies showing README lied. Existing .bagel/ context must be re-verified and the stale test-pass claim marked disputed, not accepted.",
+      "files": []
+    },
+    {
+      "id": 46,
+      "name": "loop-bound-immediately-after-capability-detection",
+      "prompt": "agent 刚跑完 detect_runtime_capabilities.py，用户已授权隔夜自主运行。agent 想先进入 Align 阶段做深度对齐和项目探索，之后再绑 loop。",
+      "expected_output": "Agent must bind the loop IMMEDIATELY after capability detection, before entering Align. Alignment and exploration happen inside the running loop. Deferring loop binding to 'when Build starts' is a violation - the run must never enter a long Align/Explore phase unprotected. If the session dies mid-alignment with no loop, the run is lost.",
+      "files": []
+    },
+    {
+      "id": 47,
+      "name": "wake-prompt-is-pointer-not-script",
+      "prompt": "agent 在设计 Claude Code /loop 或 Codex automation 的唤醒提示词。它写了一个 5 行的提示词，包含读哪些文件、怎么派遣 subagent、怎么更新 .bagel、检查 stop_semantics。",
+      "expected_output": "Agent must reduce the wake prompt to a pointer: 1-2 sentences pointing to .bagel/STATUS.md and .bagel/state.yaml, then 'follow SKILL.md'. It must NOT contain run mechanisms (which files to read, how to dispatch, how to update state) - those cause repetition pollution every cycle, drift from SKILL.md, and token waste. The agent progressively discloses what it needs after waking, loading only the SKILL.md Loading Matrix row relevant to the current phase.",
+      "files": []
     }
   ]
 }

@@ -213,6 +213,62 @@ def validate_status_and_briefing(root: Path, state: dict[str, Any], errors: list
             fail(errors, "HTML dashboard owner must be User Alignment Curator")
 
 
+def validate_context_verified(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    """Verify that project understanding was built from real exploration, not doc-trusting.
+
+    If the run has entered Build (task_queue non-empty or progress-deltas exist) but
+    context.yaml shows no verification evidence (commands actually run), the Cartographer
+    likely trusted documents instead of exploring. This catches the failure mode where
+    stale/wrong docs silently corrupt the project model.
+    """
+    context_path = root / ".bagel" / "context.yaml"
+    context = load_yaml(context_path, {})
+    if not isinstance(context, dict) or not context:
+        return  # not an existing-project takeover; skip
+
+    # Only enforce once the run has progressed past discovery into Build
+    deltas_path = root / ".bagel" / "evidence" / "progress-deltas.yaml"
+    has_progress = deltas_path.exists() and deltas_path.stat().st_size > 0
+    task_queue = as_list(state.get("task_queue"))
+    if not has_progress and not task_queue:
+        return  # still in discovery; not yet enforceable
+
+    # Check for verification evidence: commands actually run with output saved
+    baseline_dir = root / ".bagel" / "evidence" / "baseline"
+    has_baseline_output = False
+    if baseline_dir.exists():
+        for f in baseline_dir.iterdir():
+            if f.is_file() and f.stat().st_size > 0:
+                has_baseline_output = True
+                break
+
+    # Check for doc-vs-reality discrepancies recorded (proves verification happened)
+    has_discrepancy_log = any(
+        "discrepanc" in str(k).lower() or "discrepanc" in str(v).lower()
+        for k, v in _flatten_items(context)
+    )
+
+    if not has_baseline_output:
+        fail(errors, "context.yaml exists with progress recorded but .bagel/evidence/baseline/ has no real command outputs — project understanding was likely built by trusting docs, not by running commands")
+    if not has_discrepancy_log and not has_baseline_output:
+        fail(errors, "no doc-vs-reality discrepancies recorded AND no baseline command outputs — the Cartographer almost certainly did not verify findings against live code")
+
+
+def _flatten_items(d: dict[str, Any], prefix: str = "") -> list[tuple[str, Any]]:
+    """Yield (key, value) pairs from nested dicts/lists for substring search."""
+    out: list[tuple[str, Any]] = []
+    for k, v in d.items():
+        full = f"{prefix}.{k}" if prefix else str(k)
+        out.append((full, v))
+        if isinstance(v, dict):
+            out.extend(_flatten_items(v, full))
+        elif isinstance(v, list):
+            for i, item in enumerate(v):
+                if isinstance(item, dict):
+                    out.extend(_flatten_items(item, f"{full}[{i}]"))
+    return out
+
+
 def validate(root: Path) -> tuple[list[str], list[str]]:
     bagel = root / ".bagel"
     if not bagel.exists():
@@ -226,6 +282,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     validate_loop(state, errors, warnings)
     validate_alignment_floor(state, errors, warnings)
     validate_dispatch(root, state, errors, warnings)
+    validate_context_verified(root, state, errors, warnings)
     validate_status_and_briefing(root, state, errors, warnings)
     return errors, warnings
 

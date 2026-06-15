@@ -95,6 +95,7 @@ def main() -> int:
                 )
 
     failures.extend(check_v11_requirements(root))
+    failures.extend(check_v12_requirements(root))
 
     if failures:
         print("BAGEL skill lint failed:")
@@ -195,6 +196,57 @@ def check_v11_requirements(root: Path) -> list[str]:
         out.append("SKILL.md: long-run loop must call scripts/bagel_run_check.py.")
     if "bagel_run_check.py" not in runtime_proto:
         out.append("runtime-protocol.md: runtime checks must include scripts/bagel_run_check.py.")
+
+    return out
+
+
+def check_v12_requirements(root: Path) -> list[str]:
+    """v1.2 cross-file consistency checks.
+
+    v1.2 adds: Cartographer must verify-not-trust (run commands, multi-agent
+    cross-verification, don't trust stale .bagel/ context), and loop binding
+    must happen immediately after capability detection (not deferred to Build).
+    Also: loop wake prompts must be pointer-only, not mechanism-stuffed.
+    """
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    cart = read("agents/project-cartographer.md")
+    pu = read("references/project-understanding.md")
+    skill = read("SKILL.md")
+    loop_rt = read("references/loop-runtime.md")
+    cc = read("references/platform-claude-code.md")
+    codex = read("references/platform-codex.md")
+
+    # 1. Cartographer verify-dont-trust
+    if "Verify, Don't Trust" not in cart and "Verify, Don" not in cart:
+        out.append("agents/project-cartographer.md: v1.2 requires 'Verify, Don't Trust' principle.")
+    if "documented_but_broken" not in cart:
+        out.append("agents/project-cartographer.md: must record documented_but_broken when docs lie.")
+    if "explorers_dispatched" not in cart:
+        out.append("agents/project-cartographer.md: return format must include explorers_dispatched (multi-agent cross-verification).")
+
+    # 2. project-understanding cross-verification
+    if "Multi-Agent Cross-Verification" not in pu and "Cross-Verification" not in pu:
+        out.append("references/project-understanding.md: v1.2 requires Multi-Agent Cross-Verification section.")
+    if "hint" not in pu.lower() or "not a source of truth" not in pu.lower():
+        out.append("references/project-understanding.md: existing .bagel/ context must be marked as hint-not-truth.")
+
+    # 3. Immediate loop binding after capability detection
+    if "immediate after capability detection" not in skill.lower():
+        out.append("SKILL.md: v1.2 requires loop binding immediately after capability detection.")
+    if "immediately after capability detection" not in loop_rt.lower() and "after capability detection" not in loop_rt.lower():
+        out.append("references/loop-runtime.md: Start Gate must trigger immediately after capability detection.")
+
+    # 4. Wake prompts must be pointer-only (not stuffed with mechanism instructions)
+    # The old prompts had ~5 lines of mechanism; new ones should be ~2 lines pointing to state+SKILL
+    for adapter_name, adapter_text in (("platform-claude-code.md", cc), ("platform-codex.md", codex)):
+        # Find the scheduled/automation prompt block
+        if "Execute exactly one bounded cycle" in adapter_text and "dispatch subagents for ALL" in adapter_text:
+            out.append(f"references/{adapter_name}: wake prompt still stuffs mechanism instructions (bounded cycle, dispatch subagents, etc). Must be pointer-only per v1.2.")
 
     return out
 
