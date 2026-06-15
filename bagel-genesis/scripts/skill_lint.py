@@ -220,6 +220,7 @@ def check_v12_requirements(root: Path) -> list[str]:
     loop_rt = read("references/loop-runtime.md")
     cc = read("references/platform-claude-code.md")
     codex = read("references/platform-codex.md")
+    run_check = read("scripts/bagel_run_check.py")
 
     # 1. Cartographer verify-dont-trust
     if "Verify, Don't Trust" not in cart and "Verify, Don" not in cart:
@@ -228,12 +229,16 @@ def check_v12_requirements(root: Path) -> list[str]:
         out.append("agents/project-cartographer.md: must record documented_but_broken when docs lie.")
     if "explorers_dispatched" not in cart:
         out.append("agents/project-cartographer.md: return format must include explorers_dispatched (multi-agent cross-verification).")
+    if "baseline_manifest" not in cart or "captured_at" not in cart:
+        out.append("agents/project-cartographer.md: return format must include baseline_manifest and captured_at for command evidence.")
 
     # 2. project-understanding cross-verification
     if "Multi-Agent Cross-Verification" not in pu and "Cross-Verification" not in pu:
         out.append("references/project-understanding.md: v1.2 requires Multi-Agent Cross-Verification section.")
     if "hint" not in pu.lower() or "not a source of truth" not in pu.lower():
         out.append("references/project-understanding.md: existing .bagel/ context must be marked as hint-not-truth.")
+    if ".bagel/evidence/baseline/manifest.yaml" not in pu:
+        out.append("references/project-understanding.md: v1.2 requires a baseline manifest for command evidence.")
 
     # 3. Immediate loop binding after capability detection
     if "immediate after capability detection" not in skill.lower():
@@ -247,6 +252,14 @@ def check_v12_requirements(root: Path) -> list[str]:
         # Find the scheduled/automation prompt block
         if "Execute exactly one bounded cycle" in adapter_text and "dispatch subagents for ALL" in adapter_text:
             out.append(f"references/{adapter_name}: wake prompt still stuffs mechanism instructions (bounded cycle, dispatch subagents, etc). Must be pointer-only per v1.2.")
+        pointer = "Read .bagel/STATUS.md and .bagel/state.yaml"
+        if pointer not in adapter_text or "follow the BAGEL Genesis SKILL.md" not in adapter_text:
+            out.append(f"references/{adapter_name}: wake prompt must contain the pointer-only STATUS/state/SKILL contract.")
+
+    # 5. Runtime auditor must enforce the v1.2 guarantees mechanically.
+    for required in ("baseline_manifest", "manifest.yaml", "EXPLORER_LENSES", "loop_binding.created_at"):
+        if required not in run_check:
+            out.append(f"scripts/bagel_run_check.py: v1.2 runtime audit missing {required}.")
 
     return out
 

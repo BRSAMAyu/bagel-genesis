@@ -12,6 +12,7 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from datetime import datetime
 from typing import Any
 
 import yaml
@@ -21,6 +22,7 @@ VALID_LOOP_MODES = {"scheduled_resume", "external_harness", "active_session_loop
 VALID_STOP = {"progressing", "recovering", "excellence_loop", "waiting_for_capacity", "blocked_hard_stop", "complete"}
 IMPLEMENTER_ROLES = {"Implementer", "Skeleton Builder"}
 REVIEWER_ROLES = {"Spec Reviewer", "Code Quality Reviewer", "Independent Reviewer", "Red-Team Oracle"}
+EXPLORER_LENSES = {"structure", "behavior", "convention", "surface"}
 
 
 def load_yaml(path: Path, default: Any) -> Any:
@@ -89,7 +91,27 @@ def record_role(record: dict[str, Any]) -> str:
 
 
 def record_id(record: dict[str, Any]) -> str:
-    return str(record.get("agent_id") or record.get("id") or record.get("reviewer_id") or "")
+    return str(record.get("agent_id") or record.get("session_id") or record.get("id") or record.get("reviewer_id") or "")
+
+
+def parse_time(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def baseline_manifest(root: Path) -> tuple[list[dict[str, Any]], bool]:
+    manifest_path = root / ".bagel" / "evidence" / "baseline" / "manifest.yaml"
+    manifest = load_yaml(manifest_path, {})
+    if isinstance(manifest, dict):
+        commands = as_list(manifest.get("commands") or manifest.get("verification_evidence"))
+        return [as_dict(item) for item in commands], manifest_path.exists()
+    if isinstance(manifest, list):
+        return [as_dict(item) for item in manifest], manifest_path.exists()
+    return [], manifest_path.exists()
 
 
 def validate_git(root: Path, state: dict[str, Any], errors: list[str]) -> None:
@@ -125,6 +147,14 @@ def validate_loop(state: dict[str, Any], errors: list[str], warnings: list[str])
             warn(warnings, "degraded_resume does not show a clearly labeled P1/native loop attempt")
         if not any("P2" in str(item) or str(item) in {"external_harness", "cron", "launchd", "cli_loop"} for item in attempted):
             warn(warnings, "degraded_resume does not show a clearly labeled P2/external harness attempt")
+
+    detected_at = parse_time(as_dict(state.get("runtime_capabilities")).get("detected_at"))
+    alignment_started_at = parse_time(as_dict(state.get("alignment")).get("started_at"))
+    loop_created_at = parse_time(loop.get("created_at"))
+    if detected_at and alignment_started_at and loop_created_at and loop_created_at > alignment_started_at:
+        fail(errors, "loop_binding.created_at is after alignment.started_at; v1.2 requires loop binding before Align/Explore")
+    elif alignment_started_at and not loop_created_at:
+        warn(warnings, "alignment has started but loop_binding.created_at is missing; cannot prove loop was bound before Align")
 
 
 def validate_alignment_floor(state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
@@ -233,14 +263,37 @@ def validate_context_verified(root: Path, state: dict[str, Any], errors: list[st
     if not has_progress and not task_queue:
         return  # still in discovery; not yet enforceable
 
-    # Check for verification evidence: commands actually run with output saved
-    baseline_dir = root / ".bagel" / "evidence" / "baseline"
-    has_baseline_output = False
-    if baseline_dir.exists():
-        for f in baseline_dir.iterdir():
-            if f.is_file() and f.stat().st_size > 0:
-                has_baseline_output = True
-                break
+    commands, manifest_exists = baseline_manifest(root)
+    verified_commands = []
+    for item in commands:
+        command = item.get("command")
+        output_path = item.get("output_path") or item.get("evidence")
+        result = item.get("result") or item.get("verdict")
+        exit_code_present = "exit_code" in item or result == "not_available"
+        captured_at = item.get("captured_at") or item.get("executed_at") or item.get("created_at")
+        if not command:
+            fail(errors, "baseline manifest command entry is missing command")
+            continue
+        if not output_path:
+            fail(errors, f"baseline manifest command {command!r} is missing output_path/evidence")
+            continue
+        evidence_path = root / str(output_path)
+        if not evidence_path.exists() or evidence_path.stat().st_size == 0:
+            fail(errors, f"baseline manifest command {command!r} points to missing/empty evidence: {output_path}")
+            continue
+        if ".bagel/evidence/baseline/" not in str(output_path):
+            fail(errors, f"baseline evidence for {command!r} must live under .bagel/evidence/baseline/")
+        if not exit_code_present:
+            fail(errors, f"baseline manifest command {command!r} must record exit_code or result=not_available")
+        if not captured_at:
+            fail(errors, f"baseline manifest command {command!r} must record captured_at/executed_at")
+        if result != "not_available":
+            verified_commands.append(item)
+
+    if not manifest_exists:
+        fail(errors, "missing .bagel/evidence/baseline/manifest.yaml; baseline command outputs must be indexed, not inferred from arbitrary files")
+    elif not verified_commands:
+        fail(errors, "baseline manifest has no executed verifier command; at least one real command output is required before Build")
 
     # Check for doc-vs-reality discrepancies recorded (proves verification happened)
     has_discrepancy_log = any(
@@ -248,10 +301,30 @@ def validate_context_verified(root: Path, state: dict[str, Any], errors: list[st
         for k, v in _flatten_items(context)
     )
 
-    if not has_baseline_output:
-        fail(errors, "context.yaml exists with progress recorded but .bagel/evidence/baseline/ has no real command outputs — project understanding was likely built by trusting docs, not by running commands")
-    if not has_discrepancy_log and not has_baseline_output:
-        fail(errors, "no doc-vs-reality discrepancies recorded AND no baseline command outputs — the Cartographer almost certainly did not verify findings against live code")
+    if not has_discrepancy_log and not verified_commands:
+        fail(errors, "no doc-vs-reality discrepancies recorded AND no verified baseline commands — the Cartographer almost certainly did not verify findings against live code")
+
+    explorers = [as_dict(item) for item in as_list(context.get("explorers_dispatched"))]
+    records = collect_registry(root, state)
+    for record in records:
+        lens = record.get("lens")
+        role = record_role(record).lower()
+        if lens or "explorer" in role:
+            explorers.append(record)
+    lenses = {
+        str(item.get("lens") or item.get("exploration_lens") or "").lower()
+        for item in explorers
+        if str(item.get("lens") or item.get("exploration_lens") or "").lower() in EXPLORER_LENSES
+    }
+    if len(lenses) < 2:
+        fail(errors, "existing-project takeover requires >=2 recorded exploration lenses before Build")
+
+    runtime_caps = as_dict(state.get("runtime_capabilities"))
+    true_subagents = runtime_caps.get("supports_true_subagents")
+    if true_subagents is not False:
+        explorer_ids = {record_id(item) for item in explorers if record_id(item)}
+        if len(lenses) >= 2 and len(explorer_ids) < 2:
+            fail(errors, "exploration lenses were recorded but do not show >=2 distinct agent/session ids")
 
 
 def _flatten_items(d: dict[str, Any], prefix: str = "") -> list[tuple[str, Any]]:

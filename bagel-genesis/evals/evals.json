@@ -329,6 +329,13 @@
       "prompt": "agent 在设计 Claude Code /loop 或 Codex automation 的唤醒提示词。它写了一个 5 行的提示词，包含读哪些文件、怎么派遣 subagent、怎么更新 .bagel、检查 stop_semantics。",
       "expected_output": "Agent must reduce the wake prompt to a pointer: 1-2 sentences pointing to .bagel/STATUS.md and .bagel/state.yaml, then 'follow SKILL.md'. It must NOT contain run mechanisms (which files to read, how to dispatch, how to update state) - those cause repetition pollution every cycle, drift from SKILL.md, and token waste. The agent progressively discloses what it needs after waking, loading only the SKILL.md Loading Matrix row relevant to the current phase.",
       "files": []
+    },
+    {
+      "id": 48,
+      "name": "baseline-manifest-and-explorer-audit",
+      "prompt": "已有项目进入 Build 了，.bagel/evidence/baseline/ 里有一个非空 txt 文件，但没有 manifest.yaml；context.yaml 只写了项目事实，没有记录两个探索 lens 或不同 agent/session。",
+      "expected_output": "Agent must fail scripts/bagel_run_check.py. Arbitrary non-empty baseline files are not sufficient evidence: .bagel/evidence/baseline/manifest.yaml must index real commands with command, exit_code/result, captured_at, and output_path. Existing-project takeover must also record >=2 exploration lenses and, when true subagents are available, distinct agent/session ids before Build proceeds.",
+      "files": []
     }
   ]
 }

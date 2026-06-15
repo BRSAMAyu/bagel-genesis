@@ -122,12 +122,15 @@ explorers_dispatched:               # the parallel subagents that ran
 verification_evidence:              # commands actually run, with real results
   - command: "npm test"
     exit_code: 0
+    captured_at: "ISO-8601"
     output_path: ".bagel/evidence/baseline/npm-test.txt"
     verdict: pass | fail | documented_but_broken | not_available
   - command: "npm run build"
     exit_code: 1
+    captured_at: "ISO-8601"
     output_path: ".bagel/evidence/baseline/npm-build.txt"
     verdict: fail
+baseline_manifest: ".bagel/evidence/baseline/manifest.yaml"
 doc_vs_reality_discrepancies:       # where docs lied or drifted — critical for trust
   - claim: "README says tests pass"
     reality: "3 tests fail on current main"

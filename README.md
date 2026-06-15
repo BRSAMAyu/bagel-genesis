@@ -30,7 +30,7 @@ Plus an **information-architecture upgrade** built on one axiom — *context is 
 
 Three fixes to the *operational substrate*, found by watching a real run:
 
-- **Verify, don't trust (exploration).** The Cartographer no longer accepts documentation claims. It must run actual commands (build/test/lint), grep real code, and record `documented_but_broken` when docs lie. Existing `.bagel/` context is a *hint to re-verify*, never truth. The orchestrator dispatches ≥ 2 exploration subagents (structure/behavior/convention/surface lenses) that cross-verify each other before context is written. `bagel_run_check.py` now fails a run that reached Build with no real command outputs in `.bagel/evidence/baseline/` — catching the "trusted stale docs" failure mode.
+- **Verify, don't trust (exploration).** The Cartographer no longer accepts documentation claims. It must run actual commands (build/test/lint), grep real code, and record `documented_but_broken` when docs lie. Existing `.bagel/` context is a *hint to re-verify*, never truth. The orchestrator dispatches ≥ 2 exploration subagents (structure/behavior/convention/surface lenses) that cross-verify each other before context is written. `bagel_run_check.py` now fails a run that reached Build without a real `.bagel/evidence/baseline/manifest.yaml` command ledger and recorded exploration lenses — catching the "trusted stale docs" and "fake baseline file" failure modes.
 - **Immediate loop binding.** The loop is bound *immediately after capability detection*, before the Align phase — not deferred to "when Build starts." Alignment and exploration happen inside the running loop, so a session interruption mid-alignment doesn't lose the run.
 - **Pointer-only wake prompts.** The loop wake prompt was reduced from 5 lines of mechanism instructions to a 1-sentence pointer: *read STATUS.md + state.yaml, then follow SKILL.md.* Mechanism in the wake prompt causes repetition pollution every cycle, drift from SKILL.md, and token waste. The agent progressively discloses what it needs after waking — it doesn't reload the whole skill.
 
@@ -269,7 +269,7 @@ BAGEL maintains `.bagel/STATUS.md` (with a forced `Morning Briefing` block) and 
     │   ├── flywheel_check.py     # mechanical flywheel integrity validator
     │   └── skill_lint.py         # skill self-consistency lint
     └── evals/
-        └── evals.json        # 47 behavior evals
+        └── evals.json        # 48 behavior evals
 ```
 
 ## Installation
@@ -397,7 +397,7 @@ BAGEL Genesis v1.2 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 47 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, verify-dont-trust exploration, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
+- 48 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, context isolation, brainstormer diversity, verify-dont-trust exploration, baseline manifests, immediate loop binding, pointer-only wake prompts, runtime effectiveness audit, loop binding, recovery, flywheel integrity, visual evidence, and HTML briefing
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
 

@@ -30,7 +30,7 @@
 
 针对*运行地基*的三项修复，来自观察一次真实运行：
 
-- **验证，而非信任（探索）。** Cartographer 不再接受文档声明。它必须跑真实命令（构建/测试/lint）、grep 真实代码，文档说谎时记 `documented_but_broken`。已有 `.bagel/` context 只是*待重新验证的提示*，不是真相。orchestrator 派遣 >= 2 个探索 subagent（结构/行为/约定/表面各一个 lens），交叉核验后才写 context。`bagel_run_check.py` 现在会在 run 进了 Build 但 `.bagel/evidence/baseline/` 没有真实命令输出时直接判失败 —— 专抓"信了过期文档"这个失败模式。
+- **验证，而非信任（探索）。** Cartographer 不再接受文档声明。它必须跑真实命令（构建/测试/lint）、grep 真实代码，文档说谎时记 `documented_but_broken`。已有 `.bagel/` context 只是*待重新验证的提示*，不是真相。orchestrator 派遣 >= 2 个探索 subagent（结构/行为/约定/表面各一个 lens），交叉核验后才写 context。`bagel_run_check.py` 现在会在 run 进了 Build 但没有真实 `.bagel/evidence/baseline/manifest.yaml` 命令台账和探索 lens 记录时直接判失败 —— 专抓"信了过期文档"和"伪 baseline 文件"这两种失败模式。
 - **即时绑定 loop。** loop 在*能力检测完成后立即绑定*，在 Align 阶段之前 —— 不是拖到"Build 开始时"。对齐和探索在运行中的 loop 内进行，这样 session 在对齐中途中断也不会丢失整个 run。
 - **指针式唤醒提示词。** loop 唤醒提示词从 5 行机制指令缩减成 1 句指针：*读 STATUS.md + state.yaml，然后按 SKILL.md 执行。* 把机制塞进唤醒提示词会导致每个 cycle 重复污染、和 SKILL.md 漂移、浪费 token。agent 醒来后渐进式披露自己需要的 —— 它不会重新加载整个 skill。
 
@@ -267,7 +267,7 @@ BAGEL 维护 `.bagel/STATUS.md`（含强制的 `Morning Briefing` 块）和 `.ba
     │   ├── flywheel_check.py     # 飞轮完整性机械校验器
     │   └── skill_lint.py         # 技能自洽性 lint
     └── evals/
-        └── evals.json        # 47 条行为评测
+        └── evals.json        # 48 条行为评测
 ```
 
 ## 安装
@@ -395,7 +395,7 @@ BAGEL Genesis v1.2 已文档完备并通过内部校验：
 - 技能元数据校验通过
 - BAGEL 自洽性 lint 通过
 - evals JSON 合法且编号连续
-- 47 条行为评测覆盖对齐深度下限、项目接管、强制 loop/git/dispatch、上下文隔离、brainstormer 多样性、验证而非信任的探索、即时 loop 绑定、指针式唤醒提示词、运行期有效性审计、循环绑定、恢复、飞轮完整性、视觉证据、HTML 晨报
+- 48 条行为评测覆盖对齐深度下限、项目接管、强制 loop/git/dispatch、上下文隔离、brainstormer 多样性、验证而非信任的探索、baseline manifest、即时 loop 绑定、指针式唤醒提示词、运行期有效性审计、循环绑定、恢复、飞轮完整性、视觉证据、HTML 晨报
 
 剩下的验证是经验性的：在真实项目上跑一夜，把结果和普通智能体用法对比。
 

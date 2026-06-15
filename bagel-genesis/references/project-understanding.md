@@ -92,6 +92,13 @@ freshness:
   status: fresh | stale | disputed
   last_checked: "ISO-8601"
   watched_paths: []
+explorers_dispatched:
+  - lens: structure
+    agent_id: ""
+    evidence: ".bagel/evidence/baseline/structure.txt"
+  - lens: behavior
+    agent_id: ""
+    evidence: ".bagel/evidence/baseline/manifest.yaml"
 open_questions: []
 ```
 
@@ -122,6 +129,7 @@ Prefer repository evidence: docs, package files, tests, routes, schemas, snapsho
 - Pass 6 (Integrations): read the actual integration code (API client, DB schema, auth middleware), not just an integrations doc.
 - Pass 9 (Protected surface): count actual routes/endpoints by reading the route files, not by trusting an API reference.
 - Pass 11 (Verification baseline): this is the most critical — the recorded baseline must come from commands that were actually executed, with output saved to `.bagel/evidence/baseline/`. `not_available` is only acceptable when the command genuinely cannot run (missing runtime, missing credentials); it must never be a shortcut for "I didn't try."
+- Baseline command evidence must be indexed in `.bagel/evidence/baseline/manifest.yaml`. Arbitrary non-empty files in the baseline directory are not evidence by themselves.
 
 ## Baseline Snapshot
 
@@ -146,6 +154,27 @@ baseline_snapshot:
       value: "current"
       must_not_regress_without_rationale: true
 ```
+
+Write the same command evidence to `.bagel/evidence/baseline/manifest.yaml`:
+
+```yaml
+captured_at: "ISO-8601"
+commands:
+  - command: "npm test"
+    exit_code: 1
+    result: fail
+    captured_at: "ISO-8601"
+    output_path: ".bagel/evidence/baseline/npm-test.txt"
+    source: "actual_command"
+  - command: "npm run build"
+    exit_code: 0
+    result: pass
+    captured_at: "ISO-8601"
+    output_path: ".bagel/evidence/baseline/npm-build.txt"
+    source: "actual_command"
+```
+
+`scripts/bagel_run_check.py` treats a run that reached Build without this manifest as invalid. The manifest is what turns baseline evidence from "some file exists" into a verifiable command ledger.
 
 If a verifier does not exist, record `not_available` and create the smallest local verifier when it is needed for the current run.
 
