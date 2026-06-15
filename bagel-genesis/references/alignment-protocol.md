@@ -17,12 +17,52 @@ For existing projects, also require `.bagel/agent_context/project-facts.yaml` an
 
 Keep these concise and operational. They are control artifacts, not essays.
 
+## Interaction Mechanics
+
+Use the platform's best user-input surface for alignment. When Codex or Claude Code exposes structured choice prompts, use them for decisions with a known option set; otherwise write compact numbered choices in chat. Ask at most three questions at once. Prefer one high-leverage question over a survey.
+
+Do not switch into a planning-only mode that waits for the user after the user has said "start autonomous iteration", "run overnight", "keep improving", or equivalent. Alignment is a decision-capture phase, not a place to park the task. Once the required choices below are captured or safely defaulted, start the runtime loop.
+
+Before asking choices, briefly introduce BAGEL in plain language:
+
+```text
+BAGEL will first align on vision, safety boundaries, runtime strategy, and what "excellent" means. Then it will run autonomous cycles: build or research, verify, record progress, improve, and continue until the agreed budget, completion/excellence horizon, user stop, or a true hard-stop.
+```
+
+Question types:
+
+- **Choice question:** use when the answer changes runtime policy, safety boundaries, budget allocation, takeover scope, taste direction, or review strictness. Provide 2-4 neutral options, put the recommended option first, and include one sentence about the tradeoff.
+- **Open question:** use when the user's mental model is likely richer than any option list. Include a short "why this matters" note, 2-3 neutral examples, and a safe default if the user skips it.
+- **Veto question:** for existing projects, let the system draft facts from repo evidence, then ask the user to veto or correct protected behaviors, accidental conventions, and product promises.
+
+Never make the user do work the repo or artifact can answer. Use project discovery for project facts; use the user for intent, fear, taste, hard boundaries, and success judgment.
+
+Persist every answered or defaulted alignment decision immediately:
+
+```yaml
+alignment_decision:
+  id: "AD-001"
+  prompt: "How autonomous should this run be?"
+  answer_type: choice | open | veto | inferred_default
+  selected: "max_autonomy_inside_hard_stops"
+  rationale: "User wants overnight execution without routine approval."
+  tradeoff_acknowledged: "Higher autonomy, bounded by hard-stop list."
+  source: user_explicit | user_veto | system_inferred | project_evidence
+  confidence: high | medium | low
+  revisitable: true
+  stored_in:
+    - ".bagel/constitution.yaml#autonomy_contract"
+```
+
+If the user is unsure, do not force premature precision. Record the uncertainty, choose a reversible default, and add a "morning review" item in `.bagel/STATUS.md`.
+
 ## Run-Mode Depth
 
 Use the lightest alignment depth that makes unattended work executable:
 
-- `quick_autonomy`: one focused alignment pass, usually 10-20 minutes. Produce `.bagel/constitution.yaml` and enough `.bagel/state.yaml` to start the Build loop. Expand only when ambiguity blocks useful work.
-- `full_genesis`: complete alignment package for blank-slate, multi-day, high-risk, or broad product takeover work.
+- `snap_alignment`: urgent or low-stakes. Ask only the essential choices, default the rest, then start. Usually 3-7 minutes.
+- `standard_alignment`: default. Ask the choice cards plus the most relevant open questions. Usually 10-25 minutes.
+- `deep_alignment`: important, ambiguous, high-budget, or large-scope. Keep asking decision cards and open questions until the user says the mental model is clear enough. Multiple rounds are allowed.
 
 Do not spend the first hours of a run producing governance documents when a bounded, reversible implementation or experiment can already produce evidence.
 
@@ -40,6 +80,159 @@ If the user is tired, time-constrained, or just wants to delegate fast, get cris
 4. **Budget + return** (Q13 + Q14): How long may I run, and what do you want to see in STATUS.md when you wake?
 
 Taste/exemplars (Q8/Q10) are high-value if the user has them ready, but if not, default to the constitution's taste kernel and surface style options in the morning briefing instead of guessing all night.
+
+### Choice Cards
+
+Use these as default option sets. Adapt labels to the artifact, but preserve the tradeoffs.
+
+#### Alignment Depth
+
+```yaml
+question: "How deep should the pre-run alignment be?"
+options:
+  - label: "Standard alignment"
+    description: "Recommended default: enough choices to run safely without turning alignment into the work."
+  - label: "Snap alignment"
+    description: "For urgency: capture essentials, let BAGEL infer reversible details, and start quickly."
+  - label: "Deep alignment"
+    description: "For important or high-budget work: continue asking decision points until the user is satisfied."
+```
+
+#### Execution Strategy
+
+```yaml
+question: "Which execution strategy should BAGEL use?"
+options:
+  - label: "Stable long-run"
+    description: "Best for overnight work: low write parallelism, stronger verification, continuous autonomous cycles."
+  - label: "Balanced parallel"
+    description: "Moderate concurrency and review depth; good when speed and reliability both matter."
+  - label: "Fast parallel"
+    description: "Maximum exploration speed; more suitable when the user is nearby and rollback is cheap."
+```
+
+Persist as:
+
+```yaml
+run_strategy:
+  execution_strategy: stable_long_run | balanced_parallel | fast_parallel
+  alignment_depth: snap_alignment | standard_alignment | deep_alignment
+  plan_mode_policy: avoid_after_alignment
+```
+
+#### Autonomy Level
+
+```yaml
+question: "How much autonomy should BAGEL use after this alignment?"
+options:
+  - label: "Maximum inside hard-stops"
+    description: "Best for overnight work: the system decides all reversible details and wakes only for hard-stops."
+  - label: "Conservative autonomous"
+    description: "The system continues independently, but avoids broad redesigns and dependency/toolchain changes."
+  - label: "Checkpoints after milestones"
+    description: "The system works autonomously within each milestone, then pauses for review before the next milestone."
+```
+
+#### Run Budget
+
+```yaml
+question: "What should the run spend before returning a final or checkpointed result?"
+options:
+  - label: "Use the available night"
+    description: "Keep iterating until the time/token budget is exhausted or the excellence horizon passes."
+  - label: "Baseline first"
+    description: "Prioritize a complete usable baseline, then spend remaining budget on polish."
+  - label: "Strict cap"
+    description: "Stop at a specified time/token ceiling even if high-value work remains."
+```
+
+When autonomous iteration is enabled, also capture hard numeric controls:
+
+```yaml
+iteration_controls:
+  target_cycles: 12
+  max_cycles: 24
+  checkpoint_every_minutes: 30
+  timer_interval_minutes: 10
+  max_consecutive_lateral_cycles: 3
+  max_consecutive_failures_same_gate: 3
+```
+
+If the user does not know the numbers, choose defaults from execution strategy:
+
+- `stable_long_run`: timer 10-15 minutes, checkpoint 30 minutes, target 12 cycles, max 24.
+- `balanced_parallel`: timer 10 minutes, checkpoint 20 minutes, target 8 cycles, max 16.
+- `fast_parallel`: timer 5-10 minutes, checkpoint 15 minutes, target 6 cycles, max 12.
+
+These are control targets, not excuses to stop while budget and high-value work remain.
+
+#### Existing Project Takeover
+
+```yaml
+question: "How aggressively may BAGEL change the existing project?"
+options:
+  - label: "Improve within current identity"
+    description: "Preserve product promise and architecture direction; freely improve reversible implementation and UX."
+  - label: "Aggressive redesign"
+    description: "Allow major local redesigns if evidence shows they improve the goal, while preserving hard-stops."
+  - label: "Surgical module work"
+    description: "Only touch the target module or feature unless tests prove an adjacent change is required."
+```
+
+#### Taste Source
+
+```yaml
+question: "What should guide taste and quality decisions?"
+options:
+  - label: "Use exemplars"
+    description: "User provides references or screenshots; BAGEL compares outputs against them."
+  - label: "Infer from domain"
+    description: "BAGEL chooses a domain-appropriate taste kernel and records assumptions for review."
+  - label: "Preserve current style"
+    description: "Existing project style dominates unless it clearly conflicts with the goal."
+```
+
+#### Research Verification
+
+```yaml
+question: "What kind of evidence can prove progress?"
+options:
+  - label: "Computable benchmark"
+    description: "Use metrics, tests, simulations, ablations, or repeated runs to keep winners."
+  - label: "Argument and source review"
+    description: "Use claim-evidence maps, methodology critique, and independent review."
+  - label: "Exploratory hypothesis generation"
+    description: "Generate and test plausible paths, while labeling claims that lack ground truth."
+```
+
+#### Hard-Stop Boundary
+
+```yaml
+question: "Which boundaries must wake you before action?"
+options:
+  - label: "Only true hard-stops"
+    description: "Irreversible/destructive, credentials, paid services, production data/infra, legal/privacy/security, or core identity changes."
+  - label: "Hard-stops plus broad redesign"
+    description: "Also pause before major architecture or product-flow redesigns."
+  - label: "Custom boundary"
+    description: "User names extra forbidden actions; BAGEL records them explicitly."
+```
+
+### Open Question Guidance
+
+For open questions, use this format:
+
+```text
+Question: ...
+Why this matters: ...
+Examples, not suggestions:
+- ...
+- ...
+Safe default if you skip: ...
+How I will store it: ...
+```
+
+Examples must be neutral and diverse. Do not lead the user toward the agent's preferred implementation. The goal is to help the user recognize their own preference, not to sell an option.
 
 ### For existing projects: questions 17-19 are answered by the cartographer, not the user
 
@@ -96,6 +289,61 @@ Capture:
 - what would disappoint the user even if technically complete.
 - for existing projects, which current behaviors and conventions are intentional, accidental, replaceable, or protected.
 
+In `quick_autonomy`, store the canon in `.bagel/constitution.yaml`:
+
+```yaml
+vision:
+  north_star: ""
+  target_users: []
+  excluded_users: []
+  core_promise: ""
+  disappointment_tests: []
+  must_preserve: []
+  non_goals: []
+  constraints:
+    platform: []
+    privacy: []
+    budget: ""
+    deadline: ""
+    deployment: ""
+taste_kernel:
+  exemplars: []
+  anti_examples: []
+  quality_words: []
+  inferred_defaults:
+    - assumption: ""
+      confidence: low | medium | high
+      review_when: "morning_briefing | before_final | never"
+completion_horizon:
+  baseline_must_have: []
+  accepted_deferred_items: []
+excellence_horizon:
+  astonishing_if: []
+  visual_or_domain_evidence_required: []
+autonomy_contract:
+  level: max_inside_hard_stops | conservative_autonomous | milestone_checkpoints | custom
+  execution_strategy: stable_long_run | balanced_parallel | fast_parallel
+  alignment_depth: snap_alignment | standard_alignment | deep_alignment
+  system_may_decide: []
+  system_must_wake_user: []
+  user_fears: []
+  runtime_budget: ""
+  iteration_controls:
+    target_cycles: 12
+    max_cycles: 24
+    checkpoint_every_minutes: 30
+    timer_interval_minutes: 10
+    max_consecutive_lateral_cycles: 3
+    max_consecutive_failures_same_gate: 3
+briefing_preferences:
+  markdown_status: true
+  html_dashboard:
+    enabled: true | false
+    mode: continuous_dashboard | section_tabs | slide_like_walkthrough
+    style: calm_operator | product_studio | research_lab
+    update_frequency: every_milestone | every_cycle | final_only
+```
+
 ## Decision Map
 
 Classify every important decision:
@@ -112,6 +360,29 @@ decision:
 ```
 
 Default to system decision for reversible logic, convention, local taste decisions, high-value UX polish, local tooling, test strategy, experiment design, and non-destructive implementation choices. Ask the user only when the decision changes the core promise, privacy/legal/financial/safety posture, target audience, production data/infrastructure, credentials/paid resources, or an irreversible direction.
+
+Use decision cards for unresolved choices:
+
+```yaml
+decision_card:
+  id: "D-004"
+  decision: "How should onboarding behave?"
+  why_it_matters: "This affects first-run UX and what the agent may redesign overnight."
+  options:
+    - id: "A"
+      label: "Guided setup"
+      tradeoff: "More helpful, more UI surface."
+    - id: "B"
+      label: "Fast direct entry"
+      tradeoff: "Less friction, less explanation."
+  recommended: "A"
+  recommendation_reason: "Matches the stated target user."
+  default_if_unanswered: "A, because reversible and locally changeable."
+  owner: system | user | court
+  wake_required_if_changed_later: true | false
+```
+
+When using platform choice UI, ask the `options` as the interactive choices and persist the selected `id`. For open decisions, keep `options: []` and store the user's answer verbatim plus the system's operational interpretation.
 
 ## Challenge Protocol
 

@@ -6,6 +6,8 @@ Use this before BAGEL modifies an existing or partially implemented project. The
 
 Do not overwrite the user's existing project mental model with assumptions. Build an evidence-backed model of the current project, compare it with the user's desired direction, then align.
 
+Existing-project understanding is not a one-time scan. It is a living operational model that must be refreshed whenever code, tests, commands, conventions, or user intent change.
+
 ## Two Audiences
 
 Maintain two separate documentation surfaces:
@@ -36,9 +38,45 @@ takeover:
 
 For `limited_takeover`, create only the context files needed for the affected domain plus `global-capsule.yaml`, `context-index.yaml`, `freshness.yaml`, and evidence. For `full_takeover`, use the canonical `.bagel/agent_context/` tree from `references/governance-data-model.md` plus `.bagel/project_inventory/evidence.md`, `commands.md`, `dependency-map.md`, `test-map.md`, and `open-questions.md`.
 
+In `quick_autonomy`, consolidate the output into `.bagel/context.yaml`:
+
+```yaml
+takeover_scope:
+  mode: limited_takeover | full_takeover
+  target_domains: []
+  protected_paths: []
+  allowed_paths: []
+  excluded_paths: []
+project_facts:
+  stack: []
+  entrypoints: []
+  run_commands: {}
+  verification_commands: {}
+behavior_baseline:
+  verified_workflows: []
+  known_failures: []
+  screenshots_or_snapshots: []
+protected_surface:
+  user_promises: []
+  public_apis: []
+  data_contracts: []
+  design_language: []
+  intentional_flows: []
+replaceable_surface:
+  accidental_patterns: []
+  rough_edges: []
+  stale_code: []
+do_not_duplicate: []
+freshness:
+  status: fresh | stale | disputed
+  last_checked: "ISO-8601"
+  watched_paths: []
+open_questions: []
+```
+
 ## Discovery Passes
 
-Run lightweight, evidence-backed passes:
+Run evidence-backed passes. Keep the scope proportional, but do not skip the domains needed to prevent drift:
 
 1. **Structure:** directories, entrypoints, major modules, generated folders to ignore.
 2. **Stack:** languages, frameworks, package managers, build tools, runtime targets.
@@ -48,8 +86,39 @@ Run lightweight, evidence-backed passes:
 6. **Integrations:** APIs, databases, auth, external services, credentials needed.
 7. **Quality state:** failing tests, broken setup, TODO hotspots, flaky or risky areas.
 8. **User intent gaps:** where current implementation and user vision diverge.
+9. **Protected surface:** public APIs, data models, UX flows, brand/taste, user promises, backward compatibility, and production assumptions that should not change accidentally.
+10. **Replaceable surface:** rough prototypes, duplicated code, accidental conventions, dead ends, stale experiments, and areas safe to redesign.
+11. **Verification baseline:** current command results, visible UI snapshots, benchmark baselines, coverage or smoke checks, and known failing tests.
+12. **Dependency and tool map:** normal install/run path, local-only tools, risky upgrades, external services, and unavailable credentials.
+13. **Change impact map:** which files or modules are likely affected by the requested goal and which nearby files must be watched for regressions.
 
 Prefer repository evidence: docs, package files, tests, routes, schemas, snapshots, screenshots, commits when available, and actual commands.
+
+## Baseline Snapshot
+
+Before behavior-changing work, capture enough baseline evidence to prove later that the project improved rather than merely changed:
+
+```yaml
+baseline_snapshot:
+  created_at: "ISO-8601"
+  commands:
+    - command: "npm test"
+      result: pass | fail | not_available
+      evidence: ".bagel/evidence/baseline/npm-test.txt"
+  visible_artifacts:
+    - path: ".bagel/evidence/baseline/dashboard-desktop.png"
+      state: "current dashboard"
+  known_failures:
+    - id: "KF-001"
+      description: ""
+      evidence: ""
+  green_floors:
+    - metric: "e2e_pass_rate"
+      value: "current"
+      must_not_regress_without_rationale: true
+```
+
+If a verifier does not exist, record `not_available` and create the smallest local verifier when it is needed for the current run.
 
 ## Agent-Facing Context Requirements
 
@@ -128,6 +197,27 @@ List existing reusable assets:
 
 Every implementer should consult this before creating a new abstraction.
 
+## Protected vs Replaceable Draft
+
+The cartographer must draft a protected/replaceable map, then ask the user to veto or correct it using compact choices:
+
+```yaml
+protected_replaceable_review:
+  protected_by_evidence:
+    - item: "Existing API route /api/billing"
+      evidence: "tests/billing.test.ts"
+      proposed_policy: preserve_contract
+  likely_replaceable:
+    - item: "Duplicate Button components"
+      evidence: "src/components/Button.tsx, src/ui/Button.tsx"
+      proposed_policy: consolidate_when_touched
+  needs_user_veto:
+    - question: "Is the current dashboard layout intentional or just unfinished?"
+      options: ["Preserve", "Improve freely", "Only change target module"]
+```
+
+The user should not have to explain the whole repo. The system proposes the map from evidence; the user corrects intent.
+
 ## Human Alignment Questions
 
 After project discovery, ask or document:
@@ -141,6 +231,14 @@ After project discovery, ask or document:
 
 If the user cannot answer, propose defaults and record them in the decision map.
 
+Use this prompt shape:
+
+```text
+I found these likely protected surfaces: ...
+I found these likely replaceable surfaces: ...
+Please veto anything wrong. If you do nothing, I will preserve protected surfaces and freely improve replaceable surfaces inside the autonomy contract.
+```
+
 ## Update Policy
 
 Update agent-facing context when:
@@ -151,6 +249,10 @@ Update agent-facing context when:
 - tests or commands change,
 - a reusable component/service is added,
 - a worker discovers a previous fact is wrong.
+- a progress delta is backward or three deltas are lateral,
+- a reviewer finds drift caused by stale project understanding,
+- baseline or final-diff evidence contradicts the context model,
+- the user corrects a protected/replaceable classification.
 
 Workers should return proposed context updates. The orchestrator or Project Cartographer merges them after verification.
 
@@ -162,6 +264,19 @@ Update ownership:
 - Constitutional Court owns goal/scope conflicts.
 
 Every update should link to an evolution change record.
+
+## Continuous Refresh Loop
+
+At the end of every meaningful cycle:
+
+1. Check whether changed files intersect `freshness.watched_paths`.
+2. If yes, update the relevant section of `.bagel/context.yaml` or the domain capsule.
+3. If a worker reports "this context is wrong," mark it `disputed` immediately and dispatch a targeted cartographer refresh before more work in that area.
+4. If a new reusable component/service/prompt/schema was created, add it to `do_not_duplicate`.
+5. If behavior changed, update `behavior_baseline` and the user-facing `current-project-reality.md`.
+6. If the user changes direction, compare it against protected surfaces and update the decision map before implementation.
+
+Do not let a long run continue on stale project facts simply because the original intake was good.
 
 ## Dispatch Rule
 

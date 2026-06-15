@@ -23,6 +23,29 @@ Before configuring the loop, read `references/runtime-capabilities.md`. The loop
 
 For Codex and Claude Code, load the matching platform adapter before deciding the loop cannot continue unattended. These platforms can often supply the trigger, scheduler, agent runner, worktree isolation, and verifier execution directly.
 
+## Autonomous Iteration Start Gate
+
+When the user says to start autonomous iteration, do not remain in planning-only mode. Complete the required alignment choices, then start the loop only after recording one of:
+
+- `scheduled_resume`: platform timer/automation/scheduled task configured and schedule id recorded.
+- `external_harness`: loop runner, cron/launchd, cloud task, or CLI harness configured and command recorded.
+- `active_session_loop`: current platform loop is actively running and checkpoint cadence is recorded.
+
+If none is possible, record `manual_resume_required` and state that unattended continuation is not guaranteed. Do not present this as successful autonomous iteration.
+
+```yaml
+loop_binding:
+  mode: scheduled_resume | external_harness | active_session_loop | manual_resume_required
+  platform: codex | claude_code | other
+  schedule_id: ""
+  trigger_interval_minutes: 10
+  created_at: "ISO-8601"
+  next_wakeup_at: "ISO-8601"
+  resume_command_or_action: ""
+  proof:
+    - "automation id, cron entry, scheduled task, active /loop config, or harness command"
+```
+
 ## Required State
 
 In `quick_autonomy`, task queue, progress, and budget live inside `.bagel/state.yaml`. Create separate files only in `full_genesis`:
@@ -63,6 +86,27 @@ budget:
   stop_when_budget_exhausted: write_resume_checkpoint
 ```
 
+Telemetry shape:
+
+```yaml
+telemetry:
+  run_started_at: "ISO-8601"
+  elapsed_minutes: 0
+  cycles_started: 0
+  cycles_completed: 0
+  agents_dispatched: 0
+  review_agents_dispatched: 0
+  context_compactions: 0
+  recovery_events: 0
+  timer_wakeups: 0
+  screenshots_captured: 0
+  tests_run: 0
+  estimated_tokens_used: null
+  token_source: unavailable | platform_reported | estimated_from_transcript
+```
+
+Update telemetry at every cycle and surface the key numbers in `.bagel/STATUS.md`. If token usage is unavailable, say so; do not invent precision.
+
 ## Session Contract
 
 Each agent session:
@@ -76,6 +120,8 @@ Each agent session:
 7. Writes handoff.
 8. Leaves clean state or records why it cannot.
 9. Never declares success without evidence.
+
+10. Updates telemetry before handoff.
 
 ## Self-Provisioning Contract
 
@@ -153,6 +199,20 @@ At the end of every cycle, write:
   "next_action": "",
   "resume_artifact": ".bagel/runs/<run_id>/handoff.json"
 }
+```
+
+Also update:
+
+```yaml
+cycle_accounting:
+  cycle_id: 7
+  started_at: "ISO-8601"
+  ended_at: "ISO-8601"
+  elapsed_minutes: 12
+  agents_dispatched_delta: 2
+  compactions_delta: 1
+  verification_commands_delta: 3
+  timer_wakeup_used: true
 ```
 
 ## Worktree Isolation

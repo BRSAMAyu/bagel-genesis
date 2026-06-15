@@ -14,9 +14,11 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Decisions, recovery, evolution, user decisions | `.bagel/ledger.yaml` | Append concise records or expand to directories when needed |
 | Progress deltas | `.bagel/evidence/progress-deltas.yaml` | Objective cycle-by-cycle evidence |
 | Bar raises | `.bagel/evidence/bar-raises.yaml` | Raised standards and why they are valuable |
+| Loop binding and telemetry | `.bagel/state.yaml.loop_binding`, `.bagel/state.yaml.telemetry` | Timer/scheduler proof and runtime counters |
 | Review registry | `.bagel/state.yaml.review_registry` | Derived review independence levels in quick mode |
 | Flywheel integrity | `.bagel/state.yaml.gates.flywheel_integrity_passed` | Latest `scripts/flywheel_check.py` result |
 | Human status entry | `.bagel/STATUS.md` | Single user-readable status entry point |
+| HTML briefing | `.bagel/user_briefing/alignment-dashboard.html` | Optional visual dashboard generated from canonical state |
 
 In `full_genesis`, these domains may expand to specialized files:
 
@@ -35,7 +37,9 @@ In `full_genesis`, these domains may expand to specialized files:
 | Change history | `.bagel/evolution/*` | Audit, rollback, rationale |
 | Git/agents | `.bagel/git/*`, `.bagel/agents/*` | Ownership and integration state |
 | Flywheel evidence | `.bagel/evidence/*` | Progress deltas, bar raises, command output, screenshots, benchmarks |
+| Loop binding and telemetry | `.bagel/state.json` or `.bagel/progress.json` | Timer/scheduler proof and runtime counters |
 | Human status entry | `.bagel/STATUS.md` | Single user-readable status entry point |
+| HTML briefing | `.bagel/user_briefing/alignment-dashboard.html` | Optional visual dashboard generated from canonical state |
 
 UPMG is optional. If used, it is the graph backend for complex software/product runs. If not used, `.bagel/product_graph.yaml` plus the files above are canonical.
 
@@ -73,6 +77,7 @@ Human-facing briefing:
 └── user_briefing/
     ├── README.md
     ├── quick-status.md
+    ├── alignment-dashboard.html
     ├── decision-dashboard.md
     ├── current-project-reality.md
     ├── architecture-or-structure.md
@@ -97,6 +102,9 @@ schemas:
   quick_ledger: {path: ".bagel/ledger.yaml", format: yaml, required_for_quick_autonomy: true}
   progress_deltas: {path: ".bagel/evidence/progress-deltas.yaml", format: yaml, required_for_long_run: true}
   bar_raises: {path: ".bagel/evidence/bar-raises.yaml", format: yaml, required_for_excellence_loop: true}
+  loop_binding: {path: ".bagel/state.yaml#loop_binding", format: yaml, required_for_autonomous_iteration: true}
+  telemetry: {path: ".bagel/state.yaml#telemetry", format: yaml, required_for_long_run: true}
+  html_dashboard: {path: ".bagel/user_briefing/alignment-dashboard.html", format: html, optional: true}
   flywheel_integrity: {path: ".bagel/state.yaml#gates.flywheel_integrity_passed", format: yaml, required_for_long_run: true}
   quick_review_registry: {path: ".bagel/state.yaml#review_registry", format: yaml, required_when_reviews_claim_independence: true}
   # Full-genesis detailed files. Quick mode stores equivalents inside state.yaml/constitution.yaml/ledger.yaml.

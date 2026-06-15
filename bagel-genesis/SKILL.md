@@ -161,7 +161,7 @@ Treat `.bagel/` as the memory, not the conversation transcript. Save decisions, 
 Use the phase loop by default. The numbered state machine is the full-mode expansion, not a mandatory waterfall for every task.
 
 ```text
-Align: ask enough to make the vision executable.
+Align: use choice prompts, open prompts with neutral guidance, and project-evidence veto drafts to make the vision executable.
 Build: slice -> implement -> verify -> record progress delta -> next slice.
 Polish: critique -> improve -> verify -> record progress delta -> next highest-EV pass.
 ```
@@ -195,6 +195,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/constitutional-court.md` | a proposed scope reduction, identity change, or P0 removal appears | no scope/identity amendment is proposed | always |
 | `references/evolution-ledger.md` | recording a meaningful change for audit/rollback, or diagnosing a regression | change is trivial (typo, comment) | full |
 | `references/user-briefing.md` | updating the human-facing briefing layers or STATUS.md beyond the quick template | no user-visible change or decision this cycle | always |
+| `references/alignment-dashboard-html.md` | user wants visual/HTML briefing, alignment needs a dashboard, or long-run status should be inspectable at a glance | Markdown STATUS is sufficient and user did not request HTML | always |
 | `references/alignment-information-architecture.md` | designing or repairing the progressive-disclosure capsule/context-index system | quick mode with a flat context.yaml suffices | full |
 | `references/agent-operating-model.md` | designing or rewriting a role prompt in `agents/` | using existing role prompts unchanged | full |
 | `references/git-governance.md` | multiple write agents or worktrees are actually active (parallel_advanced) | single-agent serial work | full |
@@ -221,6 +222,8 @@ If the workspace is not empty, do not treat it as a blank slate. First choose ta
 - `full_takeover`: project-wide autonomous build/optimization; create the full context package below.
 
 Record target root, excluded directories, allowed `.bagel/` location, discovery budget, and user/user-delegated approval. In `quick_autonomy`, store this in the `takeover_scope:` section of `.bagel/context.yaml`. In `full_genesis`, store it in `.bagel/project_inventory/takeover-scope.yaml`. Before changing behavior, create evidence-backed project understanding proportional to the takeover scope.
+
+For existing projects, do not ask the user to explain facts the repository can reveal. Run project discovery first, draft protected vs. replaceable surfaces from evidence, then ask the user only to veto or correct intent-sensitive classifications.
 
 **`quick_autonomy` (store compactly inside `.bagel/context.yaml`):** a `project_facts:` block (concise facts workers need), a `conventions:` block (local patterns, naming, test norms, style), a `module_map:` block (important modules, ownership, integration points), a `feature_inventory:` block (what exists / partial / missing), a `do_not_duplicate:` block (existing utilities to reuse), and a `current_behavior:` note (verified behavior and known gaps). One file, short sections.
 
@@ -272,8 +275,14 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Autonomy policy: what the agent may decide alone and what requires the user.
 - Excellence horizon: the quality level expected after autonomous iteration, including polish, robustness, documentation, and "no obvious improvement remains" criteria.
 - Long-run delegation: whether the user wants maximum autonomous momentum, how much time/token budget to spend, and which hard-stop boundaries remain non-negotiable.
+- Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
+- Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`.
+- Iteration controls: target/max cycles, timer interval, checkpoint cadence, and failure/lateral-cycle limits.
+- Briefing format: Markdown only or optional HTML dashboard, plus update frequency.
 
-Write `.bagel/vision_summary.md`, then `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full), and `.bagel/completion_horizon.yaml`. If the user has granted long-run delegation, lock S1 and continue without stopping; record the canon in `.bagel/alignment/human-decisions.yaml` and surface it in the user briefing for later review. Only pause for S1 confirmation when a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction).
+Use `references/alignment-protocol.md` for the question tree and choice cards. When the platform supports structured user choices, use them for autonomy level, run budget, takeover aggressiveness, taste source, research verification, and hard-stop boundaries. For open questions, include why the question matters, neutral examples, and the default if skipped.
+
+Write `.bagel/vision_summary.md`, then `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full), and `.bagel/completion_horizon.yaml`. If the user has granted long-run delegation, bind loop/timer capability before implementation and continue without stopping; record the canon in `.bagel/alignment/human-decisions.yaml` and surface it in the user briefing for later review. Only pause for S1 confirmation when a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction).
 
 ## Context Policy
 
@@ -387,10 +396,11 @@ For long autonomous work, run in cycles:
 5. Verify with tests/reviews/gates.
 6. Write a progress delta in `.bagel/evidence/progress-deltas.yaml`.
 7. Update `.bagel/STATUS.md` with: run status, current focus, timeline, budget allocation, latest delta assessment, recent autonomous decisions, blocked lanes, and next action. See `references/runtime-protocol.md` for the full template.
-8. Run `python scripts/flywheel_check.py <project-root>` when `.bagel/` exists. Treat failures as gate failures: fix the evidence/state, rollback or isolate a bad change, or switch strategy before continuing.
-9. Persist structured output.
-10. Compact: update state and next action, then drop task-local context.
-11. Continue, switch strategy, or wake later depending on platform support.
+8. Update loop telemetry: elapsed time, cycles, agents dispatched, compactions, recovery events, timer wakeups, tests, screenshots, token estimate when available.
+9. Run `python scripts/flywheel_check.py <project-root>` when `.bagel/` exists. Treat failures as gate failures: fix the evidence/state, rollback or isolate a bad change, or switch strategy before continuing.
+10. Persist structured output.
+11. Compact: update state and next action, then drop task-local context.
+12. Continue, switch strategy, or wake later depending on platform support.
 
 If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run should keep converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
 

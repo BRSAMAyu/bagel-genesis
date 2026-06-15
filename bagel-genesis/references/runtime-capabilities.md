@@ -65,6 +65,15 @@ For known agentic platforms, uncertainty means "check the adapter," not "assume 
 7. Set maximum cycle length and checkpoint cadence.
 8. If quota/rate limit is likely, require `loop-runtime.md` handoff and resume artifacts before implementation.
 
+For explicit autonomous iteration, manual planning is not an acceptable terminal state. The preflight must produce one of:
+
+- configured loop/timer/automation/scheduled task,
+- configured external harness or CLI command that will relaunch cycles,
+- active platform loop with checkpoint cadence,
+- `manual_resume_required` with a clear statement that true unattended continuation is unavailable.
+
+Do not ask the user to enter a generic Plan mode after they have delegated autonomous iteration. Use alignment choices to capture decisions, then start or bind the loop.
+
 ## Self-Provisioning Rule
 
 If a needed verifier, scenario runner, screenshot check, benchmark harness, experiment script, or setup command is missing, BAGEL should create or configure the smallest project-local capability needed to continue, then record it in `.bagel/ledger/gate-verifiers.md` or the relevant experiment/evidence ledger. Missing tooling is a task, not a blocker, unless creating it crosses an autonomy-contract boundary. **The authoritative, complete carve-out list lives in `references/recovery-protocol.md` (Environment and Tool Failures → gray-zone rule).** Read it before concluding a missing tool is a hard-stop — common cases like adding a dev dependency that touches a lockfile are *not* hard-stops when the change is pre-authorized, small, reversible, project-local, or isolated to a disposable worktree branch; they are hard-stops only when none of those apply. Do not decide from the summary list here alone.

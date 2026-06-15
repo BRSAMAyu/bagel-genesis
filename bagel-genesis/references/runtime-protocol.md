@@ -111,6 +111,12 @@ Use this `STATUS.md` shape. The **Morning Briefing** block at the top is mandato
 - `blocked_hard_stop` = the run exhausted all autonomous avenues and hit a genuine hard-stop boundary (credentials, paid resources, production data, irreversible action, or no safe path remains). This is NOT laziness — the run tried: {list 2-3 things attempted}. It needs your decision on: {item}.
 - `waiting_for_capacity` = quota/runtime temporarily exhausted, resume plan exists. The run will continue when capacity returns.
 
+## Loop Binding
+{scheduled_resume | external_harness | active_session_loop | manual_resume_required}
+Timer interval: {n} minutes
+Next wakeup: {ISO timestamp | unavailable}
+Proof: {automation id | scheduled task id | cron/launchd entry | active loop config | harness command}
+
 ## Current Focus
 {one sentence}
 
@@ -128,6 +134,13 @@ Flywheel integrity: {pass | fail | not_run} — latest `scripts/flywheel_check.p
 ## Budget
 Runtime/token estimate: {used} / {limit or unknown}
 Remaining allocation: P0 {..}%, P1 {..}%, polish {..}%
+
+## Telemetry
+Elapsed: {minutes}
+Cycles: {completed}/{target or max}
+Agents dispatched: {n}; review agents: {n}; context compactions: {n}
+Recovery events: {n}; timer wakeups: {n}; tests/checks run: {n}; screenshots/renders: {n}
+Token usage: {platform_reported | estimated | unavailable}: {value}
 
 ## Recent Autonomous Decisions (top 5 by impact)
 1. {decision + reason + reversibility + revert command}

@@ -17,6 +17,10 @@ For existing projects, the briefing must explain both current reality and intend
 
 Use the canonical tree in `references/governance-data-model.md`. The required human entry point is `.bagel/STATUS.md`; deeper files live under `.bagel/user_briefing/`.
 
+Optional visual entry point:
+
+- `.bagel/user_briefing/alignment-dashboard.html`: generated from durable `.bagel` state when the user asks for visual alignment/status, or when a long run benefits from high-density visual review. See `references/alignment-dashboard-html.md`.
+
 For non-software projects, adapt names:
 
 - `architecture-or-structure.md` can describe research structure, book outline, argument map, dataset plan, or creative system.
@@ -30,6 +34,9 @@ Write for a user with one minute:
 - what is done,
 - what is being improved,
 - whether autonomy is safe to continue,
+- loop/timer binding status,
+- elapsed time and cycle count,
+- agents dispatched, context compactions, recovery events, tests/screenshots run when available,
 - next autonomous action,
 - whether user input is needed.
 
@@ -51,6 +58,37 @@ decision:
 ```
 
 Include system-made decisions so the user can audit autonomy.
+
+For alignment decisions, include the exact interaction shape:
+
+```yaml
+alignment_choice:
+  id: "AD-001"
+  question: "How much autonomy should BAGEL use?"
+  selected: "Maximum inside hard-stops"
+  source: user_explicit | user_veto | system_inferred
+  defaulted: true | false
+  why_it_matters: "..."
+  later_change_requires_wake: true | false
+```
+
+For existing projects, show the project reality split:
+
+```yaml
+project_reality_review:
+  protected_surface:
+    - item: "..."
+      evidence: "..."
+      source: repo_evidence | user_confirmed | system_inferred
+  replaceable_surface:
+    - item: "..."
+      evidence: "..."
+      source: repo_evidence | user_confirmed | system_inferred
+  morning_veto_needed:
+    - "..."
+```
+
+This gives the user a low-effort way to correct drift after an unattended run without reading raw logs.
 
 ## Layer 3: Deep Dive
 
@@ -76,6 +114,12 @@ Update user briefing:
 - whenever user instruction changes direction.
 - whenever evolution ledger records a user-visible or decision-relevant change.
 
+For HTML dashboard updates, follow the user's selected frequency:
+
+- `every_cycle`: update after each cycle only if overhead is acceptable.
+- `every_milestone`: default for long runs.
+- `final_only`: update at final delivery or checkpoint.
+
 Do not dump raw logs. Convert logs into decisions, evidence, risks, and next actions.
 
 ## Progressive Disclosure
@@ -100,6 +144,8 @@ User-facing briefing must distinguish:
 - verified fact,
 - system inference,
 - user-approved decision,
+- user-vetoed project classification,
+- defaulted alignment choice,
 - open assumption,
 - stale or disputed information.
 
