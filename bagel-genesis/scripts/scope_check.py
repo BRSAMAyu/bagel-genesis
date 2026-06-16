@@ -137,6 +137,50 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             errors.append(f"{path}: approval_required=true but approval_ref missing")
         if derived_outside and sorted(as_list(rec.get("touched_paths_outside_scope"))) != outside:
             errors.append(f"{path}: touched_paths_outside_scope does not match derived git diff outside scope: {outside}")
+
+    # C1 fix (Judge S2+S5): omission-as-pass. If the run has build evidence (Build started)
+    # and the git diff shows changed non-.bagel paths, but NO scope_delta record covers them,
+    # the agent made out-of-scope edits without recording a scope_delta — omission must fail.
+    has_build_evidence = (root / ".bagel/evidence/progress-deltas.yaml").exists()
+    state = as_dict(load_yaml(root / ".bagel/state.yaml", {}))
+    run_started = state.get("phase") in {"Build", "Iterate", "Polish", "complete"} or bool(state.get("task_queue"))
+    if has_build_evidence and run_started:
+        # Find the run's base ref (from the first scope_delta with git_ref_start, or HEAD~1)
+        base_ref = None
+        for _path, rec in collect_scope(root):
+            if rec.get("git_ref_start"):
+                base_ref = str(rec.get("git_ref_start"))
+                break
+        if not base_ref:
+            base_ref = "HEAD~1"
+        all_changed = git_changed_paths(root, base_ref)
+        # Gather all paths COVERED by declared scope_delta allowed_paths
+        covered: set[str] = set()
+        for _path, rec in collect_scope(root):
+            for item in as_list(rec.get("allowed_paths")):
+                covered.add(str(item))
+        # A changed path is "covered" if it falls under a declared allowed_path, or is .bagel/
+        uncovered = []
+        for changed in all_changed:
+            if changed.startswith(".bagel/"):
+                continue
+            if not any(path_allowed(changed, list(covered)) or changed == c for c in covered):
+                uncovered.append(changed)
+        if uncovered and not collect_scope(root):
+            # NO scope_delta records exist at all, but build evidence + changed paths exist
+            errors.append(
+                f"scope_delta_within_contract: build evidence exists and git diff shows changed paths "
+                f"({uncovered[:5]}) but NO scope_delta record covers them. An agent that makes "
+                f"out-of-scope edits without recording a scope_delta cannot pass — record a "
+                f"scope_delta with allowed_paths for each changed path, or omission-as-pass defeats the gate."
+            )
+        elif uncovered:
+            errors.append(
+                f"scope_delta_within_contract: {len(uncovered)} changed path(s) not covered by any "
+                f"scope_delta allowed_paths (first 5: {uncovered[:5]}). Every changed non-.bagel path "
+                f"must fall under a declared scope_delta.allowed_paths, or have an approval_ref for "
+                f"out-of-scope work. Omission is not a valid way to bypass scope enforcement."
+            )
     return errors, warnings
 
 
