@@ -13,6 +13,8 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Existing project truth | `.bagel/context.yaml` | Only required when modifying an existing project |
 | Decisions, recovery, evolution, user decisions | `.bagel/ledger.yaml` | Append concise records or expand to directories when needed |
 | Judgment records | `.bagel/decisions/judgment-*.yaml` or `.bagel/ledger.yaml#judgments` | Taste and collective-decision verdicts |
+| Evaluation spec | `.bagel/state.yaml#evaluation` or `.bagel/evaluation/current.yaml` | Decision-useful metrics/rubrics for the active iteration |
+| Iteration records | `.bagel/state.yaml#iterations` or `.bagel/iterations/ITER-*.yaml` | Iteration target sets, completion evidence, carry-forward items |
 | Progress deltas | `.bagel/evidence/progress-deltas.yaml` | Objective cycle-by-cycle evidence |
 | Bar raises | `.bagel/evidence/bar-raises.yaml` | Raised standards and why they are valuable |
 | Innovation candidates | `.bagel/innovation/ledger.yaml` | Novel concepts, probes, and adopt/park/reject decisions |
@@ -36,6 +38,8 @@ In `full_genesis`, these domains may expand to specialized files:
 | Progress | `.bagel/progress.json` | Last verified progress and next action |
 | Gates | `.bagel/gates/status.yaml` | Predicate results |
 | Judgment records | `.bagel/decisions/judgment-*.yaml` | Judgment Council verdicts and merge results |
+| Evaluation specs | `.bagel/evaluation/*.yaml` | Metrics, rubrics, anti-gaming notes, and decision hooks |
+| Iteration records | `.bagel/iterations/ITER-*.yaml` | Iteration accounting and target-set history |
 | Amendment history | `.bagel/ledger/amendment-history.yaml` | Court verdict counts and rationale classes |
 | Existing project truth | `.bagel/agent_context/*` | Evidence-backed worker context |
 | Change history | `.bagel/evolution/*` | Audit, rollback, rationale |
@@ -124,6 +128,8 @@ schemas:
   quick_context: {path: ".bagel/context.yaml", format: yaml, required_for_existing_project_quick_autonomy: true}
   quick_ledger: {path: ".bagel/ledger.yaml", format: yaml, required_for_quick_autonomy: true}
   judgment_records: {path: ".bagel/decisions/judgment-*.yaml", format: yaml, required_for_taste_judgment_decisions: true, optional_in_quick: "store inside ledger.yaml#judgments"}
+  evaluation_spec: {path: ".bagel/state.yaml#evaluation", format: yaml, required_before_build_or_iteration: true, optional_in_full: ".bagel/evaluation/current.yaml"}
+  iteration_records: {path: ".bagel/state.yaml#iterations", format: yaml, required_for_autonomous_iteration_accounting: true, optional_in_full: ".bagel/iterations/ITER-*.yaml"}
   progress_deltas: {path: ".bagel/evidence/progress-deltas.yaml", format: yaml, required_for_long_run: true}
   bar_raises: {path: ".bagel/evidence/bar-raises.yaml", format: yaml, required_for_excellence_loop: true}
   innovation_ledger: {path: ".bagel/innovation/ledger.yaml", format: yaml, required_when_innovation_contract_is_differentiated_or_breakthrough: true}

@@ -98,6 +98,7 @@ def main() -> int:
     failures.extend(check_v12_requirements(root))
     failures.extend(check_v13_innovation_memory(root))
     failures.extend(check_v14_judgment_council(root))
+    failures.extend(check_v15_evaluation_iteration_orchestration(root))
     failures.extend(check_loading_matrix_files_exist(root))
 
     if failures:
@@ -389,6 +390,63 @@ def check_v14_judgment_council(root: Path) -> list[str]:
         out.append("orchestrator.md must point to orchestration-flow.md.")
     if "Judgment Council" not in innovation:
         out.append("innovation-protocol.md must route survivor selection through Judgment Council.")
+
+    return out
+
+
+def check_v15_evaluation_iteration_orchestration(root: Path) -> list[str]:
+    """v1.5 checks for control-plane separation, evaluation specs, iteration accounting, and runtime-doctor dispatch."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    orchestrator = read("agents/orchestrator.md")
+    aom = read("references/agent-operating-model.md")
+    align = read("references/alignment-protocol.md")
+    excellence = read("references/excellence-loop.md")
+    flow = read("references/orchestration-flow.md")
+    run_check = read("scripts/bagel_run_check.py")
+
+    for rel in (
+        "agents/evaluation-architect.md",
+        "agents/runtime-doctor.md",
+        "references/evaluation-framework.md",
+        "references/iteration-contract.md",
+    ):
+        if not (root / rel).exists():
+            out.append(f"{rel}: v1.5 requires this file.")
+
+    for phrase in ("Evaluation Architect", "Runtime Doctor", "evaluation-framework.md", "iteration-contract.md"):
+        if phrase not in skill:
+            out.append(f"SKILL.md must wire v1.5 phrase/reference: {phrase}.")
+    if "control plane" not in skill.lower() or "not the user's deliverable" not in skill:
+        out.append("SKILL.md must state that .bagel control-plane artifacts are not user deliverables.")
+    for phrase in ("Runtime Doctor", "Evaluation Architect", "must not personally perform iterative environment debugging"):
+        if phrase not in orchestrator:
+            out.append(f"orchestrator.md missing v1.5 dispatch boundary: {phrase}.")
+    for phrase in ("lane type", "control_plane", "Runtime Doctor", "Evaluation Architect"):
+        if phrase not in aom:
+            out.append(f"agent-operating-model.md missing v1.5 context-boundary term: {phrase}.")
+    if "not user deliverables" not in align and "not user deliverable" not in align:
+        out.append("alignment-protocol.md must prevent treating alignment artifacts as user deliverables.")
+    for phrase in ("Completing all currently known user-requested goals counts as", "dispatch_evaluation_architect", "anti_gaming_note"):
+        if phrase not in excellence:
+            out.append(f"excellence-loop.md missing v1.5 iteration/evaluation rule: {phrase}.")
+    for phrase in ("Evaluation Architect", "Runtime Doctor", "lane_type: deliverable", "control-plane"):
+        if phrase not in flow:
+            out.append(f"orchestration-flow.md missing v1.5 flow term: {phrase}.")
+    for phrase in (
+        "validate_task_queue_not_control_plane",
+        "validate_evaluation_and_iteration_state",
+        "CONTROL_PLANE_TERMS",
+        "iterations_completed",
+        "anti_gaming_note",
+    ):
+        if phrase not in run_check:
+            out.append(f"bagel_run_check.py missing v1.5 runtime audit: {phrase}.")
 
     return out
 

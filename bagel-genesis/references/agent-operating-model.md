@@ -10,6 +10,8 @@ Do not combine these jobs in one context:
 
 - product governance
 - code implementation
+- runtime/tooling diagnosis
+- evaluation-system design
 - spec review
 - code quality review
 - constitutional amendment
@@ -41,6 +43,14 @@ Owns git merge queue, conflict classification, post-merge verification, lock cle
 ### Project Cartographer
 
 Owns the agent-facing understanding of an existing project: modules, conventions, existing features, reusable assets, run commands, current behavior, and known risks. It does not change product behavior.
+
+### Evaluation Architect
+
+Owns the evaluation system for a target set, slice, research hypothesis, UI polish pass, or final delivery. It designs metrics, qualitative rubrics, anti-gaming notes, and decision hooks. It does not implement, approve, or choose product direction.
+
+### Runtime Doctor
+
+Owns environment, dependency, toolchain, verifier, browser, screenshot, build/test command, and experiment-runner failures. It diagnoses and repairs reversible setup/tooling issues inside the autonomy contract. It does not change product behavior except narrow authorized tooling/configuration fixes, and it never lowers gates because setup was hard.
 
 ### Implementer
 
@@ -82,6 +92,7 @@ Every dispatched agent receives:
 - completion criteria
 - blocked/needs-context format
 - output artifacts to create
+- lane type: `deliverable` for user artifact work, `control_plane` for BAGEL governance/tooling work
 
 Every dispatched agent must return:
 
@@ -119,6 +130,7 @@ firewall:
     - another worker's chain-of-thought - only structured findings/reports may enter
     - reviewer/red-team/brainstormer deliberation transcripts - only their returned findings
     - enough implementation detail that it could re-implement the slice itself (if it could, it received too much)
+    - iterative environment debugging loops (dispatch Runtime Doctor after the first failed setup/build/test attempt)
 ```
 
 ## Prompt Capsule Size
@@ -137,16 +149,25 @@ If an agent needs more, create a task-local brief from durable artifacts rather 
 For a value slice:
 
 1. Orchestrator creates `.bagel/slices/VS-NNN.md`.
-2. For existing projects, Orchestrator derives a task brief from `.bagel/agent_context/`.
-3. Orchestrator assigns locks and branch/worktree.
-4. Spec Reviewer checks slice clarity before implementation if ambiguity is high.
-5. Implementer builds only that slice.
-6. Spec Reviewer reviews changed files against slice spec.
-7. Code Quality Reviewer reviews changed files and tests.
-8. Integration Manager/Orchestrator queues and merges only after checks pass.
-9. Orchestrator updates project context if reality changed.
-10. Orchestrator decides: accept, repair, clear debt, or escalate.
-11. Orchestrator checkpoints and discards worker contexts.
+2. Evaluation Architect attaches acceptance metrics/rubric when the slice or iteration lacks them.
+3. For existing projects, Orchestrator derives a task brief from `.bagel/agent_context/`.
+4. Orchestrator assigns locks and branch/worktree.
+5. Spec Reviewer checks slice clarity before implementation if ambiguity is high.
+6. Implementer builds only that slice.
+7. Runtime Doctor handles command/tooling failures if the implementer cannot run verification.
+8. Spec Reviewer reviews changed files against slice spec and evaluation spec.
+9. Code Quality Reviewer reviews changed files and tests.
+10. Integration Manager/Orchestrator queues and merges only after checks pass.
+11. Orchestrator updates project context if reality changed.
+12. Orchestrator decides: accept, repair, clear debt, or escalate.
+13. Orchestrator checkpoints and discards worker contexts.
+
+For control-plane work:
+
+1. Keep it out of the user-facing deliverable task queue.
+2. Mark dispatch records with `lane_type: control_plane`.
+3. Treat `.bagel/` setup as an autonomy enabler, not as product progress.
+4. Do not count control-plane completion toward iteration all-green unless the active evaluation spec explicitly requires it as a verifier/reproducibility target.
 
 For parallel work:
 
@@ -195,6 +216,9 @@ Revise prompts or workflow when you see:
 - implementer asks to read entire history,
 - reviewer approves based on explanation instead of files,
 - orchestrator starts writing features,
+- orchestrator repeatedly runs setup/build/test/debug commands instead of dispatching Runtime Doctor,
+- BAGEL alignment/state/STATUS work appears in the user-facing deliverable task queue,
+- an iteration starts without an Evaluation Architect evaluation spec or equivalent persisted criteria,
 - court cites implementation difficulty,
 - red team suggests fixes instead of findings,
 - bar is raised from the orchestrator's own imagination without dispatching >= 2 lens-pinned brainstormers (converges on the obvious),

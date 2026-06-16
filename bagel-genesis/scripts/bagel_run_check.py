@@ -23,6 +23,20 @@ VALID_STOP = {"progressing", "recovering", "excellence_loop", "waiting_for_capac
 IMPLEMENTER_ROLES = {"Implementer", "Skeleton Builder"}
 REVIEWER_ROLES = {"Spec Reviewer", "Code Quality Reviewer", "Independent Reviewer", "Red-Team Oracle"}
 EXPLORER_LENSES = {"structure", "behavior", "convention", "surface"}
+EVALUATION_ROLES = {"Evaluation Architect"}
+RUNTIME_ROLES = {"Runtime Doctor"}
+CONTROL_PLANE_TERMS = {
+    ".bagel",
+    "bagel alignment",
+    "constitution.yaml",
+    "constitution.json",
+    "alignment file",
+    "status.md",
+    "control plane",
+    "run check",
+    "flywheel_check",
+    "bagel_run_check",
+}
 
 
 def load_yaml(path: Path, default: Any) -> Any:
@@ -276,6 +290,68 @@ def validate_dispatch(root: Path, state: dict[str, Any], errors: list[str], warn
                 fail(errors, f"Brainstormer dispatch {record_id(record) or '<unknown>'} missing lens")
             if record.get("saw_other_brainstormers") is True:
                 fail(errors, f"Brainstormer dispatch {record_id(record) or '<unknown>'} saw other brainstormer outputs")
+        if role in EVALUATION_ROLES:
+            output = str(record.get("output") or record.get("writes") or record.get("return_format") or "")
+            if "evaluation" not in output.lower() and "rubric" not in output.lower() and "metric" not in output.lower():
+                warn(warnings, f"Evaluation Architect dispatch {record_id(record) or '<unknown>'} does not visibly request evaluation spec output")
+        if role in RUNTIME_ROLES:
+            if record.get("allowed_product_behavior_change") is True:
+                fail(errors, f"Runtime Doctor dispatch {record_id(record) or '<unknown>'} must not be authorized for broad product behavior changes")
+
+
+def validate_task_queue_not_control_plane(state: dict[str, Any], errors: list[str]) -> None:
+    """Prevent BAGEL governance work from being mistaken for the user's deliverable."""
+    for i, item in enumerate(as_list(state.get("task_queue")), start=1):
+        row = as_dict(item)
+        text = " ".join(
+            str(row.get(key) or "")
+            for key in ("id", "title", "task", "description", "goal", "acceptance_criteria", "lane_type")
+        ).lower()
+        if row.get("lane_type") == "control_plane":
+            fail(errors, f"task_queue item {i}: control_plane work must not live in the user-facing deliverable task_queue")
+        for term in CONTROL_PLANE_TERMS:
+            if term in text:
+                fail(errors, f"task_queue item {i}: appears to treat BAGEL control-plane work as deliverable work ({term!r})")
+                break
+
+
+def validate_evaluation_and_iteration_state(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    """Build/iteration work must be governed by a project-specific evaluation system."""
+    has_progress = (root / ".bagel" / "evidence" / "progress-deltas.yaml").exists()
+    has_tasks = bool(as_list(state.get("task_queue")))
+    run_status = state.get("run_status") or state.get("status")
+    if not has_progress and not has_tasks and run_status not in {"excellence_loop", "complete"}:
+        return
+
+    evaluation = as_dict(state.get("evaluation"))
+    evaluation_path = root / ".bagel" / "evaluation" / "current.yaml"
+    if not evaluation and evaluation_path.exists():
+        evaluation = as_dict(load_yaml(evaluation_path, {}))
+    if not evaluation:
+        fail(errors, "Build/iteration work has started but no active evaluation spec exists; dispatch Evaluation Architect before implementation")
+    else:
+        metrics = as_list(evaluation.get("metrics"))
+        rubric = as_list(evaluation.get("qualitative_rubric"))
+        if not metrics and not rubric:
+            fail(errors, "active evaluation spec must include metrics and/or qualitative_rubric")
+        if not evaluation.get("completion_rule"):
+            fail(errors, "active evaluation spec missing completion_rule")
+        for i, metric in enumerate(metrics, start=1):
+            m = as_dict(metric)
+            if not m.get("decision_use"):
+                fail(errors, f"evaluation metric {i}: missing decision_use")
+            if not m.get("anti_gaming_note"):
+                fail(errors, f"evaluation metric {i}: missing anti_gaming_note")
+
+    excel = as_dict(state.get("excellence"))
+    max_iterations = excel.get("max_iterations") or as_dict(as_dict(load_yaml(root / ".bagel/constitution.yaml", {})).get("stop_contract")).get("max_iterations")
+    iterations_completed = excel.get("iterations_completed")
+    if run_status == "complete" and isinstance(max_iterations, int):
+        if not isinstance(iterations_completed, int) or iterations_completed < max_iterations:
+            fail(errors, f"run_status=complete but iterations_completed={iterations_completed!r} is below max_iterations={max_iterations}; completing preset goals is one iteration, not final completion")
+    current_iteration = excel.get("current_iteration")
+    if has_progress and current_iteration is None:
+        warn(warnings, "state.excellence.current_iteration missing; iteration accounting may be ambiguous")
 
 
 def validate_status_and_briefing(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
@@ -436,6 +512,8 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     validate_alignment_floor(state, errors, warnings)
     validate_stop_contract(root, state, errors, warnings)
     validate_dispatch(root, state, errors, warnings)
+    validate_task_queue_not_control_plane(state, errors)
+    validate_evaluation_and_iteration_state(root, state, errors, warnings)
     validate_context_verified(root, state, errors, warnings)
     validate_status_and_briefing(root, state, errors, warnings)
     return errors, warnings

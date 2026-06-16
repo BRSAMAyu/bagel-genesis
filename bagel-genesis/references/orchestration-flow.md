@@ -41,26 +41,41 @@ Use this as the authoritative end-to-end decision map for BAGEL. It answers: wha
    - Dispatch: Constitutional Court only if identity/scope/hard-stop changes are proposed.
    - Record: `constitution.yaml`, `ledger.yaml`.
    - Verify: gate predicates.
+7. Separate control plane from deliverable.
+   - Dispatch: none.
+   - Record: `state.yaml.task_queue` must contain user deliverable work only; BAGEL setup lives in control-plane lanes/ledger.
+   - Merge rule: `.bagel/` artifacts enable autonomy but are not the product.
+   - Verify: `bagel_run_check.py`.
 
 ## Build
 
-1. Select next slice.
-   - Dispatch: none by default.
+1. Start or refresh the current iteration.
+   - Dispatch: Evaluation Architect.
+   - Record: `.bagel/iterations/ITER-NNN.yaml` or `state.yaml.iterations`; `state.yaml.evaluation`.
+   - Merge rule: no deliverable implementation begins until the target set has decision-useful metrics/rubrics.
+   - Verify: `bagel_run_check.py`, `flywheel_check.py`.
+2. Select next slice.
+   - Dispatch: none by default if the evaluation spec already exists; otherwise Evaluation Architect first.
    - Merge rule: use EV ranking; if a candidate has `judgment_passed: true`, use taste-adjusted EV threshold.
-   - Record: `state.yaml.task_queue`.
-2. Implement.
+   - Record: `state.yaml.task_queue` with `lane_type: deliverable`.
+3. Implement.
    - Dispatch: Implementer.
    - Record: changed artifact files and worker handoff.
    - Verify: project tests/checks.
-3. Review.
+4. Runtime/tooling failure.
+   - Dispatch: Runtime Doctor after the first failed setup/build/test/verifier command or missing tool diagnosis.
+   - Merge rule: Runtime Doctor can repair reversible tooling but cannot lower gates or change product behavior broadly.
+   - Record: command evidence, repair handoff, reusable lesson candidate.
+   - Verify: rerun the failed command or record hard-stop boundary.
+5. Review.
    - Dispatch: Spec Reviewer / Code Quality Reviewer / Independent Reviewer per risk.
    - Merge rule: required review level must pass; same-session review cannot claim R3.
    - Record: `.bagel/reviews/`.
    - Verify: `flywheel_check.py`.
-4. Record progress.
+6. Record progress.
    - Record: `.bagel/evidence/progress-deltas.yaml`, `.bagel/STATUS.md`.
    - Verify: `flywheel_check.py`.
-5. Recovery if a gate fails.
+7. Recovery if a gate fails.
    - Dispatch: Independent diagnosis as needed.
    - Merge rule: recovery ladder; hard-stops only for true boundaries.
    - Record: recovery log plus lesson memory if reusable.
@@ -73,10 +88,11 @@ Use this as the authoritative end-to-end decision map for BAGEL. It answers: wha
    - Record: progress deltas.
    - Verify: `flywheel_check.py`.
 2. Current target set all-green.
+   - Dispatch: Evaluation Architect to draft the next iteration evaluation spec.
    - Dispatch: >=2 Brainstormers with distinct lenses.
    - Dispatch: >=3 Judgment Councilors for bar-raise direction.
    - Merge rule: Judgment Council veto/pass/disputed.
-   - Record: `.bagel/evidence/bar-raises.yaml` with `brainstormer_dispatch_ids` and `judgment_ref` or `judgment_skipped_reason`.
+   - Record: completed iteration, `.bagel/evidence/bar-raises.yaml` with `brainstormer_dispatch_ids` and `judgment_ref` or `judgment_skipped_reason`.
    - Verify: `flywheel_check.py`.
 3. Three lateral cycles.
    - Dispatch: Red-Team Oracle for why stuck, Brainstormer for alternatives, Judgment Council for strategy switch.

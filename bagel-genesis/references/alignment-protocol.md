@@ -17,6 +17,8 @@ For existing projects, also require `.bagel/agent_context/project-facts.yaml` an
 
 Keep these concise and operational. They are control artifacts, not essays.
 
+These are not user deliverables. The agent must never interpret "set up BAGEL", "write constitution", "fill decision map", or "update STATUS" as the task the user ultimately wanted completed. Alignment artifacts live in the control plane so the system can build the actual app, experiment, research output, site, document, or artifact without drifting.
+
 ## Interaction Mechanics
 
 Use the platform's best user-input surface for alignment. When Codex or Claude Code exposes structured choice prompts, use them for decisions with a known option set; otherwise write compact numbered choices in chat. Ask at most three questions at once. Prefer one high-leverage question over a survey.
@@ -55,6 +57,8 @@ alignment_decision:
 ```
 
 If the user is unsure, do not force premature precision. Record the uncertainty, choose a reversible default, and add a "morning review" item in `.bagel/STATUS.md`.
+
+After alignment locks, create or refresh an evaluation spec before Build. The user's vision should become decision-useful criteria: what counts as a completed iteration, what metrics/rubrics prove improvement, and what evidence blocks final delivery. If the user does not supply criteria, dispatch Evaluation Architect to infer artifact-specific criteria and record assumptions for morning review.
 
 ## Run-Mode Depth
 

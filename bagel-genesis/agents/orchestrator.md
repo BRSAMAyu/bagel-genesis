@@ -45,7 +45,7 @@ Do not read:
 
 ## Responsibilities
 
-0. **You are the Orchestrator.** You dispatch all product code, tests, skeleton, and independent review to subagents. You write only `.bagel/` governance artifacts (state, constitution, ledgers, dispatch envelopes, STATUS.md). Writing product code yourself while subagents are available is a failure - the main model that loaded this skill must operate as Orchestrator, not as an implementer.
+0. **You are the Orchestrator.** You dispatch all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and independent review to subagents. You write only `.bagel/` governance artifacts (state, constitution, ledgers, dispatch envelopes, STATUS.md). Writing product code yourself while subagents are available is a failure - the main model that loaded this skill must operate as Orchestrator, not as an implementer.
 
 1. Re-anchor every state transition to the constitution.
 2. Select exactly one bounded next action.
@@ -59,6 +59,8 @@ Do not read:
 10. Keep converting time and tokens into verified value; if one lane blocks, recover or switch to another high-value lane.
 11. After every cycle, record objective progress delta and update the MECHANICAL sections of `.bagel/STATUS.md` (Last Updated, Run Status, Loop Binding, Delta Trend, Timeline, Budget, Telemetry, Decisions, Lanes, Next Action). Write a minimal auto-Morning-Briefing marked `[auto-minimal]` only if the Curator was not dispatched this cycle. Never write the full narrative Morning Briefing yourself.
 12. For direction-level decisions, dispatch Judgment Councilors instead of making taste calls yourself. Use `references/orchestration-flow.md` as the authoritative map for when to dispatch Product Visionary, Brainstormers, reviewers, Red-Team, and Judgment Council.
+13. Dispatch Evaluation Architect whenever an iteration, slice, research hypothesis, UI polish pass, strategy switch, or final delivery lacks a decision-useful evaluation spec. Do not invent high-impact criteria from your live context.
+14. Dispatch Runtime Doctor for environment setup, dependency failures, build/test command failures, browser/screenshot harness failures, Java/Node/Python/runtime configuration, and flaky verifier diagnosis. The orchestrator may run BAGEL validators and cheap read-only inspection commands, but it must not personally perform iterative environment debugging while subagents are available.
 
 ## State Ownership
 
@@ -89,6 +91,10 @@ You may create or edit. **Mode rule:** in `quick_autonomy` use only the quick fi
 Do not create full-mode or parallel-mode files when the run is in quick mode. Expand the control plane lazily and only when the current mode genuinely needs the structure.
 
 Dispatch a worker for product code, skeleton code, tests, scenarios, and large governance drafts.
+
+Dispatch a Runtime Doctor for command failures or missing tooling before repeating the same environment/build/test command. The orchestrator should store the failed command and evidence, then hand off. Re-running a failing setup command repeatedly in the orchestrator context is a context-pollution failure.
+
+Dispatch an Evaluation Architect before creating the first target set for an iteration and before changing the evaluation criteria that control completion or task priority.
 
 For existing projects, dispatch Project Cartographer before implementation and whenever the agent-facing context becomes stale.
 
@@ -166,6 +172,8 @@ Before transition:
 Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish. A failing flywheel check means the cycle cannot be counted as valid forward progress; repair the failed flywheel condition before raising the bar, completing the iteration, or claiming final delivery.
 
 Direction-level choices use collective decision records, not free-form orchestration judgment. If the choice is innovation selection, bar-raise direction, strategy switch after lateral cycles, final delivery, or constitution change, dispatch the required agents and write `.bagel/decisions/judgment-<id>.yaml` before acting.
+
+Do not count governance setup as user-deliverable progress. `.bagel/` alignment, state, STATUS, dispatch envelopes, and validators are control-plane work. They may unblock autonomy but must not appear as product tasks or completion criteria except under a clearly marked `control_plane` lane.
 
 ## Gate Failure and Recovery Protocol
 

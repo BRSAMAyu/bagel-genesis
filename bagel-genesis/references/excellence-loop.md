@@ -14,6 +14,8 @@ Stopping early — declaring done while measurable improvement remains possible 
 
 The excellence loop runs as a fixed number of **iterations**, each ending when the current target set is fully met (all metrics green + no open P0/P1). The user sets `max_iterations` during alignment (see `references/alignment-protocol.md` Stop Contract — it is the Stop Contract's hard ceiling, persisted to `.bagel/constitution.yaml`) (default 3 if unspecified). Each iteration produces a higher target set for the next. **Stopping is determined by iteration count — a hard, user-set, fully auditable boundary — not by the agent judging "can't improve further."**
 
+Completing all currently known user-requested goals counts as **one iteration**, not the whole run, unless it also reaches `max_iterations`. After that iteration is green, BAGEL must design the next higher-value target set: better evaluation, stronger UX/research evidence, broader edge cases, more complete product behavior, better reproducibility, or more ambitious concept probes. See `references/iteration-contract.md`.
+
 ## Flywheel Integrity Gate
 
 After every build, recovery, research, or polish cycle, run:
@@ -101,6 +103,8 @@ while iteration < max_iterations and run_budget_allows and autonomy_contract_all
 
     # --- If iterations remain, generate the next higher target set ---
     if iteration < max_iterations and run_budget_allows:
+        dispatch_evaluation_architect()
+        dispatch_brainstormers_and_judgment_council_if_directional()
         target_set[iteration+1] = generate_higher_target_set(target_set[iteration])
         # Bar-Raising Protocol: tighten targets, add dimensions, adversarial lenses, etc.
 
@@ -192,7 +196,7 @@ Empirical science claims that require physical experiments, proprietary data col
 
 The agent generates quantitative metrics appropriate to the current artifact — it does not wait for the user to hand them a checklist, and it does not hardcode software-only metrics. The goal is an objective, runnable signal that distinguishes real improvement from subjective "feels better."
 
-**Generation process (runs at first polish cycle, refreshed when artifact type shifts):**
+**Generation process (runs at first polish cycle, refreshed when artifact type shifts):** dispatch `Evaluation Architect` unless a fresh active evaluation spec already covers the decision.
 
 1. Identify the artifact type (software / research / writing / data / mixed) from `.bagel/artifact_profile.yaml` or the constitution.
 2. For that type, propose 2-6 metrics that genuinely reflect quality for *this specific project*. Examples by type (illustrative, not exhaustive — the agent must reason about what actually matters for this artifact, not copy a template):
@@ -203,6 +207,8 @@ The agent generates quantitative metrics appropriate to the current artifact —
 3. For each metric, define a runnable command (or a manual evidence procedure when automation is impossible) and a target. Record in `.bagel/state.yaml` under `excellence.metrics`.
 4. Run them every cycle. The delta (improved / flat / regressed) feeds Track 2 of the progress assessment.
 
+Persist the full evaluation system under `.bagel/state.yaml#evaluation` or `.bagel/evaluation/current.yaml` per `references/evaluation-framework.md`. Metrics without `decision_use` and `anti_gaming_note` are incomplete; they cannot be used to mark an iteration complete.
+
 **Critical:** metrics are *generated*, not *received as gospel*. If a metric turns out to be gameable or not correlated with real quality (e.g. coverage hits 100% but tests are trivial), the agent must replace it with a better signal and note the replacement in the evolution ledger. The point is a truthful objective anchor, not a number to satisfy.
 
 Metrics that resist automation (e.g. "is the argument convincing?") stay in Track 1 (independent review). Do not force a fake quantitative proxy for something genuinely qualitative — but do keep searching for a real one.
@@ -210,6 +216,8 @@ Metrics that resist automation (e.g. "is the argument convincing?") stay in Trac
 ## Bar-Raising Protocol
 
 When all current metrics are green AND independent review finds no new P0/P1/P2, **do not stop. Raise the bar.** This is the core anti-laziness mechanism: "meeting the current standard" is a signal to define a higher standard, not a signal to declare done.
+
+Before raising the bar for the next iteration, dispatch Evaluation Architect to refresh the target set and decide what evidence should control the next round. The Brainstormer/Product Visionary/Judgment Council stack chooses high-value directions; Evaluation Architect turns the selected direction into metrics, rubrics, and completion rules.
 
 **Bar-raising moves (try in order each time the current bar is cleared):**
 

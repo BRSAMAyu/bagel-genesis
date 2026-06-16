@@ -45,7 +45,9 @@ If isolation itself would require a destructive or irreversible action (a true h
 
 Load only the prompt needed for the current stage and role.
 
-Do not paste this whole skill, all references, or all history into workers. The orchestrator (the main model once this skill is loaded) reads the minimum stage capsule, dispatches a bounded subagent with a small input envelope for all product code, tests, skeleton, and review work, verifies the returned artifact, then saves durable state under `.bagel/`. The main model must not write product code itself while subagents are available.
+Do not paste this whole skill, all references, or all history into workers. The orchestrator (the main model once this skill is loaded) reads the minimum stage capsule, dispatches a bounded subagent with a small input envelope for all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and review work, verifies the returned artifact, then saves durable state under `.bagel/`. The main model must not write product code itself while subagents are available.
+
+`.bagel/` artifacts are the control plane, not the user's deliverable. Never put "create BAGEL alignment files", "fill constitution", "update STATUS", "run BAGEL checks", or other governance work into the user-facing product task queue or completion horizon. Governance work may appear only in state/ledger/dispatch records as control-plane tasks. The deliverable is the app, experiment, research result, document, site, or artifact the user asked for.
 
 Before any long run or file modification, choose the lightest control plane that can keep the run safe and observable:
 
@@ -72,6 +74,8 @@ After loading this skill, the main model **adopts the Orchestrator role**. All p
 | Orchestrator | `.bagel/state.yaml` (quick) or `state.json` (full); `.bagel/constitution.yaml` (quick) or `constitution.json` (full); current stage capsule | state, ledgers, dispatch envelopes | write product code |
 | Artifact Drafter | vision notes, current stage schema | `.bagel` governance artifacts | write product code |
 | Project Cartographer | repository/artifact evidence, current behavior, docs | agent-facing project understanding | change product behavior |
+| Evaluation Architect | constitution, artifact profile, baseline evidence, target set | evaluation specs, metrics, rubrics | implement, approve, or choose product direction |
+| Runtime Doctor | failed command, logs, runtime facts, allowed paths | environment/tooling repair handoff + evidence | change product behavior or lower gates |
 | Skeleton Builder | architecture brief, route map, contracts | skeleton code, typed stubs, contract tests | implement real value slices |
 | Implementer | assigned slice spec, relevant contracts, local code files | code and tests for one slice | read full skill/history, change product scope |
 | Spec Reviewer | slice spec, changed files, contracts | review report | propose new product ideas |
@@ -95,6 +99,8 @@ A worker should not browse the `references/` directory freely. The orchestrator 
 |---|---|---|
 | Orchestrator | any triggered by the Loading Matrix | unrestricted, but one decision loads one row |
 | Project Cartographer | project-understanding, artifact-types | 2 |
+| Evaluation Architect | evaluation-framework, artifact-types | 2 |
+| Runtime Doctor | runtime-capabilities, platform adapter only if needed | 1-2 |
 | Skeleton Builder | ghost-ship-gate, artifact-types | 2 |
 | Implementer | none beyond its envelope (quality-assurance only if writing tests) | 0-1 |
 | Spec / Code Quality / Independent Reviewer | quality-assurance, gate-predicates | 1-2 |
@@ -175,8 +181,9 @@ Treat `.bagel/` as the memory, not the conversation transcript. Save decisions, 
 Use the phase loop by default. The numbered state machine is the full-mode expansion, not a mandatory waterfall for every task.
 
 ```text
-Align: use choice prompts, open prompts with neutral guidance, and project-evidence veto drafts to make the vision executable.
-Build: slice -> implement -> verify -> record progress delta -> next slice.
+Align: use choice prompts, open prompts with neutral guidance, and project-evidence veto drafts to make the vision executable. Do not treat BAGEL alignment/governance artifacts as user deliverables.
+Build: evaluation spec -> slice -> implement -> verify -> record progress delta -> next slice.
+Iterate: finish current target set -> record iteration -> generate higher-value target set -> continue until max_iterations/budget/user/hard-stop.
 Polish: critique -> improve -> verify -> record progress delta -> next highest-EV pass.
 ```
 
@@ -190,6 +197,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/platform-claude-code.md` / `references/platform-codex.md` | detected platform is CC/Codex and you must bind dispatch, subagents, hooks, loop, resume, or visual checks to native capabilities | platform is other, or run is single-session with no native loop needed | always |
 | `references/runtime-capabilities.md` | before first autonomous cycle; before promising timers/resume/subagents | capabilities already detected and recorded in state | always |
 | `references/artifact-types.md` | choosing gates or QA for a new artifact type (software / research / writing / data) | artifact type already profiled and recorded | always |
+| `references/evaluation-framework.md` | generating or refreshing metrics/rubrics for an iteration, slice, research hypothesis, UI polish pass, strategy switch, or final delivery | a fresh active evaluation spec already covers the decision | always |
 | `references/project-understanding.md` | workspace is non-empty and you will modify existing behavior | blank-slate build | full |
 | `references/constitution-template.md` | drafting or amending the constitution | constitution exists and is stable | always |
 | `references/coherence-rules.md` | defining taste/style/UX/writing/research gates for the artifact | gates already defined in constitution.taste_kernel | full |
@@ -203,6 +211,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/rework-sandbox.md` | isolating a risky change in a worktree/sandbox branch | change is small and reversible in-place | full |
 | `references/simulations.md` | running scenario/deterministic user-flow checks on a built artifact | artifact is not yet runnable | full |
 | `references/excellence-loop.md` | baseline passes and you enter Polish; ranking improvement tasks by EV; **or experiment/research results are poor or stalled (lateral/backward deltas) and you need to decide whether to switch hypothesis vs keep iterating** | still in Build phase before baseline, with no polish/stall decision pending | always |
+| `references/iteration-contract.md` | starting, completing, partially completing, counting, pushing, or raising targets for an iteration | doing a single worker task inside an already-defined iteration | always |
 | `references/taste-judgment.md` | selecting innovation survivors, choosing a bar-raise direction, switching strategy after lateral cycles, final delivery acceptance, or constitution-level direction changes | routine reversible implementation or mechanical telemetry | always |
 | `references/collective-decisions.md` | a high-impact decision needs multiple independent perspectives or you are deciding whether multi-agent judgment is warranted | ordinary slice implementation, naming, test details, or mechanical deltas | always |
 | `references/orchestration-flow.md` | deciding what stage/dispatch/merge rule comes next in a long autonomous run | a single local task is already clearly in progress | always |

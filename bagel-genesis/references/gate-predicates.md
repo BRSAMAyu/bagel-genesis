@@ -44,6 +44,9 @@ gates:
 | `review_level_consistent_with_registry` | The recorded review_level (R0-R4) is consistent with `.bagel/agents/registry.yaml`: R3+ requires ≥2 distinct agent contexts active in the review cycle. If only one context was active, max claimable is R1. Prevents overstating independence. |
 | `bar_raise_has_value_class` | Each new/raised target has a `why_class` from the canonical set: `defect_prevention`, `adversarial`, `growth_dimension`, `astonishing_completeness`, `stronger_evidence`, or `churn`. `churn` requires R3+ reviewer acceptance. The canonical set is defined in `scripts/flywheel_check.py` BAR_RAISE_VALUE_CLASSES and must not diverge. Prevents busywork disguised as bar-raising. |
 | `bar_raise_has_judgment` | Directional bar-raises have `judgment_passed: true` and a valid `.bagel/decisions/judgment-*.yaml`, or a narrow `judgment_skipped_reason` for non-directional mechanical tightening. Prevents standards from being raised toward low-taste directions. |
+| `active_evaluation_spec_present` | Before Build or any iteration work, an active evaluation spec exists with metrics and/or qualitative rubric, completion_rule, decision_use, and anti_gaming_note for numeric metrics. Prevents agents from building without knowing how quality will be judged. |
+| `task_queue_excludes_control_plane` | User-facing task_queue contains deliverable work only; `.bagel/` setup, constitution, STATUS, lint, and governance work live in control-plane ledgers/dispatch records and do not count as product progress. |
+| `iteration_count_not_bypassed` | `run_status=complete` is valid only when `iterations_completed >= max_iterations` plus final delivery gates pass. Completing the initially listed goals counts as one iteration, not final completion. |
 | `project_under_version_control` | Before the first file modification of an autonomous run, `git rev-parse --is-inside-work-tree` succeeds in the working folder, OR the user explicitly approved `git init` and a baseline commit exists. Without version control, rollback and branch isolation are impossible, so autonomous write work must not start. See `references/git-governance.md` Step 0. |
 
 ## Enforcement Model (honest)
@@ -63,6 +66,9 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `bar_raise_has_value_class` | `flywheel_check.py` |
 | `bar_raise_preceded_by_brainstormers` | `flywheel_check.py` (>= 2 brainstormer_dispatch_ids per bar-raise) |
 | `bar_raise_has_judgment` | `flywheel_check.py` |
+| `active_evaluation_spec_present` | `bagel_run_check.py` |
+| `task_queue_excludes_control_plane` | `bagel_run_check.py` |
+| `iteration_count_not_bypassed` | `bagel_run_check.py` |
 
 **Agent-attested** (the agent records pass/fail based on evidence files, but no script independently re-verifies — these depend on the agent honestly inspecting the cited evidence):
 

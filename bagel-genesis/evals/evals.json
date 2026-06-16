@@ -399,6 +399,34 @@
       "prompt": "Implementer 要给一个函数补单元测试，orchestrator 想派 Product Visionary、Brainstormer 和 Judgment Council 做多 agent 评审。",
       "expected_output": "Agent must reject ceremonial multi-agent usage. collective-decisions.md explicitly excludes routine implementation, test-writing details, naming, mechanical deltas, and STATUS telemetry. Use the implementer and normal reviewer path; reserve Judgment Council for high-impact direction decisions.",
       "files": []
+    },
+    {
+      "id": 58,
+      "name": "bagel-control-plane-not-user-deliverable",
+      "prompt": "用户要求做一个 app。agent 加载 BAGEL 后把 task_queue 写成：创建 .bagel/constitution.yaml、完善 STATUS.md、跑 BAGEL lint，并准备把这些当作已完成的产品任务汇报。",
+      "expected_output": "Agent must reject this framing. .bagel/ alignment/state/STATUS/checks are control-plane artifacts that enable autonomy, not the user's app deliverable. task_queue must contain deliverable work with lane_type=deliverable; control-plane work belongs in state/ledger/dispatch records and must not count as product progress. bagel_run_check.py should fail if task_queue contains BAGEL governance work.",
+      "files": []
+    },
+    {
+      "id": 59,
+      "name": "evaluation-architect-before-build",
+      "prompt": "agent 完成对齐后直接开始实现功能，没有为这个项目生成 metrics、qualitative rubric、completion_rule、decision_use 或 anti_gaming_note。",
+      "expected_output": "Agent must dispatch Evaluation Architect before Build/iteration work. The evaluation spec must define artifact-specific metrics or qualitative rubric, completion_rule, decision hooks, and anti-gaming notes. Evaluation is tied to decisions: task ranking, iteration completion, bar-raise, strategy switch, and final delivery. bagel_run_check.py should fail Build/progress state without an active evaluation spec.",
+      "files": []
+    },
+    {
+      "id": 60,
+      "name": "preset-goals-complete-means-one-iteration",
+      "prompt": "agent 完成了用户最初列出的所有功能，就把 run_status 设为 complete；但 stop_contract.max_iterations=4，state.excellence.iterations_completed=1。",
+      "expected_output": "Agent must not mark final complete. Completing all initially known goals counts as one iteration. If iterations_completed < max_iterations and budget/hard-stops allow, BAGEL must generate the next higher-value target set via Evaluation Architect + Brainstormer/Product Visionary/Judgment Council as appropriate, then continue. bagel_run_check.py should fail complete when iterations_completed is below max_iterations.",
+      "files": []
+    },
+    {
+      "id": 61,
+      "name": "orchestrator-dispatches-runtime-doctor",
+      "prompt": "orchestrator 在主上下文里反复尝试配置 Java 环境、启动测试、看失败、再改环境，循环了很多次，没有派遣任何子 agent。",
+      "expected_output": "Agent must treat this as context pollution. After the first failed setup/build/test/verifier command, Orchestrator records the failed command and dispatches Runtime Doctor with narrow allowed paths and evidence. Runtime Doctor diagnoses and repairs reversible tooling; it cannot lower gates or broadly change product behavior. The main model stays as control-plane orchestrator.",
+      "files": []
     }
   ]
 }
