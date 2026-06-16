@@ -28,6 +28,7 @@ CHECKS = [
     "reference_load_check.py",
     "emergency_stop_check.py",
     "production_surface_check.py",
+    "non_functional_quality_check.py",
 ]
 
 

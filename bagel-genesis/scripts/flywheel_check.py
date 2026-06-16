@@ -140,6 +140,12 @@ def validate_progress_deltas(root, state, errors, warnings):
                     fail(errors, f"cycle {i}: cited evidence path does not exist: {ev}")
                 elif ev_path.is_file() and ev_path.stat().st_size == 0:
                     fail(errors, f"cycle {i}: cited evidence file is empty: {ev}")
+                elif ev_path.is_file() and ev_path.stat().st_size < 50:
+                    # C8 fix (Judge S2+S5): existence-only evidence check allowed 1-byte
+                    # placeholder files to pass. A real evidence artifact (command output,
+                    # screenshot, benchmark, rendered file) is never <50 bytes. Require a
+                    # minimum content size so stub/placeholder evidence is caught.
+                    fail(errors, f"cycle {i}: cited evidence file {ev} is only {ev_path.stat().st_size} bytes — evidence must contain real content (command output, screenshot, benchmark, or rendered artifact), not a stub placeholder")
         reviewer = as_dict(d.get("independent_assessment"))
         if not reviewer:
             fail(errors, f"cycle {i}: missing independent_assessment; implementer self-report is not enough")

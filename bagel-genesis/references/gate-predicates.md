@@ -76,6 +76,8 @@ gates:
 | `dataset_integrity_checked` | For empirical dataset-based claims, `.bagel/expert/dataset-integrity.yaml` exists with train/val/test split hashes, a split_disjointness_check_ref, tuning_used_test_set=false, and justified preprocessing_fit_on. See references/dataset-integrity.md. |
 | `production_data_hardstop_respected` | When source/config/dispatch scans detect production-data/credential signals (cloud keys, non-localhost production connection strings, prod-host patterns, cloud-SDK usage with region), a recorded hard-stop acknowledgment must exist in `.bagel/ledger.yaml` human_decisions:. Otherwise the cycle fails — the agent must remove the production connection (use a local stub per Runtime Doctor) or record the 🔴 CHECKPOINT · S1 HARD-STOP acknowledgment. See scripts/production_surface_check.py. |
 | `no_hardcoded_secrets` | Generated source/config must not contain hardcoded secret/key patterns (AWS AKIA keys, GitHub PATs, private key blocks, Stripe live keys, Slack tokens). This fails UNCONDITIONALLY — no acknowledgment can clear it, because a committed secret is an irreversible leak. The agent must remove the secret and load it from an environment variable or secrets manager. See scripts/production_surface_check.py. |
+| `non_functional_quality_checked` | For UI/software artifacts, `.bagel/expert/non-functional-quality.yaml` declares baseline metrics for accessibility (contrast/keyboard/screen-reader), responsive (breakpoints), and performance (latency/throughput). A >10% regression from baseline fails the cycle. The record is mandatory once Build starts + an iteration completes. See scripts/non_functional_quality_check.py. |
+| `evidence_has_minimum_content` | Cited evidence files in progress-deltas.yaml must be ≥50 bytes — a real evidence artifact (command output, screenshot, benchmark, rendered file) is never smaller. Stub/placeholder evidence files are caught. See scripts/flywheel_check.py validate_progress_deltas. |
 
 ## Enforcement Model (honest)
 
@@ -120,6 +122,8 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `dataset_integrity_checked` | `expert_strategy_check.py` |
 | `production_data_hardstop_respected` | `production_surface_check.py` |
 | `no_hardcoded_secrets` | `production_surface_check.py` |
+| `non_functional_quality_checked` | `non_functional_quality_check.py` |
+| `evidence_has_minimum_content` | `flywheel_check.py` |
 | `roi_controller_positive_or_switched` | `roi_check.py` |
 | `supervisor_boundary_respected` | `supervisor_boundary_check.py` |
 | `supervisor_role_guard_passed` | `supervisor_boundary_check.py` |
