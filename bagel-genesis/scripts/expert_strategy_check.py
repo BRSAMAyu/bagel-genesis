@@ -517,6 +517,35 @@ def validate_requirement_coherence(root: Path, state: dict[str, Any], errors: li
     axes_attested_none = framing.get("no_contradiction_axes_needed") is True
     has_stated_problem = bool(str(framing.get("user_stated_problem") or "").strip())
 
+    # Cross-validate a "no axes needed" attestation against the stated-problem text:
+    # if the text carries a strong-axis freetext signal (consistency/availability/
+    # partition/latency/offline/merge), the attestation is a lie and must be refused
+    # (Judge O finding: unvalidated attestation was a clean escape for a paraphrased
+    # contradiction). This reuses the _FREETEXT_AXIS_SIGNALS table defined below.
+    stated_text = str(framing.get("user_stated_problem") or "").lower()
+    inferred_text = str(framing.get("inferred_real_problem") or "").lower()
+    attestation_text = stated_text + "\n" + inferred_text
+    _STRONG_AXIS_SIGNALS = {
+        "consistency": ("strong consistency", "强一致", "linearizable", "serializable", "strictly ordered", "线性一致"),
+        "availability": ("high availability", "高可用", "always-on", "极高可用", "永远在线", "continuously reachable"),
+        "partition_tolerance": ("partition", "分区", "断网", "network split", "disconnected"),
+        "latency": ("p99", "毫秒", "极低延迟", "real-time", "实时", "sub-10ms"),
+        "offline_window": ("offline", "离线", "unbounded offline"),
+        "merge_model": ("auto-merge", "自动合并", "automatic merge"),
+    }
+    attestation_contradicted = any(
+        any(sig in attestation_text for sig in signals)
+        for signals in _STRONG_AXIS_SIGNALS.values()
+    )
+    if axes_attested_none and attestation_contradicted:
+        errors.append(
+            "requirement_coherence_checked: no_contradiction_axes_needed=true is attested but "
+            "the stated/inferred problem carries a strong-axis signal (consistency/availability/"
+            "partition/latency/offline/merge). The attestation contradicts the requirement text — "
+            "declare the real requirement_axes instead of attesting none apply."
+        )
+        axes_attested_none = False  # treat as not-attested so the mandatory branch fires
+
     if has_problem_framing and has_stated_problem:
         if not declared and not axes_attested_none:
             # MANDATORY: either declare real axes, or explicitly attest none apply.
