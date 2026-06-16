@@ -505,40 +505,27 @@ def validate_requirement_coherence(root: Path, state: dict[str, Any], errors: li
     # --- Structured-path integrity checks (bypasses 1, 2, 4) ---
     valid_axis_strengths: set[tuple[str, str]] = set()
     has_requirements_text = bool(text.strip())
-    # The structured path is MANDATORY only when the requirement text shows signals that
-    # COULD be a contradiction (not for every trivial build). This avoids forcing axis
-    # declarations on a simple blog CRUD while still requiring them when a CAP-like
-    # requirement is present.
-    _all_contradiction_signals = set()
-    for signals in _REQUIREMENT_CONTRADICTION_FAMILIES.values():
-        _all_contradiction_signals.update(s.lower() for s in signals)
-    _all_axis_signals = set()
-    for signals in (
-        "strong consistency", "强一致", "linearizable", "serializable", "strictly ordered",
-        "high availability", "高可用", "always-on", "极高可用",
-        "partition", "分区", "断网", "network split",
-        "p99", "毫秒", "极低延迟", "real-time", "实时",
-        "offline", "离线", "auto-merge", "自动合并",
-        "enterprise", "企业级", "zero infra", "不许加依赖",
-    ):
-        _all_axis_signals.add(signals.lower())
-    has_contradiction_risk = any(sig in text for sig in _all_axis_signals)
+    # The structured declaration is MANDATORY for any Build/Iterate run with requirements
+    # text — NOT gated behind a paraphrase-evadable risk-signal check (Judge M+N finding:
+    # gating the mandatory path on a substring matcher reintroduces the evasion one level up).
+    # A trivial build declares requirement_axes: [] with no_contradiction_axes_needed: true
+    # to explicitly attest "I checked, no CAP-like axes apply" — an auditable self-attest
+    # the fallback still scans, rather than a silent skip.
+    framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+    axes_attested_none = framing.get("no_contradiction_axes_needed") is True
 
-    if has_requirements_text and has_contradiction_risk:
-        # The structured path is MANDATORY when contradiction-risk signals are present:
-        # if the agent declared NO axes but the text has CAP-like signals, require a
-        # declaration (bypass 4) so the check is paraphrase-proof, not substring-only.
-        if not declared:
+    if has_requirements_text:
+        if not declared and not axes_attested_none:
+            # MANDATORY: either declare real axes, or explicitly attest none apply.
             errors.append(
-                "requirement_coherence_checked: contradiction-risk requirement signals are "
-                "present in the requirement text but no requirement_axes are declared in "
-                ".bagel/expert/problem-framing.yaml. Tag each requirement with "
+                "requirement_coherence_checked: requirements exist but no requirement_axes "
+                "are declared in .bagel/expert/problem-framing.yaml. Tag each requirement with "
                 "{requirement_axis, strength} from the fixed enum (consistency/availability/"
                 "partition_tolerance/latency/offline_window/merge_model/cost/capability) so the "
-                "contradiction check is paraphrase-proof rather than relying on the evadable "
-                "substring fallback."
+                "contradiction check is paraphrase-proof. If genuinely no contradiction axes "
+                "apply, set no_contradiction_axes_needed: true (the substring fallback still scans)."
             )
-        else:
+        elif declared:
             # Bypass 2: single-axis starvation — need >=2 axes to detect any conflict
             parsed_axes: list[tuple[str, str, str]] = []  # (axis, strength, source_id)
             for d in declared:
