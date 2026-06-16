@@ -536,6 +536,8 @@ These anti-cheat validators are unconditional for any non-lite run. They prevent
 | `validate_dataset_integrity` | `.bagel/expert/dataset-integrity.yaml` | missing split hashes, no disjointness proof, test-set tuning, all-data preprocessing |
 | `validate_requirement_coherence` | `.bagel/ledger.yaml` → `human_decisions:` | mutually-exclusive requirements (CAP/latency-bandwidth/strong-vs-eventual/realtime-vs-offline/cost-vs-capability) built without a recorded human tradeoff decision |
 | `validate_premise_falsifiable` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity`/`falsifiability:` | unfalsifiable premise (consciousness/qualia/free-will + prove/exists claim) run without reframing to a concrete metric + falsifier |
+| `validate_gameable_metric_pairing` | `.bagel/state.yaml` → `evaluation.metrics` | a gameable retrieval headline (hit@1/precision@1/exact-match) used as the sole quality signal without a robustness/ranking pair (MRR/nDCG/MAP/recall@k/held-out) |
+| governance budget mode-aware ceiling | `.bagel/telemetry/cycles.yaml` → `budget.governance_token_share` | governance share exceeding the run-mode cap (quick ≤25%, full ≤40%) — per-cycle hard fail, not just a streak warning |
 
 ## Hard Gates
 

@@ -31,8 +31,8 @@
     {
       "id": "S4",
       "name": "research-gameable-metric",
-      "expected_gate": "evaluation_critic_passed + dataset_integrity_checked",
-      "verified_by": "gameable hit@1 metric paired-metric requirement via evaluation-critic; dataset-integrity validator catches missing split hashes / test-set tuning / leakage",
+      "expected_gate": "evaluation_critic_passed + gameable-metric pairing + dataset_integrity_checked",
+      "verified_by": "live attack: hit@1 as sole headline metric without MRR/nDCG pair caught by validate_gameable_metric_pairing; dataset-integrity validator catches missing split hashes / test-set tuning / leakage",
       "result": "PASS",
       "enforcement_tier": "mechanically_enforced"
     },
@@ -63,8 +63,8 @@
     {
       "id": "S8",
       "name": "governance-budget-overload",
-      "expected_gate": "governance_budget_respected + roi_controller_positive_or_switched + quick_autonomy default",
-      "verified_by": "design check: SKILL.md governance budget ceiling 25%/40%; bagel_telemetry_check.py enforces ratio; ROI controller no_bagel mode for trivial tasks; Anti-Pattern #2 forbids governance-as-deliverable",
+      "expected_gate": "governance_budget_respected (mode-aware 25%/40%) + roi_controller_positive_or_switched + quick_autonomy default",
+      "verified_by": "live attack: quick_autonomy mode with share=0.28 (>0.25 cap) fails per-cycle; full_genesis with share=0.35 (<=0.40) passes; unknown mode defaults to stricter 0.25 cap. bagel_telemetry_check.py now mode-aware.",
       "result": "PASS",
       "enforcement_tier": "mechanically_enforced"
     },

@@ -20,6 +20,28 @@ PASS_FAIL_FIELDS = {
 REQUIRED_CRITIC_FIELDS = PASS_FAIL_FIELDS | {"negative_examples", "baseline_comparison", "surface_overfit_risk"}
 SURFACE_RISK = {"low", "medium", "high"}
 
+# S4 gameable-metric pairing detector.
+# Retrieval/ranking-style metrics that are trivially gameable when used as the
+# SOLE headline (memorized index, inverted lookup, test-set overfit all maximize
+# these without improving real retrieval quality).
+GAMEABLE_HEADLINE_METRICS = (
+    "hit@1", "hit@k", "hit_at_1", "hit_at_k", "top1", "top_1_accuracy",
+    "precision@1", "precision_at_1", "accuracy@1", "recall@1", "recall_at_1",
+    "exact_match@1", "exact_match", "em@1",
+)
+# Metrics that measure robustness/ranking quality, not just top-1 correctness.
+# When at least one of these is present alongside a gameable headline, the spec
+# is considered paired (not sole-gameable).
+ROBUSTNESS_PAIR_METRICS = (
+    "mrr", "mean_reciprocal_rank", "ndcg", "ndcg@k", "ndcg_at_k",
+    "map", "mean_average_precision", "average_precision",
+    "recall@10", "recall@100", "recall_at_10", "recall_at_100",
+    "nDCG", "NDCG", "MRR",
+    "held_out", "held-out", "heldout", "generalization_gap", "generalization gap",
+    "out_of_distribution", "ood", "transfer_accuracy", "cross_domain",
+    "diversity", "coverage", "calibration", "ece",
+)
+
 
 def load_yaml(path: Path, default: Any) -> Any:
     if not path.exists():
@@ -47,6 +69,39 @@ def active_evaluation(root: Path) -> dict[str, Any]:
     if evaluation:
         return evaluation
     return as_dict(load_yaml(root / ".bagel/evaluation/current.yaml", {}))
+
+
+def validate_gameable_metric_pairing(metrics: list[dict[str, Any]], errors: list[str]) -> None:
+    """S4 scenario gate: a gameable headline metric cannot be the sole quality signal.
+
+    Retrieval-style top-1 metrics (hit@1/precision@1/exact-match) are trivially
+    gameable (memorized index, test-set overfit, inverted lookup). When the spec's
+    metrics list contains one of these WITHOUT a robustness/ranking pair metric
+    (MRR/nDCG/MAP/recall@k/held-out/generalization), the gate fails — the agent
+    could max the headline without improving real quality. This applies even when
+    the gameable metric is the only metric (the worst case).
+    """
+    if not metrics:
+        return
+    # Collect all metric names/ids/decision_uses as a lowercase blob to search
+    blob_parts: list[str] = []
+    for m in metrics:
+        d = as_dict(m)
+        for key in ("name", "id", "metric", "decision_use", "real_quality_link"):
+            blob_parts.append(str(d.get(key) or ""))
+    blob = " ".join(blob_parts).lower()
+    has_gameable_headline = any(g in blob for g in GAMEABLE_HEADLINE_METRICS)
+    if not has_gameable_headline:
+        return  # no gameable headline present — pairing rule does not apply
+    has_robustness_pair = any(p.lower() in blob for p in ROBUSTNESS_PAIR_METRICS)
+    if not has_robustness_pair:
+        errors.append(
+            "evaluation_critic: a gameable retrieval headline metric (hit@1/precision@1/"
+            "exact-match@1) is present without a paired robustness/ranking metric "
+            "(MRR/nDCG/MAP/recall@k/held-out/generalization). A gameable headline "
+            "cannot be the sole quality signal — pair it with a metric that resists "
+            "memorization/index overfit (see evaluation-critic surface_overfit_risk)."
+        )
 
 
 def validate_discrimination(root: Path, metric: dict[str, Any], idx: int, errors: list[str]) -> None:
@@ -110,6 +165,8 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     rubrics = as_list(evaluation.get("qualitative_rubric"))
     if not metrics and not rubrics:
         errors.append("evaluation spec must include metrics or qualitative_rubric")
+    # S4 gameable-metric pairing check (applies before per-metric discrimination)
+    validate_gameable_metric_pairing(metrics, errors)
     has_compensating_rubric = any(as_dict(item).get("compensates_surface_overfit") is True for item in rubrics)
     for i, metric in enumerate(metrics, start=1):
         m = as_dict(metric)

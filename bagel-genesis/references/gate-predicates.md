@@ -62,6 +62,7 @@ gates:
 | `problem_framing_locked` | `.bagel/expert/problem-framing.yaml` records stated problem, inferred real problem, considered reframings, chosen framing, and rejected framings before Build. |
 | `leverage_map_current` | `.bagel/expert/leverage-map.yaml` identifies bottlenecks and cites the top leverage action used for iteration target selection. |
 | `evaluation_critic_passed` | Active evaluation spec includes Evaluation Critic review and metric discrimination checks against bad/strong examples. |
+| `gameable_metric_paired` | When the evaluation spec contains a gameable retrieval headline metric (hit@1/precision@1/exact-match@1), it is paired with at least one robustness/ranking metric (MRR/nDCG/MAP/recall@k/held-out/generalization). A gameable headline cannot be the sole quality signal. |
 | `expert_decision_present` | High-impact choices have a Principal Expert `expert_decision` with selected direction, rejected alternatives, thesis, confidence, reversibility, evidence, uncertainty, kill criteria, and next action. |
 | `roi_controller_positive_or_switched` | Per-cycle value accounting shows user-relevant value; low/negative ROI streaks trigger strategy switch, scope shrink, breakthrough search, or budget stop. |
 | `supervisor_boundary_respected` | Supervisor action logs contain only alignment, heartbeat, respawn, hard-stop, resume, or user-proxy actions; no implementation/debug/test/browser work. |
@@ -108,6 +109,7 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `problem_framing_locked` | `expert_strategy_check.py` |
 | `leverage_map_current` | `expert_strategy_check.py` |
 | `evaluation_critic_passed` | `evaluation_quality_check.py` |
+| `gameable_metric_paired` | `evaluation_quality_check.py` |
 | `expert_decision_present` | `expert_strategy_check.py` |
 | `requirement_coherence_checked` | `expert_strategy_check.py` |
 | `premise_falsifiable` | `expert_strategy_check.py` |
