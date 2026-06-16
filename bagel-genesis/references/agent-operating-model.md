@@ -1,6 +1,6 @@
 # Agent Operating Model
 
-**This file binds the main model once the skill is loaded, not only subagents.** If you (the main model that just loaded BAGEL) start writing product features, tests, or implementation code yourself, that is the #1 failure smell. Your job is Orchestrator: read state, dispatch bounded subagents for all implementation/review, verify returned artifacts, persist `.bagel/` state. See `Responsibilities` in `agents/orchestrator.md`.
+**This file binds the main model once the skill is loaded, not only subagents.** On Claude Code/Codex with true subagents, the main model is Supervisor: user proxy, heartbeat, hard-stop arbiter, and Orchestrator respawner. It spawns a fresh Orchestrator subagent/session for normal BAGEL execution. If true subagents are unavailable, the main model may collapse into Orchestrator mode and must record that downgrade. In either mode, if the main model starts writing product features, tests, or implementation code itself, that is the #1 failure smell.
 
 Use this reference when designing or modifying BAGEL Genesis agent prompts.
 
@@ -9,6 +9,7 @@ Use this reference when designing or modifying BAGEL Genesis agent prompts.
 Do not combine these jobs in one context:
 
 - product governance
+- user-facing supervision and hard-stop arbitration
 - code implementation
 - runtime/tooling diagnosis
 - evaluation-system design
@@ -35,6 +36,10 @@ Mixed contexts cause rationalization: an agent that struggled to implement a fea
 ### Orchestrator
 
 Owns state transitions, dispatch envelopes, gate enforcement, checkpoints, coordination registry, merge queue, and freshness of agent-facing project context. It may inspect code only to decide dispatch scope, verify a gate, refresh project understanding, or integrate reviewed work. It does not implement product features.
+
+### Supervisor
+
+Owns user-facing alignment, user instruction normalization, heartbeat, Orchestrator spawn/respawn, and highest-level safety arbitration. It reads `.bagel/supervisor/*`, STATUS, constitution, and compact state summaries. It does not run the slice loop, implement, debug, review, or absorb worker details. On Claude Code/Codex it is the preferred role for the main session.
 
 ### Integration Manager
 
@@ -131,7 +136,27 @@ firewall:
     - reviewer/red-team/brainstormer deliberation transcripts - only their returned findings
     - enough implementation detail that it could re-implement the slice itself (if it could, it received too much)
     - iterative environment debugging loops (dispatch Runtime Doctor after the first failed setup/build/test attempt)
+  supervisor_denied:
+    - product code implementation
+    - runtime/debug loops
+    - worker transcripts
+    - Orchestrator implementation reasoning
+    - ordinary slice/task execution
+    - direct merge decisions except emergency safety arbitration
 ```
+
+## Supervisor-To-Orchestrator Flow
+
+For long-running Claude Code/Codex runs with true subagents:
+
+1. Main session loads BAGEL and becomes Supervisor.
+2. Supervisor captures/updates user-facing alignment.
+3. Supervisor writes `.bagel/supervisor/resume-capsule.md` and heartbeat.
+4. Supervisor spawns Orchestrator as a fresh subagent/session with only resume capsule, state pointers, and current next action.
+5. Orchestrator runs the internal BAGEL workflow and dispatches specialists.
+6. Supervisor wakes on heartbeat, checks liveness and hard-stops, and respawns Orchestrator if needed.
+
+The Supervisor is allowed to replace the Orchestrator. The Orchestrator is not allowed to replace or rewrite the Supervisor.
 
 ## Prompt Capsule Size
 

@@ -33,7 +33,8 @@
 |---|---|
 | 前期对齐太浅 | 三档深度对齐：snap / standard / deep，所有决策持久化 |
 | 中途等用户 | 强制绑定 loop/timer，间隔 <= 25 分钟 |
-| 主上下文污染 | 主模型是 Orchestrator；实现、运行时诊断、评价设计、审查、品味判断都派出去 |
+| 主上下文污染 | 主模型做 Supervisor；内部 Orchestrator 派发实现、运行时诊断、评价设计、审查、品味判断 |
+| main/orchestrator 上下文失败 | 主模型可作为 Supervisor，从 `.bagel/supervisor/resume-capsule.md` 重新派生干净 Orchestrator |
 | 自己审自己 | 审查独立性从 agent/session registry 推导，不靠自报 |
 | 品味弱、只会局部优化 | Product Visionary、Brainstormer、Judgment Council 参与方向级决策 |
 | 没有清晰质量标准 | Evaluation Architect 为每轮生成指标、rubric、完成规则和防刷指标说明 |
@@ -63,7 +64,7 @@ BAGEL 把工作拆成两层：
 
 `.bagel/` 不是交付物。它是为了让 agent 长时间运行时不丢失对齐、不污染上下文。
 
-主模型成为 **Orchestrator**，在有 subagent 能力时不亲自写产品代码。它派遣专门角色：
+在 Claude Code/Codex 支持 true subagents 时，主模型成为 **Supervisor**。它负责理解用户、保持心跳、仲裁硬停，并在需要时重新派生干净的内部 **Orchestrator**。Orchestrator 再派遣专门角色：
 
 - **Project Cartographer**：用真实文件和命令验证已有项目。
 - **Evaluation Architect**：为每轮迭代设计评价体系。
@@ -124,6 +125,7 @@ BAGEL 应该在对齐阶段持久化这些决策：
 - `evaluation`：指标、rubric、完成规则、防刷指标说明
 - `loop_binding`：真实 timer/scheduler 证据，间隔 <= 25 分钟
 - `git`：基线提交和回滚策略
+- `supervisor`：心跳、resume capsule、当前 Orchestrator session、重启策略
 
 ## 运行时校验
 
@@ -154,22 +156,22 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 19 个角色提示词
-├── references/      # 38 个按触发加载的协议
+├── agents/          # 20 个角色提示词
+├── references/      # 39 个按触发加载的协议
 ├── scripts/         # 5 个校验/辅助脚本
-└── evals/           # 61 条行为评测
+└── evals/           # 65 条行为评测
 ```
 
 ## 当前状态
 
-当前版本：**v1.5**。
+当前版本：**v1.6**。
 
 本地已验证：
 
 - skill 元数据校验通过；
 - BAGEL 自洽性 lint 通过；
 - evals JSON 合法且编号连续；
-- 针对本轮真实问题的运行时测试通过：控制面误判、缺评价体系、过早 complete、Orchestrator 上下文污染。
+- 针对真实问题的运行时测试通过：控制面误判、缺评价体系、过早 complete、Orchestrator 上下文污染、缺 Supervisor/resume 防线。
 
 ## 诚实边界
 

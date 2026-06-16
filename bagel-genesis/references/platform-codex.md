@@ -26,6 +26,8 @@ You **must attempt** each native loop mechanism in priority order before any fal
 
 | BAGEL Need | Codex Primitive |
 |---|---|
+| Supervisor heartbeat | App thread automation, standalone/project automation, cloud task, or `codex exec` under cron/launchd |
+| Inner Orchestrator | Fresh Codex subagent/custom agent/thread spawned by Supervisor |
 | Repeated wake/resume | App thread automation for same-thread heartbeat; standalone/project automation for independent scheduled runs |
 | Background repository work | App automation in local project or background worktree; Codex cloud task when cloud environment is available |
 | Scriptable loop runner | `codex exec`, optionally JSONL output, output schema, and `resume` |
@@ -38,7 +40,8 @@ You **must attempt** each native loop mechanism in priority order before any fal
 
 Map BAGEL roles to Codex agents:
 
-- Orchestrator: main thread or automation prompt. Owns `.bagel/` state and merge decisions.
+- Supervisor: main thread or automation prompt. Owns user proxying, heartbeat, hard-stop arbitration, and Orchestrator respawn.
+- Orchestrator: fresh subagent/custom agent/separate thread spawned by Supervisor when true subagents are available. Collapse into main only when true subagents are unavailable and record `supervisor.mode: collapsed_no_true_subagents`.
 - Project Cartographer: read-heavy explorer/custom agent.
 - Implementer: worker/custom agent with write scope and allowed paths.
 - Spec Reviewer, Code Quality Reviewer, Independent Reviewer, Red-Team Oracle: separate subagents that read artifacts/diffs/tests, not implementer chat.
@@ -46,12 +49,30 @@ Map BAGEL roles to Codex agents:
 
 For R3 review, the reviewer must be a true subagent or separate Codex run with a clean prompt and artifact inputs. Same-thread role switching remains R1/R2.
 
+## Nested Supervisor Pattern
+
+Codex runs should prefer:
+
+```text
+Main thread/automation: BAGEL Supervisor
+  -> BAGEL Orchestrator subagent/custom agent/thread
+      -> specialist subagents (Implementer, Reviewer, Runtime Doctor, Evaluation Architect)
+```
+
+The Supervisor heartbeat can be 30-60 minutes if the inner BAGEL loop is healthy. The inner BAGEL loop remains <=25 minutes. If subagent timers are unavailable, schedule only the Supervisor; it reads `.bagel/supervisor/heartbeat.yaml`, checks Orchestrator liveness, and respawns or nudges the inner Orchestrator when needed.
+
 ## Automation Prompt Contract
 
 The wake prompt must be a **pointer, not a script**. It must NOT contain run mechanisms (which cycle to run, which files to read, how to dispatch) - those live in SKILL.md and `.bagel/` state. Stuffing mechanism into the wake prompt causes repetition pollution every cycle, drift from SKILL.md, and token waste. The wake prompt's only job is: orient the agent and point it at its state.
 
 ```text
 You are resuming a BAGEL Genesis autonomous run. Read .bagel/STATUS.md and .bagel/state.yaml to see where the run is, then follow the BAGEL Genesis SKILL.md for the next bounded action. If state.yaml fails to parse (corrupted by a crash), read .bagel/snapshots/manifest.json, restore the latest valid snapshot, and continue from there.
+```
+
+For Supervisor heartbeats:
+
+```text
+You are the BAGEL Genesis Supervisor heartbeat. Read .bagel/supervisor/resume-capsule.md, .bagel/supervisor/heartbeat.yaml, .bagel/STATUS.md, and .bagel/state.yaml. If the Orchestrator is stale or state is corrupted, restore/respawn according to references/supervisor-resilience.md; otherwise do not absorb worker details.
 ```
 
 **Why this is enough:** STATUS.md carries the Morning Briefing (phase, last delta, next action, blockers); state.yaml carries the full machine state (task queue, gates, budget, loop_binding, telemetry). SKILL.md's Loading Matrix tells the agent which reference to read for the current decision. The agent progressively discloses only what the current phase needs.

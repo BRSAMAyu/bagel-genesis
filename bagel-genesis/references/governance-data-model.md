@@ -15,6 +15,7 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Judgment records | `.bagel/decisions/judgment-*.yaml` or `.bagel/ledger.yaml#judgments` | Taste and collective-decision verdicts |
 | Evaluation spec | `.bagel/state.yaml#evaluation` or `.bagel/evaluation/current.yaml` | Decision-useful metrics/rubrics for the active iteration |
 | Iteration records | `.bagel/state.yaml#iterations` or `.bagel/iterations/ITER-*.yaml` | Iteration target sets, completion evidence, carry-forward items |
+| Supervisor state | `.bagel/state.yaml#supervisor` and `.bagel/supervisor/*` | Outer heartbeat, user proxy, resume capsule, Orchestrator liveness |
 | Progress deltas | `.bagel/evidence/progress-deltas.yaml` | Objective cycle-by-cycle evidence |
 | Bar raises | `.bagel/evidence/bar-raises.yaml` | Raised standards and why they are valuable |
 | Innovation candidates | `.bagel/innovation/ledger.yaml` | Novel concepts, probes, and adopt/park/reject decisions |
@@ -40,6 +41,7 @@ In `full_genesis`, these domains may expand to specialized files:
 | Judgment records | `.bagel/decisions/judgment-*.yaml` | Judgment Council verdicts and merge results |
 | Evaluation specs | `.bagel/evaluation/*.yaml` | Metrics, rubrics, anti-gaming notes, and decision hooks |
 | Iteration records | `.bagel/iterations/ITER-*.yaml` | Iteration accounting and target-set history |
+| Supervisor state | `.bagel/supervisor/*` | Heartbeat, resume capsule, user-intake, respawn log |
 | Amendment history | `.bagel/ledger/amendment-history.yaml` | Court verdict counts and rationale classes |
 | Existing project truth | `.bagel/agent_context/*` | Evidence-backed worker context |
 | Change history | `.bagel/evolution/*` | Audit, rollback, rationale |
@@ -115,6 +117,17 @@ Innovation and lesson memory:
         └── <slug>.md
 ```
 
+Supervisor recovery:
+
+```text
+.bagel/supervisor/
+├── heartbeat.yaml
+├── resume-capsule.md
+├── orchestration-ledger.yaml
+├── user-intake.yaml
+└── respawn-log.yaml
+```
+
 `.bagel/STATUS.md` is the single entry point for humans after a long run. It summarizes phase, last verified progress, autonomy safety, current blockers, next action, and links to deeper files. In quick mode it is generated from `state.yaml`, `constitution.yaml`, `context.yaml`, `ledger.yaml`, and `evidence/progress-deltas.yaml`. In full mode it may also draw from `state.json`, `progress.json`, `gates/status.yaml`, `task_queue.json`, `human-decisions.yaml`, and `user_briefing/*`. If canonical files disagree, `STATUS.md` must say "state conflict" and link to the conflict report instead of choosing silently.
 
 ## Schema Registry
@@ -130,6 +143,9 @@ schemas:
   judgment_records: {path: ".bagel/decisions/judgment-*.yaml", format: yaml, required_for_taste_judgment_decisions: true, optional_in_quick: "store inside ledger.yaml#judgments"}
   evaluation_spec: {path: ".bagel/state.yaml#evaluation", format: yaml, required_before_build_or_iteration: true, optional_in_full: ".bagel/evaluation/current.yaml"}
   iteration_records: {path: ".bagel/state.yaml#iterations", format: yaml, required_for_autonomous_iteration_accounting: true, optional_in_full: ".bagel/iterations/ITER-*.yaml"}
+  supervisor_heartbeat: {path: ".bagel/supervisor/heartbeat.yaml", format: yaml, required_when_nested_supervisor: true, optional_in_quick: "store summary inside state.yaml#supervisor"}
+  supervisor_resume_capsule: {path: ".bagel/supervisor/resume-capsule.md", format: markdown, required_for_long_run_resume: true}
+  supervisor_respawn_log: {path: ".bagel/supervisor/respawn-log.yaml", format: yaml, required_after_orchestrator_respawn: true}
   progress_deltas: {path: ".bagel/evidence/progress-deltas.yaml", format: yaml, required_for_long_run: true}
   bar_raises: {path: ".bagel/evidence/bar-raises.yaml", format: yaml, required_for_excellence_loop: true}
   innovation_ledger: {path: ".bagel/innovation/ledger.yaml", format: yaml, required_when_innovation_contract_is_differentiated_or_breakthrough: true}

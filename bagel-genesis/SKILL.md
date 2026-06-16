@@ -45,7 +45,7 @@ If isolation itself would require a destructive or irreversible action (a true h
 
 Load only the prompt needed for the current stage and role.
 
-Do not paste this whole skill, all references, or all history into workers. The orchestrator (the main model once this skill is loaded) reads the minimum stage capsule, dispatches a bounded subagent with a small input envelope for all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and review work, verifies the returned artifact, then saves durable state under `.bagel/`. The main model must not write product code itself while subagents are available.
+Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn. It immediately spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. The Orchestrator reads the minimum stage capsule, dispatches bounded subagents for all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and review work, verifies returned artifacts, then saves durable state under `.bagel/`. Neither Supervisor nor Orchestrator writes product code while subagents are available.
 
 `.bagel/` artifacts are the control plane, not the user's deliverable. Never put "create BAGEL alignment files", "fill constitution", "update STATUS", "run BAGEL checks", or other governance work into the user-facing product task queue or completion horizon. Governance work may appear only in state/ledger/dispatch records as control-plane tasks. The deliverable is the app, experiment, research result, document, site, or artifact the user asked for.
 
@@ -57,6 +57,8 @@ Before any long run or file modification, choose the lightest control plane that
 
 Run capability detection first. Prefer `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
 
+**Supervisor layer comes first on Claude Code/Codex.** If true subagents are available, load `references/supervisor-resilience.md`, bind a low-frequency Supervisor heartbeat, write `.bagel/supervisor/resume-capsule.md`, then spawn the inner Orchestrator from clean context. The Supervisor remains the user-facing proxy and last-resort recovery layer. If true subagents are unavailable, record `supervisor.mode: collapsed_no_true_subagents` and continue with the older main-as-Orchestrator model.
+
 **Loop binding is immediate after capability detection.** The moment runtime capabilities are detected (and the user has expressed intent for autonomous work), bind the platform-native loop (`<= 25` min interval) *before* entering the Align phase. Alignment, project exploration, and baseline capture all happen *inside* the running loop, not before it. This ensures the run never enters a long Align/Explore phase with no wake mechanism - if the session is interrupted mid-alignment, the loop brings it back. Do not defer loop binding to "when Build starts"; by then the run may have spent an hour unprotected. See `references/loop-runtime.md` Start Gate.
 
 Before any file modification in an autonomous run, guarantee the working folder is a git repository (`git rev-parse --is-inside-work-tree`). If it is not, initialize one (see `references/git-governance.md` Step 0) or refuse to start autonomous write work. Version control is the precondition for rollback and branch isolation; without it every overnight change is irreversible. The `project_under_version_control` hard gate enforces this.
@@ -67,10 +69,11 @@ Autonomy is the default reason this skill exists. On Claude Code or Codex, first
 
 ## Roles
 
-After loading this skill, the main model **adopts the Orchestrator role**. All product code, tests, skeleton, and independent review **must be dispatched to subagents** (Claude Code Task tool / custom subagent, Codex subagent / custom agent). Doing implementation directly while subagents are available is the #1 failure smell (see `references/agent-operating-model.md`). Only if the platform truly has no subagent capability may you fall back to sequential single-agent mode - and then independent review must be downgraded and recorded as non-independent (R1 max), never presented as R3.
+After loading this skill, the main model **adopts the Supervisor role** when true subagents are available, then spawns a BAGEL Orchestrator subagent/session. All product code, tests, skeleton, runtime diagnosis, evaluation design, and independent review **must be dispatched below the Orchestrator** (Claude Code Task tool / custom subagent, Codex subagent / custom agent). Doing implementation directly while subagents are available is the #1 failure smell (see `references/agent-operating-model.md`). Only if the platform truly has no subagent capability may the main model collapse into the Orchestrator role - and then independent review must be downgraded and recorded as non-independent (R1 max), never presented as R3.
 
 | Role | Reads | Writes | Must Not Do |
 |---|---|---|---|
+| Supervisor | user messages, `.bagel/supervisor/*`, constitution/state/status summaries | user-intake, heartbeat, resume capsule, respawn log | implement, debug, review, or run normal slice loop |
 | Orchestrator | `.bagel/state.yaml` (quick) or `state.json` (full); `.bagel/constitution.yaml` (quick) or `constitution.json` (full); current stage capsule | state, ledgers, dispatch envelopes | write product code |
 | Artifact Drafter | vision notes, current stage schema | `.bagel` governance artifacts | write product code |
 | Project Cartographer | repository/artifact evidence, current behavior, docs | agent-facing project understanding | change product behavior |
@@ -97,6 +100,7 @@ A worker should not browse the `references/` directory freely. The orchestrator 
 
 | Role | May read from references/ | Ceiling |
 |---|---|---|
+| Supervisor | supervisor-resilience, alignment-protocol, platform adapter | 2-3 |
 | Orchestrator | any triggered by the Loading Matrix | unrestricted, but one decision loads one row |
 | Project Cartographer | project-understanding, artifact-types | 2 |
 | Evaluation Architect | evaluation-framework, artifact-types | 2 |
@@ -124,6 +128,7 @@ Default quick control state under `.bagel/`:
 ├── context.yaml        # current project facts, conventions, module map, feature inventory
 ├── ledger.yaml         # decisions, recovery, evolution, rejected improvements, user decisions
 ├── STATUS.md           # human-readable live progress
+├── supervisor/         # heartbeat, resume capsule, user proxy, respawn log
 ├── evidence/
 │   └── progress-deltas.yaml
 ├── innovation/
@@ -140,6 +145,7 @@ Expand to detailed state only when it pays for itself. Full mode may create:
 ├── coherence_rules.yaml
 ├── state.json
 ├── STATUS.md
+├── supervisor/
 ├── run_mode.yaml
 ├── runtime_capabilities.yaml
 ├── artifact_profile.yaml
@@ -194,6 +200,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | File | Read strictly when... | Do not load when... | quick? |
 |---|---|---|---|
 | `references/alignment-protocol.md` | entering Align phase; conducting any user alignment conversation | already aligned and constitution locked | always |
+| `references/supervisor-resilience.md` | Claude Code/Codex true subagents are available; handling compaction/resume/new conversation; spawning or respawning Orchestrator; translating user instructions into BAGEL state | single-session work with no long-run autonomy or no true subagent support | always |
 | `references/platform-claude-code.md` / `references/platform-codex.md` | detected platform is CC/Codex and you must bind dispatch, subagents, hooks, loop, resume, or visual checks to native capabilities | platform is other, or run is single-session with no native loop needed | always |
 | `references/runtime-capabilities.md` | before first autonomous cycle; before promising timers/resume/subagents | capabilities already detected and recorded in state | always |
 | `references/artifact-types.md` | choosing gates or QA for a new artifact type (software / research / writing / data) | artifact type already profiled and recorded | always |

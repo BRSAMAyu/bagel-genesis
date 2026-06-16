@@ -6,6 +6,8 @@ Use this reference when BAGEL Genesis must run for many cycles, across context c
 
 The transcript is disposable. `.bagel/` is durable.
 
+For Claude Code/Codex long runs with true subagents, the Supervisor context is also disposable. The fastest safe re-entry point is `.bagel/supervisor/resume-capsule.md`, then STATUS/state/constitution. Do not depend on the old main conversation or the old Orchestrator context surviving compaction.
+
 Persist only structured state needed for future decisions:
 
 - product constraints and constitution
@@ -33,6 +35,7 @@ Do not persist long narrative reasoning, raw worker transcripts, or unrelated co
 |---|---|---|---|
 | Constitutional | whole project | north star, forbidden directions, autonomy boundaries | `.bagel/constitution.yaml` or `.bagel/constitution.json` |
 | Strategic | phase or milestone | value slice order, architecture direction, release risks | `.bagel/state.yaml` (quick) or `.bagel/state.json` + `.bagel/progress.json` (full), decisions |
+| Supervisor | whole run | heartbeat, user proxy, resume capsule, Orchestrator liveness | `.bagel/supervisor/` |
 | Quality Mode | active run | speed/stability profile, review depth, parallelism limits | `.bagel/run_mode.yaml` |
 | Project Reality | until changed | current modules, features, conventions, run commands | `.bagel/agent_context/` |
 | Evolution | whole project | changes, rollback points, audit trail | `.bagel/evolution/` |
@@ -226,13 +229,15 @@ Write snapshots after major checkpoints and before compaction. Keep the latest u
 
 On resume:
 
-1. Read `.bagel/snapshots/manifest.json` if present.
-2. Load the latest snapshot and verify checksums when available.
-3. Compare snapshot state with live `.bagel/state.yaml` or `.bagel/state.json`.
-4. If live state is newer and valid, use live state.
-5. If live state is missing or corrupted, restore from the latest valid snapshot.
-6. Re-read constitution and completion horizon.
-7. Execute only the saved `next-action.md` or deliberately replace it with a new checkpointed action.
+1. If `.bagel/supervisor/resume-capsule.md` exists, read it first.
+2. Read `.bagel/STATUS.md`, `.bagel/state.yaml` or `.bagel/state.json`, and constitution.
+3. Read `.bagel/snapshots/manifest.json` if present.
+4. Load the latest snapshot and verify checksums when available.
+5. Compare snapshot state with live `.bagel/state.yaml` or `.bagel/state.json`.
+6. If live state is newer and valid, use live state.
+7. If live state is missing or corrupted, restore from the latest valid snapshot.
+8. If running under Supervisor mode and Orchestrator liveness is stale, respawn Orchestrator from the resume capsule.
+9. Execute only the saved `next-action.md` or deliberately replace it with a new checkpointed action.
 
 If snapshot and live state disagree in ways that affect scope, contracts, or completed slices, stop and write `.bagel/ledger/resume-conflict.md` instead of guessing.
 
@@ -257,6 +262,20 @@ Before compaction:
 7. Record test commands and results, not full logs unless needed.
 8. Drop implementation discussion that is already reflected in code, tests, agent-facing context, user briefing, evolution ledger, or handoff.
 9. Reopen with constitution, state, global capsule, current task envelope, relevant project context, coordination state, and relevant files only.
+10. If Supervisor mode is active, refresh `.bagel/supervisor/resume-capsule.md` before compaction and record the current Orchestrator session id/heartbeat.
+
+## Supervisor Resume Capsule
+
+The resume capsule is mandatory for nested Supervisor runs and recommended for all long runs. It is the compact, role-aware handoff that a new Orchestrator or new conversation can read without loading history.
+
+Required properties:
+
+- under 200 lines,
+- points to exact files to read next,
+- states the single next bounded action,
+- includes hard-stops and user decisions pending,
+- includes current iteration, target set, loop binding, git ref, and Orchestrator session id,
+- excludes chain-of-thought, raw transcripts, and implementation reasoning.
 
 ## Loop and Timer Behavior
 

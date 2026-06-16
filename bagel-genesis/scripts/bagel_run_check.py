@@ -20,6 +20,7 @@ import yaml
 
 VALID_LOOP_MODES = {"scheduled_resume", "external_harness", "active_session_loop", "degraded_resume"}
 VALID_STOP = {"progressing", "recovering", "excellence_loop", "waiting_for_capacity", "blocked_hard_stop", "complete"}
+SUPERVISOR_MODES = {"nested_supervisor", "collapsed_no_true_subagents"}
 IMPLEMENTER_ROLES = {"Implementer", "Skeleton Builder"}
 REVIEWER_ROLES = {"Spec Reviewer", "Code Quality Reviewer", "Independent Reviewer", "Red-Team Oracle"}
 EXPLORER_LENSES = {"structure", "behavior", "convention", "surface"}
@@ -194,6 +195,53 @@ def validate_loop(state: dict[str, Any], errors: list[str], warnings: list[str])
         fail(errors, "loop_binding.created_at is after alignment.started_at; v1.2 requires loop binding before Align/Explore")
     elif alignment_started_at and not loop_created_at:
         warn(warnings, "alignment has started but loop_binding.created_at is missing; cannot prove loop was bound before Align")
+
+
+def validate_supervisor(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    """Validate v1.6 outer Supervisor layer for long Claude/Codex runs."""
+    runtime = as_dict(state.get("runtime_capabilities"))
+    platform = str(runtime.get("platform") or as_dict(state.get("runtime")).get("platform") or "").lower()
+    true_subagents = runtime.get("supports_true_subagents")
+    should_have_supervisor = platform in {"claude_code", "codex"} and true_subagents is True
+
+    supervisor = as_dict(state.get("supervisor"))
+    heartbeat_path = root / ".bagel" / "supervisor" / "heartbeat.yaml"
+    heartbeat = as_dict(load_yaml(heartbeat_path, {}))
+    merged = {**heartbeat, **supervisor}
+
+    if not should_have_supervisor and not merged:
+        return
+
+    mode = merged.get("mode")
+    if mode not in SUPERVISOR_MODES:
+        fail(errors, f"supervisor.mode must be one of {sorted(SUPERVISOR_MODES)}, got {mode!r}")
+    if should_have_supervisor and mode != "nested_supervisor":
+        fail(errors, "Claude/Codex true-subagent runs must use supervisor.mode=nested_supervisor")
+
+    if mode == "nested_supervisor":
+        if not heartbeat_path.exists():
+            fail(errors, "nested_supervisor requires .bagel/supervisor/heartbeat.yaml")
+        resume_path = root / ".bagel" / "supervisor" / "resume-capsule.md"
+        if not resume_path.exists():
+            fail(errors, "nested_supervisor requires .bagel/supervisor/resume-capsule.md")
+        elif resume_path.stat().st_size == 0:
+            fail(errors, "supervisor resume-capsule.md is empty")
+        interval = merged.get("heartbeat_interval_minutes")
+        if not isinstance(interval, int) or interval < 30:
+            fail(errors, "supervisor.heartbeat_interval_minutes must be >=30 minutes")
+        elif interval > 120:
+            warn(warnings, "supervisor heartbeat interval exceeds 120 minutes; recovery may be slow")
+        if not as_list(merged.get("proof")):
+            fail(errors, "nested_supervisor requires heartbeat proof")
+        current = as_dict(merged.get("current_orchestrator"))
+        if not current.get("agent_id") or not current.get("session_id"):
+            fail(errors, "nested_supervisor requires current_orchestrator.agent_id and session_id")
+        if current.get("status") not in {"active", "stale", "failed", "replaced"}:
+            fail(errors, "current_orchestrator.status must be active|stale|failed|replaced")
+        if current.get("status") in {"failed", "replaced"} and not (root / ".bagel" / "supervisor" / "respawn-log.yaml").exists():
+            fail(errors, "failed/replaced Orchestrator requires .bagel/supervisor/respawn-log.yaml")
+    elif mode == "collapsed_no_true_subagents" and should_have_supervisor:
+        fail(errors, "collapsed_no_true_subagents is invalid when true subagents are available")
 
 
 def validate_alignment_floor(state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
@@ -509,6 +557,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     warnings: list[str] = []
     validate_git(root, state, errors)
     validate_loop(state, errors, warnings)
+    validate_supervisor(root, state, errors, warnings)
     validate_alignment_floor(state, errors, warnings)
     validate_stop_contract(root, state, errors, warnings)
     validate_dispatch(root, state, errors, warnings)

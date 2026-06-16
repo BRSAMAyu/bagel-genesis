@@ -47,6 +47,8 @@ gates:
 | `active_evaluation_spec_present` | Before Build or any iteration work, an active evaluation spec exists with metrics and/or qualitative rubric, completion_rule, decision_use, and anti_gaming_note for numeric metrics. Prevents agents from building without knowing how quality will be judged. |
 | `task_queue_excludes_control_plane` | User-facing task_queue contains deliverable work only; `.bagel/` setup, constitution, STATUS, lint, and governance work live in control-plane ledgers/dispatch records and do not count as product progress. |
 | `iteration_count_not_bypassed` | `run_status=complete` is valid only when `iterations_completed >= max_iterations` plus final delivery gates pass. Completing the initially listed goals counts as one iteration, not final completion. |
+| `supervisor_layer_bound` | On Claude Code/Codex with true subagents, the main session runs as Supervisor, `.bagel/supervisor/heartbeat.yaml` and `resume-capsule.md` exist, and a current Orchestrator agent/session is recorded. |
+| `resume_capsule_current` | A long run has `.bagel/supervisor/resume-capsule.md` pointing to STATUS, state, constitution, current context capsule, and exactly one next action. It excludes raw transcripts and reasoning. |
 | `project_under_version_control` | Before the first file modification of an autonomous run, `git rev-parse --is-inside-work-tree` succeeds in the working folder, OR the user explicitly approved `git init` and a baseline commit exists. Without version control, rollback and branch isolation are impossible, so autonomous write work must not start. See `references/git-governance.md` Step 0. |
 
 ## Enforcement Model (honest)
@@ -69,6 +71,8 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `active_evaluation_spec_present` | `bagel_run_check.py` |
 | `task_queue_excludes_control_plane` | `bagel_run_check.py` |
 | `iteration_count_not_bypassed` | `bagel_run_check.py` |
+| `supervisor_layer_bound` | `bagel_run_check.py` |
+| `resume_capsule_current` | `bagel_run_check.py` |
 
 **Agent-attested** (the agent records pass/fail based on evidence files, but no script independently re-verifies — these depend on the agent honestly inspecting the cited evidence):
 

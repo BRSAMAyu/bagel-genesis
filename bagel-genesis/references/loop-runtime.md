@@ -17,6 +17,8 @@ Loop Runtime
 └── Reporter
 ```
 
+In nested Supervisor mode, the Supervisor owns the outer trigger/heartbeat and Orchestrator liveness. The inner Orchestrator owns the normal BAGEL loop. The Supervisor heartbeat may be 30-60 minutes; the inner work loop remains <=25 minutes.
+
 When the platform provides native loop, scheduler, subagent, hook, cloud, or non-interactive primitives, use them directly. When it cannot implement a component directly, emulate that component with `.bagel/` artifacts and resumable next actions.
 
 Before configuring the loop, read `references/runtime-capabilities.md`. The loop may only use capabilities recorded in `.bagel/runtime_capabilities.yaml`.
@@ -58,6 +60,21 @@ loop_binding:
     - mechanism: "/loop"
       result: bound | unavailable | forbidden
       note: ""
+```
+
+Nested Supervisor mode also records:
+
+```yaml
+supervisor:
+  mode: nested_supervisor | collapsed_no_true_subagents
+  heartbeat_interval_minutes: 30
+  proof:
+    - "scheduled task id, /loop proof, automation id, cron entry, or active session note"
+  current_orchestrator:
+    agent_id: ""
+    session_id: ""
+    status: active | stale | failed | replaced
+  resume_capsule: ".bagel/supervisor/resume-capsule.md"
 ```
 
 ### Loop Persistence Rule

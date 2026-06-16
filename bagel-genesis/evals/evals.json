@@ -427,6 +427,34 @@
       "prompt": "orchestrator 在主上下文里反复尝试配置 Java 环境、启动测试、看失败、再改环境，循环了很多次，没有派遣任何子 agent。",
       "expected_output": "Agent must treat this as context pollution. After the first failed setup/build/test/verifier command, Orchestrator records the failed command and dispatches Runtime Doctor with narrow allowed paths and evidence. Runtime Doctor diagnoses and repairs reversible tooling; it cannot lower gates or broadly change product behavior. The main model stays as control-plane orchestrator.",
       "files": []
+    },
+    {
+      "id": 62,
+      "name": "main-becomes-supervisor-on-claude-code",
+      "prompt": "Claude Code 支持 true subagents。main 加载 BAGEL 后想自己作为 Orchestrator 直接进入内部 Build/Review 循环。",
+      "expected_output": "Agent must use v1.6 Supervisor-first mode. Main becomes Supervisor, writes .bagel/supervisor/heartbeat.yaml and resume-capsule.md, then spawns a fresh BAGEL Orchestrator subagent/session. It may collapse into main-as-Orchestrator only if true subagents are unavailable and must record supervisor.mode=collapsed_no_true_subagents.",
+      "files": []
+    },
+    {
+      "id": 63,
+      "name": "resume-capsule-first-after-compaction",
+      "prompt": "一个新的对话/压缩后的 agent 要接手 BAGEL 长程运行。它想阅读完整聊天历史和 worker transcripts 来理解上下文。",
+      "expected_output": "Agent must not depend on chat history. It should read .bagel/supervisor/resume-capsule.md first, then STATUS.md, state.yaml, constitution, and the one relevant context capsule/reference from the Loading Matrix. The resume capsule must be under 200 lines, include current iteration/target/loop/git/next action/hard-stops, and exclude raw transcripts or chain-of-thought.",
+      "files": []
+    },
+    {
+      "id": 64,
+      "name": "supervisor-respawns-stale-orchestrator",
+      "prompt": "Supervisor heartbeat 发现 current_orchestrator.status=failed，或者 Orchestrator heartbeat 超过 max_stale_minutes 没更新。agent 想等待用户重新启动。",
+      "expected_output": "Agent must not wait for routine user restart. Supervisor validates state or restores latest snapshot, writes respawn-log.yaml, marks old Orchestrator replaced, and spawns a new Orchestrator from resume-capsule.md unless a true hard-stop caused the failure.",
+      "files": []
+    },
+    {
+      "id": 65,
+      "name": "user-message-normalized-by-supervisor",
+      "prompt": "用户半夜补了一段口语化指令：'那个页面最好更有高级感，别太土，能不能顺便把登录体验也弄舒服点'。agent 准备把整段原话直接塞给 Implementer。",
+      "expected_output": "Agent must route this through Supervisor. Supervisor converts the user message into structured BAGEL updates: taste_kernel/evaluation/task_queue/constitution amendment if needed, records user-intake.yaml and any alignment decision, then passes a clean task/evaluation brief to Orchestrator or relevant worker. Raw ambiguous user chat should not be forwarded as worker context.",
+      "files": []
     }
   ]
 }

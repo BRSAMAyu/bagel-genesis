@@ -26,6 +26,8 @@ You **must attempt** each native loop mechanism in priority order before any fal
 
 | BAGEL Need | Claude Code Primitive |
 |---|---|
+| Supervisor heartbeat | Main session `/loop`, scheduled task, cloud Routine, desktop scheduled task, or external `claude -p` heartbeat |
+| Inner Orchestrator | Fresh subagent/background agent/session spawned by Supervisor |
 | Repeated wake/resume | Scheduled tasks, `/loop`, cloud Routines, desktop scheduled tasks, or external cron/CI invoking Claude |
 | Main orchestrator loop | Main conversation, `/goal`, `/loop`, scheduled prompt, or programmatic/SDK session |
 | Worker/reviewer isolation | Built-in/custom subagents, background agents, agent teams, or separate sessions |
@@ -38,7 +40,8 @@ You **must attempt** each native loop mechanism in priority order before any fal
 
 Map BAGEL roles to Claude Code agents:
 
-- Orchestrator: main session, scheduled task prompt, `/goal`, or programmatic driver.
+- Supervisor: main session, scheduled task prompt, `/loop`, cloud Routine, desktop scheduled task, or programmatic driver. It owns user proxying, heartbeat, hard-stop arbitration, and Orchestrator respawn.
+- Orchestrator: fresh subagent/background agent/separate session spawned by Supervisor when true subagents are available. Only collapse Orchestrator into main when true subagents are unavailable and record `supervisor.mode: collapsed_no_true_subagents`.
 - Artifact Drafter and Project Cartographer: read/write `.bagel/` governance agents with narrow scopes.
 - Implementer: custom subagent with allowed tools and write paths; use worktree isolation for risky or parallel work.
 - Spec Reviewer, Code Quality Reviewer, Independent Reviewer, Red-Team Oracle: separate subagents with clean context and artifact-only inputs.
@@ -46,12 +49,31 @@ Map BAGEL roles to Claude Code agents:
 
 For R3 review, use a true subagent, background agent, agent team member, or separate session that did not implement the change. Same conversation role switching is not R3.
 
+## Nested Supervisor Pattern
+
+Claude Code runs should prefer four layers when available:
+
+```text
+Main session: BAGEL Supervisor
+  -> BAGEL Orchestrator subagent/background agent
+      -> specialist subagents (Implementer, Reviewer, Runtime Doctor, Evaluation Architect)
+          -> optional nested diagnostics/review helpers when useful
+```
+
+The Supervisor heartbeat can be looser than the inner work loop (30-60 minutes is acceptable) because it is a guardian, not the work engine. The inner BAGEL loop still uses <=25 minute wake intervals. If Claude Code cannot set timers for subagents directly, schedule only the Supervisor; on wake it checks `.bagel/supervisor/heartbeat.yaml` and respawns/nudges the inner Orchestrator when needed.
+
 ## Scheduled Prompt Contract
 
 The wake prompt must be a **pointer, not a script**. It must NOT contain run mechanisms (which cycle to run, which files to read, how to dispatch) - those belong in SKILL.md and `.bagel/` state, which the agent loads via progressive disclosure after waking. Stuffing mechanism into the wake prompt causes (a) repetition pollution every cycle, (b) drift from SKILL.md as the skill evolves, (c) token waste. The wake prompt's only job is: orient the agent and point it at its state.
 
 ```text
 You are resuming a BAGEL Genesis autonomous run. Read .bagel/STATUS.md and .bagel/state.yaml to see where the run is, then follow the BAGEL Genesis SKILL.md for the next bounded action. If state.yaml fails to parse (corrupted by a crash), read .bagel/snapshots/manifest.json, restore the latest valid snapshot, and continue from there.
+```
+
+For Supervisor heartbeats, use this pointer:
+
+```text
+You are the BAGEL Genesis Supervisor heartbeat. Read .bagel/supervisor/resume-capsule.md, .bagel/supervisor/heartbeat.yaml, .bagel/STATUS.md, and .bagel/state.yaml. If the Orchestrator is stale or state is corrupted, restore/respawn according to references/supervisor-resilience.md; otherwise do not absorb worker details.
 ```
 
 **Why this is enough:** STATUS.md contains the Morning Briefing (current phase, last delta, next action, blocking issues) and state.yaml contains the full machine state (task queue, gates, budget, loop_binding, telemetry). SKILL.md's Loading Matrix tells the agent exactly which reference to read for the decision at hand. The agent progressively discloses only what the current phase needs - it does not load all 31 references or the full skill on every wake.

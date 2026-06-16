@@ -33,7 +33,8 @@ The run stops only when the user-set iteration/budget boundary is reached, the u
 |---|---|
 | Shallow upfront planning | Depth-floored alignment: snap / standard / deep, with persisted decisions |
 | "Come back later" idle stops | Mandatory loop/timer binding, interval <= 25 minutes |
-| Context pollution | Main model is Orchestrator; implementation, runtime debugging, evaluation, review, and taste judgment are dispatched |
+| Context pollution | Main model supervises; internal Orchestrator dispatches implementation, runtime debugging, evaluation, review, and taste judgment |
+| Main/orchestrator context failure | Main model can run as Supervisor, respawning a fresh Orchestrator from `.bagel/supervisor/resume-capsule.md` |
 | Agent self-approval | Review independence is derived from agent/session registry, not self-claimed |
 | Weak taste and local optimization | Product Visionary, Brainstormers, and Judgment Council for direction-level decisions |
 | No clear quality bar | Evaluation Architect generates task-specific metrics, rubrics, completion rules, and anti-gaming notes |
@@ -63,7 +64,7 @@ BAGEL separates the work into a control plane and a deliverable plane.
 
 `.bagel/` is not the deliverable. It exists so the agent can run for a long time without losing alignment or corrupting context.
 
-The main model becomes the **Orchestrator**. It does not write product code when subagents are available. It dispatches specialized agents:
+On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**. It translates user intent, keeps a heartbeat, arbitrates hard-stops, and respawns a fresh internal **Orchestrator** when needed. The Orchestrator dispatches specialized agents:
 
 - **Project Cartographer:** verifies the existing project from real files and commands.
 - **Evaluation Architect:** creates the evaluation system for each iteration.
@@ -124,6 +125,7 @@ At alignment, the agent should persist these choices:
 - `evaluation`: metrics, rubrics, completion rule, anti-gaming notes
 - `loop_binding`: actual timer/scheduler proof, interval <= 25 minutes
 - `git`: baseline commit and rollback strategy
+- `supervisor`: heartbeat, resume capsule, current Orchestrator session, respawn policy
 
 ## Runtime Checks
 
@@ -154,22 +156,22 @@ What they catch:
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 19 role prompts
-├── references/      # 38 trigger-loaded protocols
+├── agents/          # 20 role prompts
+├── references/      # 39 trigger-loaded protocols
 ├── scripts/         # 5 validators/helpers
-└── evals/           # 61 behavior evals
+└── evals/           # 65 behavior evals
 ```
 
 ## Status
 
-Current version: **v1.5**.
+Current version: **v1.6**.
 
 Validated locally:
 
 - skill metadata validation passes;
 - BAGEL consistency lint passes;
 - evals JSON is valid and sequential;
-- targeted runtime checks catch the latest real-world failures around control-plane confusion, missing evaluation specs, premature completion, and Orchestrator context pollution.
+- targeted runtime checks catch real-world failures around control-plane confusion, missing evaluation specs, premature completion, Orchestrator context pollution, and missing Supervisor/resume protection.
 
 ## Honest Boundaries
 

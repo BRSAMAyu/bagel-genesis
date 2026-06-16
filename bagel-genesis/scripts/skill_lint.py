@@ -99,6 +99,7 @@ def main() -> int:
     failures.extend(check_v13_innovation_memory(root))
     failures.extend(check_v14_judgment_council(root))
     failures.extend(check_v15_evaluation_iteration_orchestration(root))
+    failures.extend(check_v16_supervisor_resilience(root))
     failures.extend(check_loading_matrix_files_exist(root))
 
     if failures:
@@ -154,9 +155,9 @@ def check_v11_requirements(root: Path) -> list[str]:
     if "project_under_version_control" not in gate:
         out.append("gate-predicates.md: v1.1 requires project_under_version_control predicate definition.")
 
-    # 4. Mandatory dispatch: main model adopts Orchestrator role + agent-operating-model is always
-    if "adopts the Orchestrator role" not in skill:
-        out.append("SKILL.md: v1.1 requires 'adopts the Orchestrator role' mandate.")
+    # 4. Mandatory dispatch: v1.6 uses Supervisor-first; older collapse mode uses Orchestrator.
+    if "adopts the Supervisor role" not in skill and "adopts the Orchestrator role" not in skill:
+        out.append("SKILL.md: requires main model to adopt Supervisor or Orchestrator role mandate.")
     # Loading Matrix row for agent-operating-model must be 'always'
     m = re.search(r"\| `references/agent-operating-model\.md` \|.*\| (\w+) \|", skill)
     if m and m.group(1) != "always":
@@ -447,6 +448,57 @@ def check_v15_evaluation_iteration_orchestration(root: Path) -> list[str]:
     ):
         if phrase not in run_check:
             out.append(f"bagel_run_check.py missing v1.5 runtime audit: {phrase}.")
+
+    return out
+
+
+def check_v16_supervisor_resilience(root: Path) -> list[str]:
+    """v1.6 checks for Supervisor layer, Claude Code nesting, and resumability."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    supervisor = read("agents/supervisor.md")
+    sup_ref = read("references/supervisor-resilience.md")
+    cc = read("references/platform-claude-code.md")
+    runtime = read("references/runtime-protocol.md")
+    loop = read("references/loop-runtime.md")
+    governance = read("references/governance-data-model.md")
+    aom = read("references/agent-operating-model.md")
+    run_check = read("scripts/bagel_run_check.py")
+
+    for rel in ("agents/supervisor.md", "references/supervisor-resilience.md"):
+        if not (root / rel).exists():
+            out.append(f"{rel}: v1.6 requires this Supervisor resilience file.")
+    for phrase in ("Supervisor", "supervisor-resilience.md", "resume-capsule.md", "collapsed_no_true_subagents"):
+        if phrase not in skill:
+            out.append(f"SKILL.md missing v1.6 Supervisor wiring: {phrase}.")
+    for phrase in ("Orchestrator respawn", "resume-capsule.md", "heartbeat.yaml", "user-facing alignment"):
+        if phrase not in supervisor:
+            out.append(f"agents/supervisor.md missing v1.6 role term: {phrase}.")
+    for phrase in ("nested_supervisor", "Respawn Procedure", "User Proxy Rule", "Claude Code Nested Agent Guidance"):
+        if phrase not in sup_ref:
+            out.append(f"supervisor-resilience.md missing required section/term: {phrase}.")
+    for phrase in ("Nested Supervisor Pattern", "Supervisor heartbeat", "BAGEL Orchestrator subagent"):
+        if phrase not in cc:
+            out.append(f"platform-claude-code.md missing nested Supervisor mapping: {phrase}.")
+    for phrase in ("resume-capsule.md", "Supervisor Resume Capsule", "respawn Orchestrator"):
+        if phrase not in runtime:
+            out.append(f"runtime-protocol.md missing Supervisor resume term: {phrase}.")
+    if "heartbeat_interval_minutes: 30" not in loop or "nested_supervisor" not in loop:
+        out.append("loop-runtime.md must define nested_supervisor heartbeat interval shape.")
+    for phrase in ("supervisor_heartbeat", "supervisor_resume_capsule", ".bagel/supervisor/"):
+        if phrase not in governance:
+            out.append(f"governance-data-model.md missing Supervisor canonical source/schema: {phrase}.")
+    for phrase in ("Supervisor-To-Orchestrator Flow", "supervisor_denied", "user-facing alignment"):
+        if phrase not in aom:
+            out.append(f"agent-operating-model.md missing Supervisor context hygiene rule: {phrase}.")
+    for phrase in ("validate_supervisor", "SUPERVISOR_MODES", "resume-capsule.md", "current_orchestrator"):
+        if phrase not in run_check:
+            out.append(f"bagel_run_check.py missing Supervisor runtime audit: {phrase}.")
 
     return out
 

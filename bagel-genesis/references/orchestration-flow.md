@@ -8,7 +8,12 @@ Use this as the authoritative end-to-end decision map for BAGEL. It answers: wha
    - Dispatch: none.
    - Record: `.bagel/runtime_capabilities.yaml` or `state.yaml.runtime_capabilities`.
    - Verify: `bagel_run_check.py`.
-2. Bind loop before Align when autonomy is requested.
+2. Bind Supervisor layer when true subagents are available.
+   - Dispatch: Supervisor remains in main context; spawn inner Orchestrator as fresh subagent/session.
+   - Record: `.bagel/supervisor/heartbeat.yaml`, `.bagel/supervisor/resume-capsule.md`, `state.yaml.supervisor`.
+   - Merge rule: use `nested_supervisor` on Claude Code/Codex with true subagents; record `collapsed_no_true_subagents` only when unavailable.
+   - Verify: `bagel_run_check.py`.
+3. Bind loop before Align when autonomy is requested.
    - Dispatch: none.
    - Record: `state.yaml.loop_binding`.
    - Merge rule: P1 native loop first, then P2 harness, only then degraded resume.
