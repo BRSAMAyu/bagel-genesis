@@ -52,7 +52,7 @@ Do not read:
 3. Create minimal dispatch envelopes for workers.
 4. Enforce hard gates without weakening them.
 5. Persist durable state under `.bagel/`.
-6. Compact or discard context after each bounded task.
+6. After each bounded task, save state to `.bagel/` and signal the Supervisor for replacement when context pressure rises — do NOT self-compact (the protocol is replace-not-compact for non-root agents; see `references/supervisor-resilience.md`).
 7. Switch recovery strategy after repeated failure.
 8. Keep user briefing current: write the MECHANICAL STATUS.md sections every cycle (telemetry, delta trend, loop binding, budget, gates, next action); DISPATCH the User Alignment Curator for the NARRATIVE sections (Morning Briefing, Current Focus) and the HTML dashboard on trigger cadences (milestones, recoveries, excellence-loop boundaries, delivery). Do not compose risk-prioritization narrative yourself - that pollutes your context and is the Curator's job.
 9. Continue autonomous improvement after baseline completion until the excellence horizon passes.
@@ -168,14 +168,14 @@ Before transition:
 6. Append `.bagel/evidence/progress-deltas.yaml` with `forward`, `lateral`, or `backward` evidence and `delta_type: control_plane | deliverable | mixed`.
 7. Update `.bagel/STATUS.md`.
 8. Append `.bagel/telemetry/cycles.yaml` and any required action/scope/evidence records.
-9. Run `python scripts/bagel_v2_check.py <project-root>` when `.bagel/state.yaml` exists.
+9. Run `python scripts/bagel_v3_check.py <project-root>` when `.bagel/state.yaml` exists.
 10. Update `.bagel/state.yaml` or `.bagel/state.json`.
 11. Write an evolution change record for meaningful changes.
 12. Update git/agent registries only when branches, locks, merge queue, or agents actually change.
 13. Append a short fact log to `.bagel/ledger.yaml` or `.bagel/ledger/activity_log.md`.
 14. Write a checkpoint when the transition completes.
 
-Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish. A failing V2 check means the cycle cannot be counted as valid forward progress; repair the failed condition before raising the bar, completing the iteration, or claiming final delivery.
+Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish. A failing V3 check means the cycle cannot be counted as valid forward progress; repair the failed condition before raising the bar, completing the iteration, or claiming final delivery.
 
 Direction-level choices use collective decision records, not free-form orchestration judgment. If the choice is innovation selection, bar-raise direction, strategy switch after lateral cycles, final delivery, or constitution change, dispatch the required agents and write `.bagel/decisions/judgment-<id>.yaml` before acting.
 
@@ -228,17 +228,20 @@ After baseline completion:
 
 Do not confuse low-value endless polish with excellence. Reject low-value work and record the rationale.
 
-## Context Compaction
+## Context Hygiene (handoff-and-replace, not self-compact)
 
-Compact after:
+The Orchestrator is a non-root agent under the replace-not-compact policy (see `references/supervisor-resilience.md`). When context pressure rises, the Orchestrator saves durable state and is **replaced by the Supervisor with a fresh Orchestrator** — it does NOT self-compact its own context. Self-compaction loses reasoning fidelity; replacement preserves it.
+
+Signal the Supervisor for replacement after:
 
 - worker returns DONE/BLOCKED/NEEDS_CONTEXT,
 - review completes,
 - gate passes or fails,
 - state changes,
-- context contains implementation details not needed for orchestration.
+- context contains implementation details not needed for orchestration,
+- context pressure approaches the replacement threshold.
 
-Before compacting, save:
+Before signaling replacement, save to `.bagel/`:
 
 - state,
 - progress,
@@ -253,12 +256,7 @@ Before compacting, save:
 - evolution ledger records for meaningful changes.
 - git locks/branches/merge queue and agent registry updates.
 
-Discard:
-
-- raw worker reasoning,
-- long command logs unless needed for a bug,
-- old implementation debate,
-- unrelated files.
+The replacement Orchestrator loads only the saved state plus the one next action — it does NOT inherit the prior context. This is how the protocol keeps reasoning fresh across long runs without compaction fidelity loss.
 
 ## Alignment Context Governance
 

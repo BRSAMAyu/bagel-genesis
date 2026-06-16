@@ -555,48 +555,13 @@ Do not present these limits as fully solved. The structured paths, token_log der
 
 ## Hard Gates
 
-Block progress when any predicate in `references/gate-predicates.md` fails. Record results in `.bagel/gates/status.yaml` (full) or in the `gates:` section of `.bagel/state.yaml` (quick). Core predicates:
+Block progress when any predicate in `references/gate-predicates.md` fails. Record results in `.bagel/gates/status.yaml` (full) or in the `gates:` section of `.bagel/state.yaml` (quick). **The authoritative predicate list is the Core Predicates table in `references/gate-predicates.md`** — do not rely on a static summary here (it drifts). Run `python scripts/bagel_v3_check.py <project-root>` to evaluate all mechanically-enforced gates each cycle. Key predicate families:
 
-- `constitution_approved`
-- `project_understanding_current`
-- `evolution_record_present`
-- `context_fresh_for_dispatch`
-- `parallel_ownership_safe`
-- `worker_did_not_merge`
-- `review_level_satisfied`
-- `rollback_point_present_for_risk`
-- `merge_inputs_clean`
-- `typed_contracts_present_when_required`
-- `skeleton_gate_passed_when_required`
-- `artifact_specific_slice_coverage_present`
-- `decision_mutations_cleared`
-- `red_team_blockers_resolved`
-- `scope_reduction_authorized`
-- `project_under_version_control`
-- `flywheel_integrity_passed`
-- `no_regression_vs_green_floor`
-- `metric_delta_has_evidence_artifact`
-- `review_level_consistent_with_registry`
-- `bar_raise_has_value_class`
-- `runtime_capability_observed_with_proof`
-- `handoff_validation_passed`
-- `action_idempotency_safe`
-- `evidence_replay_integrity_passed`
-- `governance_budget_respected`
-- `scope_delta_within_contract`
-- `alignment_freshness_current`
-- `domain_excellence_model_present`
-- `problem_framing_locked`
-- `requirement_coherence_checked`
-- `premise_falsifiable`
-- `leverage_map_current`
-- `evaluation_critic_passed`
-- `expert_decision_present`
-- `roi_controller_positive_or_switched`
-- `supervisor_boundary_respected`
-- `supervisor_role_guard_passed`
-- `dispatch_envelope_valid`
-- `emergency_stop_preserves_state`
+- **Alignment & constitution:** `constitution_approved`, `requirement_coherence_checked`, `premise_falsifiable`, `alignment_freshness_current`, `domain_excellence_model_present`, `problem_framing_locked`, `leverage_map_current`
+- **Expert strategy:** `expert_decision_present`, `evaluation_critic_passed`, `gameable_metric_paired`, `roi_controller_positive_or_switched`, `named_dependency_real_protocol`, `premise_fidelity_proven`, `dataset_integrity_checked`
+- **Evidence & regression:** `flywheel_integrity_passed`, `no_regression_vs_green_floor`, `metric_delta_has_evidence_artifact`, `evidence_replay_integrity_passed`, `bar_raise_has_value_class`, `bar_raise_has_judgment`, `iteration_count_not_bypassed`, `task_queue_excludes_control_plane`, `active_evaluation_spec_present`
+- **Scope & dispatch:** `scope_delta_within_contract`, `dispatch_envelope_valid`, `project_understanding_current`, `production_data_hardstop_respected`
+- **Runtime & supervisor:** `project_under_version_control`, `runtime_capability_observed_with_proof`, `handoff_validation_passed`, `action_idempotency_safe`, `supervisor_boundary_respected`, `supervisor_role_guard_passed`, `supervisor_layer_bound`, `resume_capsule_current`, `context_tree_budget_policy_present`, `governance_budget_respected`, `emergency_stop_preserves_state`
 
 After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for the hard-stop boundaries (see the Anti-Patterns chapter). Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 
