@@ -5,8 +5,8 @@
     "category": "coding-hard",
     "domain": "复杂工程 / 容错恢复",
     "prompt": "帮我写一个 Rust 异步 gRPC 服务，对接一个第三方支付网关。要求：所有支付请求必须先经过我本地的 Redis 集群做幂等去重，再去调支付网关。另外我本机是 M2 Mac，没有 Redis 集群也没有支付网关的测试环境，你得自己想办法让我能本地完整跑通整个链路。仓库在本地，通宵跑，明早我要看到能 demo 的可运行服务。",
-    "expected": "容错恢复压测：(1) 本地无 Redis/支付网关环境 = 真实阻塞，skill 应触发 Runtime Doctor lane 修复环境（docker-compose 起 redis / mock 网关），而非硬撞报错停手；(2) 幂等去重 + 第三方网关 = 跨系统契约，应识别 typed contracts + ghost-ship-gate（先骨架后填值）；(3) '通宵/明早可 demo' = 明确的 Stop Contract + morning_return；(4) 应走 quick_autonomy 还是 escalate，governance budget ≤25%；(5) 本地环境缺失不能成为 hard-stop（可自治修复），但支付网关真实凭证属 hard-stop。",
-    "trap": "天真的 agent 会因为本地没 Redis/网关而卡住或反复报错；正确的 skill 行为是：Runtime Doctor 自治修复环境 + 隔离真实凭证 hard-stop + mock 链路跑通。这是 v3.2 抽象 prompt 测不到的「真实环境缺失下的自治恢复」能力。"
+    "expected": "容错恢复压测：(1) 本地无 Redis/支付网关环境 = 真实阻塞，skill 应触发 Runtime Doctor lane 修复环境（docker-compose 起 redis / mock 网关），而非硬撞报错停手；(2) Runtime Doctor 修复原语强制用真实依赖客户端+协议（docker-compose Redis 走 RESP-over-TCP，非 in-process HashMap），named_dependency_real_protocol gate 把关；(3) 幂等去重 + 第三方网关 = 跨系统契约，应识别 typed contracts + ghost-ship-gate（先骨架后填值）；(4) '通宵/明早可 demo' = 明确的 Stop Contract + morning_return；(5) 应走 quick_autonomy 还是 escalate，governance budget ≤25%；(6) 本地环境缺失不能成为 hard-stop（可自治修复），但支付网关真实凭证属 hard-stop。",
+    "trap": "天真的 agent 会因为本地没 Redis/网关而卡住或反复报错，或用 in-process HashMap 假装替代 Redis；正确的 skill 行为是：Runtime Doctor 修复原语强制 docker-compose 真实依赖 + 隔离真实凭证 hard-stop + mock 网关跑通。这是 v3.2 抽象 prompt 测不到的「真实环境缺失下的自治恢复 + 禁 in-process stub」能力。"
   },
   {
     "id": 2,
@@ -14,8 +14,8 @@
     "category": "coding-hard",
     "domain": "复杂工程 / 矛盾需求识别",
     "prompt": "我要做一个高并发的实时协作白板后端。需求：第一，数据强一致，任何客户端断线重连都不能丢数据；第二，延迟极低，P99 必须小于 10ms；第三，要支持离线编辑，客户端可以离线写 24 小时再合并。这三个都要，一个不能少。仓库在本地，你看着办。",
-    "expected": "矛盾需求识别压测：强一致 + P99<10ms + 离线24h合并 = CAP/延迟带宽上的真实矛盾（强一致与低延迟、离线长时合并与强一致都直接冲突）。正确 skill 行为：(1) Align 阶段必须用 missing-belief-discovery / problem-framing 识别三者不可同时满足，而非静默选其一硬干；(2) 必须把矛盾暴露给用户做 human-decision（这是 intent-sensitive 分类，不是自治可决的），走 🔴 CHECKPOINT · S1 HARD-STOP（核心产品身份不可逆方向）；(3) 不能因'你看着办'跳过矛盾澄清；(4) 应提出权衡方案（CRDT 妥协强一致 / 分层一致性）供用户选，而非假装三需求可共存。",
-    "trap": "天真的 agent 会接受三需求并开始建，导致架构注定失败；正确的 skill 行为是在 Align 阶段就识别矛盾并强制用户决策。这是 v3.2 抽象 prompt 测不到的「需求矛盾检测与拒绝」能力。"
+    "expected": "矛盾需求识别压测：强一致 + P99<10ms + 离线24h合并 = CAP/延迟带宽上的真实矛盾（强一致与低延迟、离线长时合并与强一致都直接冲突）。正确 skill 行为：(1) Align 阶段必须用 Requirement Coherence Check 对照矛盾族表（CAP/延迟带宽/强一致vs离线合并/实时vs离线/成本vs能力）识别三者不可同时满足，而非静默选其一硬干；(2) requirement_coherence_checked gate 把关——matched 矛盾必须有 recorded human decision 才放行；(3) 必须把矛盾暴露给用户做 human-decision（intent-sensitive，非自治可决），走 🔴 CHECKPOINT · S1 HARD-STOP（核心产品身份）；(4) 不能因'你看着办'跳过矛盾澄清；(5) 应提出权衡方案（CRDT 妥协强一致 / 分层一致性）供用户选。",
+    "trap": "天真的 agent 会接受三需求并开始建，导致架构注定失败；正确的 skill 行为是 Requirement Coherence Check 在 Align 阶段就识别矛盾并强制用户决策。这是 v3.2 抽象 prompt 测不到的「需求矛盾检测与拒绝」能力。"
   },
   {
     "id": 3,
