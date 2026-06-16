@@ -158,6 +158,13 @@ actions:
     orchestrator_agent_id: "bagel-orchestrator-001"
     orchestrator_session_id: "session-..."
     resume_capsule_ref: ".bagel/supervisor/resume-capsule.md"
+    # V3.4 semantic integrity: explicit non-execution attestation
+    command_executed: false
+    tools_used: []
+    product_files_read: []
+    product_files_written: []
+    delegated_to_orchestrator: true
+    dispatch_ref: ".bagel/agents/dispatches/..."
 ```
 
 For any action whose intended owner is Orchestrator, Runtime Doctor, Implementer, Reviewer, Evaluation Architect, Principal Expert, or another specialist, Supervisor writes the decision and dispatches. It does not do the work. Task size, convenience, "just validation", or "visible progress" never changes the owner.
@@ -169,7 +176,11 @@ For any action whose intended owner is Orchestrator, Runtime Doctor, Implementer
 - a Supervisor action lacks `role_guard`,
 - `current_skill_overrides_stale_state` is not true,
 - `task_size_exemption_used` is true,
-- the action text indicates implementation, debugging, tests, package setup, browser checks, or routine validators.
+- the action text indicates implementation, debugging, tests (npm/pnpm/yarn/bun/pytest/uv run pytest/go test/cargo test/make test/deno test/dotnet test), package setup (npm/pip install), browser checks, or routine validators,
+- **(V3.4)** `command_executed: true` on a post-bootstrap action,
+- **(V3.4)** `product_files_read` or `product_files_written` is non-empty,
+- **(V3.4)** `tools_used` contains Edit/Write, or Bash running a forbidden test/install command,
+- **(V3.4)** `delegated_to_orchestrator: false` on a non-status action.
 
 ## Required Files
 

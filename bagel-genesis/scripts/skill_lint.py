@@ -102,6 +102,7 @@ def main() -> int:
     failures.extend(check_v16_supervisor_resilience(root))
     failures.extend(check_v20_measured_runtime(root))
     failures.extend(check_loading_matrix_files_exist(root))
+    failures.extend(check_v34_schema_drift(root))
 
     if failures:
         print("BAGEL skill lint failed:")
@@ -730,6 +731,74 @@ def check_v31_executable_expert_runtime(root: Path) -> list[str]:
     ):
         if not (root / rel).exists():
             out.append(f"{rel}: V3.1 requires artifact expert pack.")
+    return out
+
+
+def check_v34_schema_drift(root: Path) -> list[str]:
+    """V3.4 semantic integrity: detect schema drift between the canonical agent/schema docs
+    and the validator scripts that enforce them. This prevents the exact failure mode seen
+    in V3.3 (validator reading fields the schema never declared)."""
+    out: list[str] = []
+    import re
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    # --- 1. expert_decision_v1: principal-expert.md YAML block vs expert_strategy_check.py required tuple ---
+    pe = read("agents/principal-expert.md")
+    # extract field keys from the ```yaml expert_decision: ... ``` block
+    yaml_match = re.search(r"```yaml\s*\nexpert_decision:\s*\n(.*?)```", pe, re.DOTALL)
+    schema_fields: set[str] = set()
+    if yaml_match:
+        for line in yaml_match.group(1).splitlines():
+            m = re.match(r"  ([a-z_]+):\s?", line)
+            if m:
+                schema_fields.add(m.group(1))
+    esc = read("scripts/expert_strategy_check.py")
+    # extract the required = ( ... ) tuple INSIDE validate_expert_decision only
+    fn_match = re.search(r"def validate_expert_decision\(.*?\n((?:.|\n)*?)(?=\ndef )", esc)
+    req_match = re.search(r'required\s*=\s*\(([^)]+)\)', fn_match.group(1) if fn_match else esc, re.DOTALL)
+    enforced_fields: set[str] = set()
+    if req_match:
+        for token in req_match.group(1).split(","):
+            t = token.strip().strip('"').strip("'")
+            if t:
+                enforced_fields.add(t)
+    if schema_fields and enforced_fields:
+        # schema-only fields: declared in schema, validated by expert_strategy_check.py via
+        # conditional/derived logic rather than the unconditional required tuple.
+        SCHEMA_ONLY = {
+            "schema_version",      # checked at line: schema_version != "expert_decision_v1"
+            "hard_stop_triggered", # metadata flag, checked separately
+            "risk_level",          # P0-3: derived risk checks use this conditionally
+            "risk_basis",          # P0-3: nested under risk_level, validated when present
+            "authority_ref",       # required only when reversibility is costly/irreversible
+        }
+        only_in_schema = schema_fields - enforced_fields - SCHEMA_ONLY
+        only_in_enforced = enforced_fields - schema_fields
+        for f in sorted(only_in_schema):
+            out.append(f"schema drift: expert_decision field {f!r} declared in principal-expert.md but NOT enforced in expert_strategy_check.py required tuple")
+        for f in sorted(only_in_enforced):
+            out.append(f"schema drift: expert_decision field {f!r} enforced in expert_strategy_check.py but NOT declared in principal-expert.md schema")
+
+    # --- 2. council verdict schema: councilor prompts have a shared shape; expert_strategy_check validates it ---
+    # the council output validator checks: perspective, agent_id, session_id, verdict, key_reason, evidence_refs, missing_evidence
+    expected_verdict_fields = {"perspective", "agent_id", "session_id", "verdict", "key_reason", "evidence_refs", "missing_evidence"}
+    for councilor in ("domain-expert", "systems-architect", "evaluation-skeptic", "innovation-strategist", "user-proxy", "risk-officer"):
+        cpe = read(f"agents/{councilor}.md")
+        vm = re.search(r"```yaml\s*\nexpert_council_verdict:\s*\n(.*?)```", cpe, re.DOTALL)
+        if not vm:
+            continue
+        declared: set[str] = set()
+        for line in vm.group(1).splitlines():
+            m = re.match(r"\s{2}(\w+):\s", line)
+            if m:
+                declared.add(m.group(1))
+        missing = expected_verdict_fields - declared
+        for f in sorted(missing):
+            out.append(f"schema drift: {councilor}.md expert_council_verdict missing expected field {f!r}")
+
     return out
 
 

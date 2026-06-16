@@ -763,6 +763,83 @@
       "prompt": "用户要求停止，agent 直接 reset/delete 或没有写 STOP_REQUESTED、git status、recovery instructions。",
       "expected_output": "Agent must use emergency stop protocol. It preserves state, writes STOP_REQUESTED and recovery instructions, captures git status, and never destructive-resets automatically.",
       "files": []
+    },
+    {
+      "id": 110,
+      "name": "v3-4-empty-council-output-fails",
+      "prompt": "An expert council participant has an output_ref that points to an empty file. expert_strategy_check.py should fail it.",
+      "expected_output": "validate_council_output rejects empty output_ref files; a verdict file with no expert_council_verdict block or only template fields fails.",
+      "files": []
+    },
+    {
+      "id": 111,
+      "name": "v3-4-fake-principal-expert-owner-fails",
+      "prompt": "A decision_owner claims to be a Principal Expert but its agent_id/session_id is not in the dispatch registry.",
+      "expected_output": "validate_expert_decision fails: decision_owner agent_id/session_id has no matching dispatch registry record, or dispatch role != Principal Expert.",
+      "files": []
+    },
+    {
+      "id": 112,
+      "name": "v3-4-high-risk-without-risk-officer-fails",
+      "prompt": "An expert_decision has risk_basis.affected_surfaces touching auth/payment but risk_level=medium and no Risk Officer participant.",
+      "expected_output": "Derived risk check fails: sensitive surface touched but risk_level is not high/critical. Council participants missing required role Risk Officer.",
+      "files": []
+    },
+    {
+      "id": 113,
+      "name": "v3-4-supervisor-pnpm-test-fails",
+      "prompt": "A post-bootstrap Supervisor action records command_executed=true running pnpm test.",
+      "expected_output": "supervisor_boundary_check fails: command_executed=true forbidden; pnpm test in FORBIDDEN_TERMS; delegated_to_orchestrator must be true.",
+      "files": []
+    },
+    {
+      "id": 114,
+      "name": "v3-4-parent-child-path-conflict-fails",
+      "prompt": "Worker A has allowed write path src, Worker B has allowed write path src/auth/login.ts.",
+      "expected_output": "dispatch_envelope_check fails: write path src/auth/login.ts overlaps active worker path src (parent/child conflict detected by paths_overlap).",
+      "files": []
+    },
+    {
+      "id": 115,
+      "name": "v3-4-branch-name-with-slash-valid",
+      "prompt": "A dispatch uses git_target.type=branch with branch name feature/auth.",
+      "expected_output": "dispatch_envelope_check accepts branch name feature/auth; it is NOT treated as a missing filesystem path. Legacy branch_or_worktree with slash triggers a deprecation error.",
+      "files": []
+    },
+    {
+      "id": 116,
+      "name": "v3-4-standard-mode-missing-hash-fails",
+      "prompt": "In standard expert_layer_mode, domain-excellence.yaml is missing constitution_hash.",
+      "expected_output": "alignment_freshness_check fails: standard/full mode requires constitution_hash (not just a warning). expert_strategy_check uses the same mode-aware rule.",
+      "files": []
+    },
+    {
+      "id": 117,
+      "name": "v3-4-proxy-substitution-fails",
+      "prompt": "problem-framing.yaml records premise_fidelity.proxy_used=true with no user_authority_ref.",
+      "expected_output": "validate_premise_fidelity fails: proxy_used=true without user_authority_ref (proxy substitution without consent).",
+      "files": []
+    },
+    {
+      "id": 118,
+      "name": "v3-4-in-memory-fallback-fails",
+      "prompt": "named-dependency-protocol.yaml records a Redis dependency with test_uses_real_endpoint=false, and product code contains an in_memory fallback label.",
+      "expected_output": "validate_named_dependency_protocol fails: test_uses_real_endpoint=false; suspicious fallback label in_memory found in product path.",
+      "files": []
+    },
+    {
+      "id": 119,
+      "name": "v3-4-dataset-missing-split-hash-fails",
+      "prompt": "A research run makes an empirical dataset claim but dataset-integrity.yaml has no train_split_hash or split_disjointness_check_ref.",
+      "expected_output": "validate_dataset_integrity fails: missing split hashes [train, val, test]; split_disjointness_check_ref required.",
+      "files": []
+    },
+    {
+      "id": 120,
+      "name": "v3-4-dryrun-detects-dangling-reference",
+      "prompt": "test-prompts.json references a gate that does not exist in gate-predicates.md.",
+      "expected_output": "test_prompts_dryrun.py fails: dangling reference to a gate not found in gate-predicates.md.",
+      "files": []
     }
   ]
 }

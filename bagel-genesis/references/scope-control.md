@@ -35,6 +35,7 @@ Rules:
 - New runtime or framework dependencies require justification.
 - Product identity changes require Constitutional Court.
 - Auth, privacy, payment, production data, or migration touches require explicit contract or hard-stop.
+- **risk_level derivation (not pure self-report):** the expert_decision `risk_level` must be consistent with `risk_basis.affected_surfaces` and `reversibility`. If `scope_delta` touches auth/privacy/payment/production_data/user_identity/legal/financial surfaces, `risk_level` must be `high` or `critical`. If `reversibility` is `costly` or `irreversible`, `risk_level` cannot be `low`. `identity_or_scope_change` decisions require `high`/`critical`. `expert_strategy_check.py` enforces these derived rules so a Principal Expert cannot under-rate a sensitive direction to skip the Risk Officer.
 
 Run:
 

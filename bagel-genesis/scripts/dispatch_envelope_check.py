@@ -40,6 +40,12 @@ def normalized_rel(path: str) -> bool:
     return bool(path) and not p.is_absolute() and ".." not in p.parts
 
 
+def paths_overlap(a: str, b: str) -> bool:
+    """P0-5: detect parent/child path conflicts, not just exact matches."""
+    pa, pb = Path(a), Path(b)
+    return a == b or pa in pb.parents or pb in pa.parents
+
+
 def collect(root: Path, state: dict[str, Any]) -> list[tuple[Path, dict[str, Any]]]:
     rows: list[tuple[Path, dict[str, Any]]] = []
     for item in as_list(state.get("dispatch_envelopes")) + as_list(state.get("dispatches")):
@@ -76,9 +82,30 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             if not env.get(field):
                 errors.append(f"{label}: dispatch envelope missing {field}")
         role = str(env.get("role") or "")
-        branch = env.get("branch_or_worktree") or env.get("worktree") or env.get("branch")
-        if branch and "/" in str(branch) and not (root / str(branch)).exists():
-            errors.append(f"{label}: branch_or_worktree path does not exist: {branch}")
+        # P0-6: prefer structured git_target over ambiguous branch_or_worktree
+        git_target = as_dict(env.get("git_target"))
+        if git_target:
+            gtype = str(git_target.get("type") or "")
+            if gtype == "worktree":
+                wpath = git_target.get("worktree_path")
+                if wpath and not (root / str(wpath)).exists():
+                    errors.append(f"{label}: git_target worktree_path does not exist: {wpath}")
+            elif gtype == "branch":
+                # branch names may contain '/'; validate as a branch name, not a filesystem path
+                bname = str(git_target.get("branch") or "")
+                if bname and (".." in bname or bname.startswith("/") or bname.endswith(".lock")):
+                    errors.append(f"{label}: git_target branch name is invalid: {bname}")
+            elif gtype == "current":
+                # only valid for serial / non-parallel-safe work
+                if as_list(env.get("locks")) and not env.get("parallel_safe"):
+                    pass  # current with locks is fine for serial work
+            else:
+                errors.append(f"{label}: git_target.type must be branch|worktree|current; got {gtype!r}")
+        else:
+            # legacy fallback: branch_or_worktree
+            branch = env.get("branch_or_worktree") or env.get("worktree") or env.get("branch")
+            if branch and "/" in str(branch):
+                errors.append(f"{label}: use git_target.type=branch for branch names containing '/'; ambiguous branch_or_worktree={branch} treated as path")
         read_paths = as_list(env.get("read_only") or env.get("allowed_read_paths") or env.get("read"))
         for p in read_paths:
             if not isinstance(p, str):
@@ -93,9 +120,10 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             if not isinstance(p, str) or not normalized_rel(p):
                 errors.append(f"{label}: write/allowed path must be normalized relative path: {p!r}")
                 continue
-            owner = active_writes.get(p)
-            if owner and owner != str(env.get("agent_id")):
-                errors.append(f"{label}: write path {p} overlaps active worker {owner}")
+            # P0-5: check parent/child overlap against ALL active write paths
+            for existing_path, existing_owner in active_writes.items():
+                if existing_owner != str(env.get("agent_id")) and paths_overlap(p, existing_path):
+                    errors.append(f"{label}: write path {p!r} overlaps active worker {existing_owner} path {existing_path!r}")
             active_writes[p] = str(env.get("agent_id"))
         for p in as_list(env.get("forbidden_paths")):
             if isinstance(p, str) and not normalized_rel(p):

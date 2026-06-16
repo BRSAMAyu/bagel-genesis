@@ -9,7 +9,11 @@ dispatch_envelope:
   session_id: ""
   task_id: ""
   dispatcher_role: Orchestrator
-  branch_or_worktree: ""
+  git_target:
+    type: branch | worktree | current  # branch names may contain '/'; worktree_path must exist; current = serial/non-parallel-safe only
+    branch: ""
+    worktree_path: ""
+  # legacy field branch_or_worktree is deprecated; use git_target instead
   read_only: []
   write_only: []
   allowed_paths: []
