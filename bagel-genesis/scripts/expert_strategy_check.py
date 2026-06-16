@@ -142,6 +142,7 @@ def validate_council_participants(
     *,
     decision_type: str,
     risk_level: str,
+    source_path: Path | None = None,
 ) -> None:
     rows = [as_dict(p) for p in participants]
     roles = {str(p.get("role") or "") for p in rows}
@@ -172,7 +173,7 @@ def validate_council_participants(
         if not output_ref or not (root / str(output_ref)).exists():
             errors.append(f"participant {role}: output_ref missing or does not exist")
         else:
-            validate_council_output(root, path_ref, p, errors)
+            validate_council_output(root, source_path or Path("council"), p, errors)
 
 
 def validate_council_output(
@@ -298,6 +299,7 @@ def validate_expert_decision(
         errors,
         decision_type=str(decision.get("decision_type") or ""),
         risk_level=str(decision.get("risk_level") or "medium"),
+        source_path=path,
     )
     # P0-3: derived risk checks — do not trust self-report alone
     risk_level = str(decision.get("risk_level") or "medium")
@@ -407,8 +409,29 @@ def validate_named_dependency_protocol(root: Path, errors: list[str]) -> None:
         "in_memory", "in-memory", "fake_redis", "mock_redis", "test_only_store",
         "hashmap fallback", "hash_map fallback", "dict fallback", "memory_store",
     )
+    # P0-9 hole fix: infer whether named dependencies were declared by scanning
+    # problem-framing + runtime evidence for provisioning signals
+    NAMED_DEP_SIGNALS = ("redis", "postgres", "mysql", "mongo", "kafka", "rabbitmq",
+                         "elasticsearch", "grpc_service", "payment_gateway", "stripe",
+                         "docker-compose", "docker_compose", "docker run")
     reg_path = root / ".bagel/expert/named-dependency-protocol.yaml"
     if not reg_path.exists():
+        # check if named dependencies were declared anywhere in evidence/framing
+        framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+        framing_text = str(framing).lower()
+        runtime_evidence_signals = False
+        evidence_dir = root / ".bagel/evidence"
+        if evidence_dir.exists():
+            for ef in evidence_dir.glob("*.yaml"):
+                try:
+                    if any(s in ef.read_text(encoding="utf-8", errors="ignore").lower() for s in NAMED_DEP_SIGNALS):
+                        runtime_evidence_signals = True
+                        break
+                except OSError:
+                    continue
+        has_named_dep_signal = any(s in framing_text for s in NAMED_DEP_SIGNALS) or runtime_evidence_signals
+        if has_named_dep_signal:
+            errors.append("named dependencies were declared in problem-framing or runtime evidence, but .bagel/expert/named-dependency-protocol.yaml is missing (cannot skip protocol-substitution check by omitting the record)")
         return  # only present when the prompt named external dependencies
     data = as_dict(load_yaml(reg_path, {}))
     deps = as_list(data.get("named_dependencies") or data.get("dependencies"))
