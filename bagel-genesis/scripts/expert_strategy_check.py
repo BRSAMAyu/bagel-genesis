@@ -419,27 +419,46 @@ def validate_requirement_coherence(root: Path, state: dict[str, Any], errors: li
 
     Scan the requirement set against the contradiction families. When 2+ signals from
     the same family co-occur, a contradiction is matched; a matched contradiction MUST
-    have a recorded human decision in the ledger (dropping/relaxing a requirement or
-    accepting a tradeoff). "你看着办" is explicitly NOT a resolution.
+    have a recorded human decision in the ledger that (a) references the matched family
+    and (b) names the requirement dropped/relaxed or the tradeoff accepted. A generic
+    "tradeoff" note that does not name the family or the requirement does NOT clear the
+    gate — that would let an unrelated color-choice decision satisfy a CAP contradiction.
+    "你看着办" is explicitly NOT a resolution.
     """
     text = _requirement_text(root, state)
     if not text.strip():
         return  # nothing to check pre-alignment
     ledger = as_dict(load_yaml(root / ".bagel/ledger.yaml", {}))
     human_decisions = as_list(ledger.get("human_decisions"))
-    # A recorded resolution is any human_decision that mentions coherence/contradiction/tradeoff
-    has_recorded_resolution = any(
-        any(kw in str(d).lower() for kw in ("coherence", "contradiction", "tradeoff", "矛盾", "权衡", "取舍"))
-        for d in human_decisions
-    )
+    # Pre-compute, per family, whether a human decision resolves THAT family.
+    # A resolution must both (a) cite the family id/synonym AND (b) name a requirement
+    # relaxation/drop/tradeoff action — not just contain the word "tradeoff".
+    RESOLUTION_KEYWORDS = ("relax", "drop", "relaxed", "dropped", "tradeoff", "trade-off",
+                           "accept", "降低", "放弃", "妥协", "权衡", "取舍", "接受")
     for family, signals in _REQUIREMENT_CONTRADICTION_FAMILIES.items():
         matched = [s for s in signals if s in text]
-        if len(matched) >= 2 and not has_recorded_resolution:
+        if len(matched) < 2:
+            continue
+        # Does any human_decision resolve THIS specific family? It must reference the
+        # family (by id, or by one of its signals) AND carry a resolution action verb.
+        family_id = family.lower()
+        signal_tokens = tuple(s.lower() for s in matched)
+        resolved = False
+        for d in human_decisions:
+            dtext = str(d).lower()
+            references_family = family_id in dtext or any(tok in dtext for tok in signal_tokens)
+            has_action = any(kw in dtext for kw in RESOLUTION_KEYWORDS)
+            if references_family and has_action:
+                resolved = True
+                break
+        if not resolved:
             errors.append(
                 f"requirement_coherence_checked: contradiction family '{family}' matched "
-                f"(signals: {matched[:3]}). A matched contradiction requires a recorded "
-                f"human decision in .bagel/ledger.yaml human_decisions: (drop/relax a "
-                f"requirement or accept a tradeoff). '你看着办' is not a resolution."
+                f"(signals: {matched[:3]}). This requires a human decision in "
+                f".bagel/ledger.yaml human_decisions: that BOTH references this family "
+                f"(id '{family}' or one of its signals: {signal_tokens[:3]}) AND names the "
+                f"requirement dropped/relaxed or the tradeoff accepted. A generic unrelated "
+                f"'tradeoff' note does not clear this gate. '你看着办' is not a resolution."
             )
 
 
