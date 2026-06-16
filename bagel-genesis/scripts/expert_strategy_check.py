@@ -1029,6 +1029,17 @@ def validate_statistical_rigor(root: Path, state: dict[str, Any], errors: list[s
         correction = str(test.get("correction_applied") or "").lower()
         if correction and correction not in {"none", "bonferroni", "bh", "benjamini-hochberg", "holm"}:
             errors.append(f"statistical_rigor: test_result.correction_applied='{correction}' is not recognized (none/bonferroni/bh/holm)")
+        # Significance check (Judge U finding): p_value must actually be below the
+        # pre-registered threshold for a headline "win" claim — presence-only is theater.
+        p_value = test.get("p_value")
+        threshold = sr.get("pre_registered_threshold")
+        if has_headline and isinstance(p_value, (int, float)) and isinstance(threshold, (int, float)):
+            if p_value >= threshold:
+                errors.append(
+                    f"statistical_rigor: headline claim reports p_value={p_value} >= pre_registered_threshold={threshold} "
+                    f"— the result is NOT statistically significant at the pre-registered threshold. "
+                    f"A headline 'win' claim requires p_value < threshold."
+                )
     pre_threshold = sr.get("pre_registered_threshold")
     if pre_threshold is not None and sr.get("threshold_changed") is True:
         if not sr.get("threshold_change_reason"):

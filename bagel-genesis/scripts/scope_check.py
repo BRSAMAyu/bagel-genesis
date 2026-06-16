@@ -154,6 +154,17 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         if not base_ref:
             base_ref = "HEAD~1"
         all_changed = git_changed_paths(root, base_ref)
+        # Guard (Judge U finding): if git is not available or the diff fails, the check
+        # must not silently pass — it must warn that scope coverage could not be verified.
+        git_available = (root / ".git").exists()
+        if not all_changed and git_available and not collect_scope(root):
+            # git exists but returned no changes AND no scope_delta records — could be a
+            # real clean state OR a git error swallowed to []. Warn so a human can verify.
+            warnings.append(
+                "scope_delta_within_contract: build evidence exists but git diff returned no changed "
+                "paths and no scope_delta records exist. If this run made product edits, the git-diff "
+                "derivation may have failed (verify git history is intact and git_ref_start is valid)."
+            )
         # Gather all paths COVERED by declared scope_delta allowed_paths
         covered: set[str] = set()
         for _path, rec in collect_scope(root):
