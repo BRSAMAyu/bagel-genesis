@@ -135,6 +135,19 @@ There is no "small task" exception. Validation commands, environment setup, brow
 
 Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
 
+### Runtime Doctor repair primitives (when the local environment is missing a declared dependency)
+
+When the user's prompt names a dependency the local environment lacks (e.g. "no Redis cluster", "no payment gateway test env", "no GPU"), this is autonomy-solvable friction, NOT a hard-stop. The Runtime Doctor must provision the real declared dependency locally before any stub is allowed. Concrete repair primitives, in priority order:
+
+| Missing dependency | Repair primitive (do this first) | Forbidden shortcut |
+|---|---|---|
+| Database / cache (Redis, Postgres, Mongo) | `docker-compose` / `docker run` to stand up the real service on a bound port; wire the real client against it | Replacing a named external service with an in-process `HashMap`/dict that does not exercise the real client, network path, or persistence semantics |
+| External API / gateway (payment, auth, 3rd-party) | Stand up a local mock server (e.g. a small HTTP/gRPC stub on a bound port) implementing the documented contract; record it in the stub/mock registry | Silently skipping the integration leg or hardcoding fake responses inline in the product code |
+| Binary / runtime (node, rust toolchain, ffmpeg) | Install via the platform package manager; if version-pinned, use a version manager (nvm/rustup) | Pretending the dependency is optional and branching around it |
+| Cloud resource (S3, queue) | Local emulator (localstack, azurite) or a local stand-in implementing the same API surface | Deleting the feature that needs it |
+
+**Hard rule:** if the user explicitly named a dependency ("经过 Redis 集群做幂等去重"), the local runnable chain must exercise that dependency's real client and protocol — a mock that swaps the protocol (e.g. in-process calls instead of RESP-over-TCP) does not satisfy "完整跑通整个链路". The Runtime Doctor records the repair in `.bagel/evidence/` with the command used and the healthcheck that proved it runs. Real credentials/production endpoints remain a hard-stop boundary; the repair is for local test infrastructure only.
+
 ### Per-role reference budget
 
 A worker never browses the `references/` directory freely. The orchestrator puts only the triggered references (per the Loading Matrix) into the dispatch envelope. Default per-role ceilings:
@@ -394,6 +407,26 @@ Use `references/alignment-protocol.md` for the question tree and choice cards. W
 
 Write `.bagel/vision_summary.md`, then `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full), and `.bagel/completion_horizon.yaml`. If the user has granted long-run delegation, bind loop/timer capability before implementation and continue without stopping; record the canon in `.bagel/alignment/human-decisions.yaml` and surface it in the user briefing for later review. 🔴 CHECKPOINT · S1 HARD-STOP: only pause for S1 confirmation when a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction). If no hard-stop is in play, do not pause here — keep building.
 
+## Requirement Coherence Check (mandatory before Build)
+
+Before Build unlock, the orchestrator must verify the requirement set is **jointly satisfiable** — not just that each requirement is individually clear. The `requirement_coherence_checked` gate enforces this. Accepting mutually-exclusive requirements silently and building a doomed architecture is a hard failure (see Anti-Pattern #14 below).
+
+Check the requirement set against the known contradiction families:
+
+| Family | Contradiction signal | Example |
+|---|---|---|
+| CAP / consistency vs availability | strong consistency + high availability + partition tolerance demanded together | "强一致 + 高可用 + 断网继续写" |
+| Latency bandwidth | sub-physics latency + strong cross-region consistency | "P99 < 10ms + 跨大洲强一致" |
+| Strong vs eventual merge | strong consistency + long offline mutation + auto-merge | "强一致 + 离线24h + 自动合并无冲突" |
+| Real-time vs offline | hard real-time guarantees + unbounded offline buffering | "硬实时 + 无限离线缓冲" |
+| Cost vs capability | enterprise capability + zero infra budget | "企业级 + 不许加任何依赖" |
+
+**Decision rule:**
+1. If a contradiction family is matched, do NOT silently pick one requirement and build. Do NOT proceed to Build.
+2. 🔴 CHECKPOINT · S1 HARD-STOP: a joint requirement contradiction is a core product/research identity issue (the system's fundamental nature is undecided). Wake the user with the contradiction named, the tradeoff options (e.g. CRDT relaxing strong consistency, tiered consistency, bounded offline window), and a recommendation. This is intent-sensitive — it is NOT autonomy-solvable.
+3. Only after the user resolves the contradiction (drops a requirement, accepts a tradeoff, or redefines the target) does `requirement_coherence_checked` pass.
+4. "你看着办" / "你看着办，三个都要" does NOT resolve a contradiction — the agent must still surface it and get an explicit decision on which constraint gives.
+
 ## Context Policy
 
 Create `.bagel/context_policy.yaml` before long implementation:
@@ -487,6 +520,7 @@ The failure modes below are enumerated across this skill; they are gathered here
 | 11 | Free-browse `references/` from a worker | Workers over-read, dilute attention, blow token budget | Orchestrator puts only triggered references (per Loading Matrix) in the dispatch envelope; worker requests a smaller brief if more is needed | L127, L309 |
 | 12 | Lower a gate to keep moving | Gates are the safety contract | Enter autonomous recovery (shrink task, isolate, diagnose, switch strategy) instead; never lower the gate itself | L501, `references/gate-predicates.md` |
 | 13 | Stop at baseline running | Baseline is the start of the excellence loop, not the end | Continue positive optimization until budget/user/hard-stop/Stop Criteria | L547 |
+| 14 | Silently accept mutually-exclusive requirements and build | Builds a doomed architecture; the contradiction surfaces as irrecoverable failure after sunk cost | Run the Requirement Coherence Check before Build; on contradiction, 🔴 CHECKPOINT S1 hard-stop with tradeoff options — never silently pick one requirement | Requirement Coherence Check |
 
 **Hard-stop boundaries (the ONLY things that wake the user):** irreversible or non-recoverable destructive action · serious security/privacy/legal/financial/production-data risk · credentials or paid external resources · core product/research identity changes · explicit user-forbidden boundaries · genuine impossibility after useful alternatives are exhausted.
 
@@ -524,6 +558,8 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `alignment_freshness_current`
 - `domain_excellence_model_present`
 - `problem_framing_locked`
+- `requirement_coherence_checked`
+- `premise_falsifiable`
 - `leverage_map_current`
 - `evaluation_critic_passed`
 - `expert_decision_present`
