@@ -1,6 +1,6 @@
 {
-  "$comment": "Darwin v3.5 dry-run results. Records that each pressure scenario S1-S9 produces the gate/checkpoint behavior the skill prescribes, verified by live attacks against expert_strategy_check.py + cross-checked against gate-predicates.md. eval_mode=dry_run (no live subagent run; these are simulated scenario walks + live validator attacks).",
-  "skill_version": "v3.5-round1",
+  "$comment": "Darwin v3.6 dry-run results. Records that each pressure scenario S1-S9 produces the gate/checkpoint behavior the skill prescribes, verified by live attacks against expert_strategy_check.py + cross-checked against gate-predicates.md. eval_mode=dry_run (no live subagent run; these are simulated scenario walks + live validator attacks).",
+  "skill_version": "v3.6",
   "eval_date": "2026-06-16",
   "eval_mode": "dry_run",
   "scenarios": [
