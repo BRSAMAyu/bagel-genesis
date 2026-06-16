@@ -115,7 +115,11 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         # When a cycle records a token_log of [{role, tokens, category}] entries, recompute the
         # governance share = sum(governance-category tokens) / sum(all tokens) and compare to the
         # declared share. A mismatch > 0.05 means the agent lied about its share — fail.
+        # Judge P+Q fix: token_log is MANDATORY for Build/Iterate cycles (not omittable) —
+        # an agent that omits it to fall back to the self-attested share must be flagged.
         token_log = as_list(cycle.get("token_log") or budget_block.get("token_log"))
+        if not token_log and deliverable_delta is True:
+            fail(errors, f"cycle {idx}: token_log is required for Build/Iterate cycles (to make governance_token_share recomputable, not just self-attested). Record a token_log of [{{role, tokens, category}}] entries per cycle.")
         if token_log:
             GOVERNANCE_CATEGORIES = {"governance", "control_plane", "alignment", "review", "telemetry", "state", "dispatch"}
             gov_tokens = 0

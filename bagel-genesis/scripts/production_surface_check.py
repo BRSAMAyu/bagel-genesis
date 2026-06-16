@@ -75,10 +75,13 @@ CLOUD_SDK_PATTERNS = [
     re.compile(r"stripe\.(Charge|Customer|PaymentIntent|Refund)\.?(create|list|retrieve)\s*\(\s*api_key", re.IGNORECASE),
 ]
 
-# File globs to scan (source + config, excluding .bagel control plane and test fixtures)
-SCAN_DIRS = ("src", "lib", "app", "config", "configs", "internal", "cmd", "pkg", "server")
+# File globs to scan (source + config + deploy + migrations, excluding .bagel control plane)
+# Widened from Judge Q finding: scripts/, deploy/, infra/, migrations/, tools/ now scanned.
+SCAN_DIRS = ("src", "lib", "app", "config", "configs", "internal", "cmd", "pkg", "server",
+             "scripts", "deploy", "infra", "migrations", "tools", "bin", "alembic")
 SCAN_EXTS = (".py", ".ts", ".js", ".tsx", ".jsx", ".go", ".rs", ".java", ".rb", ".swift",
-             ".kt", ".env", ".yaml", ".yml", ".toml", ".json", ".cfg", ".ini", ".conf")
+             ".kt", ".env", ".yaml", ".yml", ".toml", ".json", ".cfg", ".ini", ".conf",
+             ".prisma", ".sql")
 
 
 def collect_scan_files(root: Path) -> list[Path]:
@@ -88,8 +91,10 @@ def collect_scan_files(root: Path) -> list[Path]:
         if d.exists():
             for ext in SCAN_EXTS:
                 out.extend(d.rglob(f"*{ext}"))
-    # also scan top-level env/config files
-    for name in (".env", ".env.production", ".env.prod", "config.yaml", "config.yml", "docker-compose.yml"):
+    # also scan top-level env/config files (widened: .env.local, .envrc, secrets files)
+    for name in (".env", ".env.production", ".env.prod", ".env.local", ".envrc",
+                 "config.yaml", "config.yml", "docker-compose.yml", "secrets.yaml",
+                 "secrets.yml", ".pypirc", ".npmrc"):
         p = root / name
         if p.exists():
             out.append(p)
@@ -143,13 +148,23 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
                 line_no = content[:m.start()].count("\n") + 1
                 hits.append(f"{path.relative_to(root)}:{line_no}: cloud-sdk usage {pat.pattern[:40]}")
 
-    # 3. Check whether a hard-stop acknowledgment exists
+    # 3. Check whether a STRUCTURED hard-stop acknowledgment exists.
+    # Judge P+Q finding: a free-text keyword like "credential" in any ledger entry
+    # cleared the gate (e.g. "credential management feature"). Require a structured
+    # hardstop acknowledgment: a human_decision with hardstop_type: production_data
+    # (or credentials) AND acknowledged: true, not just a substring match.
     ledger = as_dict(load_yaml(bagel / "ledger.yaml", {}))
     human_decisions = as_list(ledger.get("human_decisions"))
-    has_prod_hardstop_ack = any(
-        any(kw in str(d).lower() for kw in ("production_data", "prod-data", "生产数据", "credential", "凭证", "hard_stop_acknowledged"))
-        for d in human_decisions
-    )
+    PROD_HARDSTOP_TYPES = {"production_data", "prod_data", "credentials", "credential_access", "生产数据", "凭证"}
+    has_prod_hardstop_ack = False
+    for d in human_decisions:
+        dref = as_dict(d)
+        # Structured ack: hardstop_type in the prod set AND acknowledged is true
+        hs_type = str(dref.get("hardstop_type") or "").lower()
+        acknowledged = dref.get("acknowledged")
+        if hs_type in PROD_HARDSTOP_TYPES and acknowledged is True:
+            has_prod_hardstop_ack = True
+            break
 
     # Deduplicate hits (same file:line+pattern)
     seen = set()
