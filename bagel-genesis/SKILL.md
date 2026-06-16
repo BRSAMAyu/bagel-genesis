@@ -546,6 +546,7 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `domain_excellence_model_present`
 - `problem_framing_locked`
 - `requirement_coherence_checked`
+- `premise_falsifiable`
 - `leverage_map_current`
 - `evaluation_critic_passed`
 - `expert_decision_present`
