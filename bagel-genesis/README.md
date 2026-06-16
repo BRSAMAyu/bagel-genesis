@@ -1,358 +1,307 @@
-# BAGEL Genesis
+<div align="center">
 
-> V3.1 Executable Expert Runtime: deep upfront alignment + expert-calibrated long-running autonomous iteration for Claude Code, Codex, and similar agentic coding systems.
+# 🥯 BAGEL Genesis
 
-BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. V3.1 makes the Expert Autonomy Layer executable: domain excellence calibration, problem framing, leverage mapping, Evaluation Critic, real Expert Strategy Council dispatch, Principal Expert decisions, ROI control, runtime capability proof, replayable evidence, idempotent resume, and scope control.
+**Turn a vague vision into a finished, high-quality deliverable — while you sleep.**
 
-It is not a single mega-prompt. It is a structured skill with:
+A skill-level operating protocol that makes an autonomous agent do *real expert work*, not just code generation: deep upfront alignment, multi-agent orchestration, calibrated long-running iteration, and hard-to-fake semantic integrity gates.
 
-- an entry point: [`SKILL.md`](SKILL.md)
-- role prompts in [`agents/`](agents/)
-- trigger-loaded protocols in [`references/`](references/)
-- validation and runtime helper scripts in [`scripts/`](scripts/)
-- behavior evals in [`evals/evals.json`](evals/evals.json)
+`Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
-## What BAGEL Is For
+[![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
+[![Version](https://img.shields.io/badge/version-v3.4.1-green)](#changelog)
+[![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-Use BAGEL when you want an agent to:
+</div>
 
-- clarify a fuzzy product, research, writing, or optimization goal before execution
-- take over an existing project without drifting away from its real architecture and conventions
-- run for hours through implementation, verification, review, recovery, and polish
-- keep making measurable progress instead of waiting for routine approval
-- create missing local tools, tests, screenshots, benchmarks, and verifiers when needed
-- return a readable morning briefing that explains what happened, what changed, and what still needs a decision
+---
 
-Do not use BAGEL for trivial scripts, tiny code edits, narrowly specified tickets, or tasks where you want a quick one-shot answer.
+## Why BAGEL?
 
-## Core Idea
+Most agent skills stop at "generate code." BAGEL is different — it encodes the **full expert workflow** that a principal engineer or researcher does before and during a multi-day build:
 
-BAGEL has three phases:
+- **Clarify** a fuzzy goal into executable decisions before writing a line of code
+- **Orchestrate** multiple specialized sub-agents (not one model doing everything)
+- **Run autonomously** for hours through implementation, verification, recovery, and polish
+- **Prove progress** with measurable deltas — not "it looks done"
+- **Wake you** only for genuine hard-stops, not routine questions
+
+And as of **V3.4**, it does all this as a **hard-to-fake runtime**: the expert council verdicts, risk assessments, dependency integrations, and research integrity claims are all *mechanically validated*, so an agent cannot satisfy the gates with empty placeholders or proxy substitutions.
+
+---
+
+## The 30-Second Pitch
 
 ```text
-Align  ->  Build  ->  Polish
+You:   "通宵帮我重构这个 SaaS 的认证和支付模块，从 session 迁移到 OAuth2 + Stripe。
+        你看着办，明早看结果。"
+
+BAGEL: → Aligns: captures Stop Contract (budget, hard-stops, morning briefing)
+       → Detects: auth+payment+production_data = sensitive surfaces → risk_level=critical
+       → Requires: Risk Officer + Systems Architect on the Expert Strategy Council
+       → Orchestrates: Supervisor binds loop, spawns Orchestrator, dispatches workers
+       → Validates: every council verdict has real content, every dependency uses real protocol
+       → Morning: delivers working migration + evidence + briefing
 ```
 
-- **Align:** make the user's intent, hard boundaries, runtime strategy, and quality bar executable.
-- **Build:** implement one bounded slice at a time, verify it, record objective progress, and continue.
-- **Polish:** critique, improve, verify, raise the bar, and stop only when further work has low expected value or the agreed budget is exhausted.
+---
 
-After the user delegates autonomous work, BAGEL's tie-breaker is:
+## Core Architecture
 
-> If a rule, review, failed attempt, missing tool, or platform limitation makes the agent want to stop and ask the user, continue instead unless the situation hits a true hard-stop boundary.
+```text
+                    ┌─────────────────────────────────────────┐
+                    │              USER (delegates)            │
+                    └──────────────────┬──────────────────────┘
+                                       │ vague vision + autonomy
+                    ┌──────────────────▼──────────────────────┐
+                    │            🔴 STOP CONTRACT              │
+                    │  budget · hard-stops · morning return   │
+                    └──────────────────┬──────────────────────┘
+                                       │
+                    ┌──────────────────▼──────────────────────┐
+          ┌─────────┤            ALIGN PHASE                  ├─────────┐
+          │         │  requirement coherence · problem frame  │         │
+          │         │  leverage map · domain excellence       │         │
+          │         └──────────────────┬──────────────────────┘         │
+          │                            │ 🔴 BUILD UNLOCK                 │
+          │         ┌──────────────────▼──────────────────────┐         │
+          │         │           BUILD / ITERATE               │         │
+   Supervisor ──────┤  slice → verify → evidence → review      ├──── Expert
+   (heartbeat,       │  ↑                                    │     Council
+    hard-stop        │  └── recovery on failure (shrink/      │  (Domain Expert,
+    arbitration)     │      isolate/diagnose/switch)          │   Systems Arch,
+                    └──────────────────┬──────────────────────┘   Evaluation
+                                       │                            Skeptic,
+                    ┌──────────────────▼──────────────────────┐    User Proxy,
+                    │           🔴 FINAL DELIVERY              │    Risk Officer,
+                    │  excellence horizon · bar raised         │    Innovation)
+                    └─────────────────────────────────────────┘
+```
 
-Hard-stops are intentionally narrow: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core product/research identity changes, or an explicit user-forbidden boundary.
+**Four hard checkpoints** (marked 🔴) are the *only* places BAGEL pauses for you. Everything else is autonomy-solvable.
 
-## Key Features
+---
 
-### Deep Alignment Before Autonomy
+## What Makes It Hard-to-Fake (V3.4)
 
-BAGEL avoids shallow "plan mode" alignment. It asks decision-oriented questions and persists the answers into `.bagel/` state.
+V3.4 added **Semantic Integrity validators** that catch the most common "form-satisfiable" shortcuts:
 
-Alignment supports three depths:
-
-| Depth | Use when | Behavior |
+| Anti-cheat | What it catches | How |
 |---|---|---|
-| `snap_alignment` | urgent or low-stakes | capture essentials, default reversible details, start quickly |
-| `standard_alignment` | default | ask key choice cards plus the most relevant open questions |
-| `deep_alignment` | important, ambiguous, high-budget | keep asking decision points until the user's mental model is clear enough |
+| **Council output validation** | Empty/placeholder expert verdicts | Parses verdict YAML content — checks perspective match, verdict enum, ≥30-char reasoning, evidence-per-verdict-type |
+| **Decision owner verification** | Fake Principal Expert identity | Cross-references `decision_owner` against dispatch registry records |
+| **Derived risk enforcement** | Under-rating sensitive work | If `risk_basis.affected_surfaces` touches auth/payment/etc → `risk_level` must be high/critical (not self-report) |
+| **Requirement coherence** | Mutually-exclusive requirements | Checks against contradiction families (CAP, latency-bandwidth, strong-vs-eventual-merge) before Build |
+| **Premise fidelity** | Proxy substitution of user's claim | `proxy_used=true` without `user_authority_ref` fails; unfalsifiable premises can't become proxy experiments |
+| **Named dependency protocol** | In-memory fallback for real deps | Scans product/test code for `in_memory`/`fake_redis`/`hashmap fallback` labels; `test_uses_real_endpoint` must be true |
+| **Dataset integrity** | Test-set leakage | Requires split hashes + disjointness proof; `tuning_used_test_set=true` invalidates headline claims |
+| **Schema drift prevention** | Validator reading undeclared fields | `skill_lint.py` auto-diffs agent schema docs vs validator field sets on every edit |
 
-Choice cards cover autonomy level, execution strategy, run budget, takeover aggressiveness, taste source, research verification, hard-stop boundaries, and HTML briefing preferences.
+---
 
-### Three Execution Strategies
+## Quick Start
 
-| Strategy | Use when | Behavior |
+### Install
+
+```bash
+git clone https://github.com/BRSAMAyu/bagel-genesis.git
+# Copy or symlink into your agent's skills directory:
+ln -s "$(pwd)/bagel-genesis" ~/.codex/skills/bagel-genesis      # Codex
+ln -s "$(pwd)/bagel-genesis" ~/.claude/skills/bagel-genesis     # Claude Code
+```
+
+### Use
+
+Just describe your goal and delegate:
+
+```text
+Use bagel-genesis.
+
+I have a rough idea for a [product/research/tool]. Here's what I want:
+...
+
+Start with deep alignment, then run stable_long_run autonomous iteration.
+Wake me only for true hard-stops. I want a morning briefing.
+```
+
+Or for an existing project:
+
+```text
+Use bagel-genesis.
+
+This repo is an existing project. Run Project Cartographer first to understand
+what exists and what must be preserved. Then run autonomous polish and optimization.
+```
+
+### Validate
+
+```bash
+# Validate the skill itself (schema drift, cross-file consistency)
+python bagel-genesis/scripts/skill_lint.py bagel-genesis
+
+# Validate a running BAGEL project (all 17+ runtime checks)
+python bagel-genesis/scripts/bagel_v3_check.py /path/to/project
+
+# Dryrun the test-prompts regression suite
+python bagel-genesis/scripts/test_prompts_dryrun.py bagel-genesis
+```
+
+---
+
+## The Three Phases
+
+### Align → Build → Polish
+
+| Phase | What happens | Gate |
 |---|---|---|
-| `stable_long_run` | overnight / unattended work | lower write parallelism, stronger verification, continuous cycles |
-| `balanced_parallel` | speed and reliability both matter | moderate concurrency and review depth |
-| `fast_parallel` | user is nearby and rollback is cheap | faster exploration, more aggressive parallelism |
+| **Align** | Capture vision, taste, hard-stops. Reframe the stated problem. Map leverage. Calibrate what "excellent" means for this domain. | 🔴 STOP CONTRACT captured |
+| **Build** | Slice into bounded chunks. Each slice: implement → verify → record evidence → review. Recover on failure. | 🔴 BUILD UNLOCK (all gates pass) |
+| **Polish** | Critique, raise the bar, verify. Continue until budget exhausted or excellence horizon reached. | 🔴 FINAL DELIVERY |
 
-### Runtime Loop and Timer Binding
+**The tie-breaker:** when friction hits, BAGEL continues by default — repair, shrink, isolate, switch strategy, or work on another high-value task. It wakes you only for genuine hard-stops (irreversible damage, credentials, production data, core identity changes).
 
-When the user says "start autonomous iteration," BAGEL should not park in planning-only mode. It must bind to the strongest available runtime:
+---
 
-- `scheduled_resume`: platform automation, scheduled task, or timer
-- `external_harness`: cron, launchd, cloud task, CLI loop, or other harness
-- `active_session_loop`: current platform loop is actively running
-- `degraded_resume`: every native loop mechanism was proven unavailable, so unattended continuation is not guaranteed (STATUS `[DEGRADED]`)
+## Expert Strategy Council
 
-Loop state records trigger interval, next wake time, schedule proof, resume command, and telemetry.
+For high-impact decisions, BAGEL convenes a real multi-agent council — each member is a dispatched sub-agent with a verified dispatch record, not a role-play:
 
-### V2 Measured Runtime
+| Role | When required | Focus |
+|---|---|---|
+| **Domain Expert** | always | What "excellent" means here; observable signals |
+| **Evaluation Skeptic** | always | Is the metric gameable? Can it distinguish good from excellent? |
+| **User Proxy** | always | Does this serve the user's actual intent? |
+| **Systems Architect** | architecture/route decisions | Structural soundness, blast radius |
+| **Risk Officer** | high/critical risk | Sensitive surfaces, reversibility, authority |
+| **Innovation Strategist** | breakthrough probes | Non-local improvements |
 
-V2 makes long-run autonomy harder to fake:
+The **Principal Expert** synthesizes council verdicts + evidence + ROI into one binding `expert_decision_v1` record — with mechanically-validated risk derivation and owner identity.
 
-- adapter claims are not proof; R3 review, scheduled resume, hooks, and visual claims require observed proof files;
-- evidence records include command metadata, stdout/stderr hashes, env digest, and replay policy;
-- context pressure telemetry drives replace-not-compact before Orchestrator/worker contexts overflow;
-- handoffs and bounded actions are validated for idempotent resume;
-- governance budget distinguishes `.bagel/` control-plane work from deliverable progress;
-- scope deltas catch outside-path edits, new dependencies, sensitive surfaces, and product identity changes.
+---
 
-### V3.1 Executable Expert Runtime
+## Six Domain Expert Packs
 
-V3.1 makes the high-level work top experts do before and during execution dispatchable and validated:
+Each pack provides executable methodology (not just rubrics) for its artifact type:
 
-- define what top-tier means for this domain and artifact;
-- reframe the user's stated problem into the real problem to solve;
-- maintain a leverage map of bottlenecks and high-upside interventions;
-- critique evaluation specs so metrics cannot reward shallow proxy wins;
-- use Breakthrough Search for non-local improvements when ambition or stagnation demands it;
-- require Principal Expert decisions for high-impact choices;
-- track per-cycle ROI so tokens/time convert into user-relevant value.
+| Pack | Coverage |
+|---|---|
+| `software-product` | ghost-ship gate, typed contracts, slice-based delivery |
+| `research-experiment` | falsifiable hypothesis, ≥3 seeds, ablation matrix, FLOP accounting at iso-compute, statistical rigor, dataset integrity, practical significance |
+| `writing-longform` | premise pressure test, desire-conflict matrix, scene turns, anti-exposition, voice lock, continuity ledger |
+| `design-ui` | visual hierarchy, interaction completeness, accessibility |
+| `data-analysis` | hypothesis-driven analysis, statistical validity, honest visualization |
+| `ops-sre` | event-driven mode (observe/autofix/guarded), blast radius, rollback plans |
 
-### Objective Progress Signals
-
-Every cycle appends to:
-
-```text
-.bagel/evidence/progress-deltas.yaml
-```
-
-Each delta is classified as:
-
-- `forward`: measurable improvement or closed risk
-- `lateral`: activity without measurable progress
-- `backward`: regression, new blocker, degraded metric, or worse artifact state
-
-Three consecutive lateral cycles force a strategy switch. Backward cycles require repair, rollback, or isolation before unrelated polish.
-
-### Existing Project Takeover
-
-For existing projects, BAGEL does not ask the user to explain facts the repository can reveal. It runs a Project Cartographer pass and drafts:
-
-- current stack, entrypoints, run commands, verification commands
-- behavior baseline and known failures
-- protected surfaces: public APIs, data contracts, user-visible flows, design language, user promises
-- replaceable surfaces: rough prototypes, duplicated abstractions, accidental conventions, stale experiments
-- reusable assets that must not be duplicated
-- watched paths and context freshness
-
-The user can veto or correct the draft instead of reconstructing the whole project from memory.
-
-### Human-Readable Briefing
-
-BAGEL maintains:
-
-```text
-.bagel/STATUS.md
-.bagel/user_briefing/
-```
-
-Optional HTML dashboard support is defined in [`references/alignment-dashboard-html.md`](references/alignment-dashboard-html.md). The dashboard is a continuous, high-density visual summary of alignment, project reality, runtime state, risks, progress, and morning review items.
+---
 
 ## Repository Layout
 
 ```text
 bagel-genesis/
-├── SKILL.md
-├── README.md
-├── agents/
-│   ├── orchestrator.md
-│   ├── implementer.md
-│   ├── project-cartographer.md
-│   ├── independent-reviewer.md
+├── SKILL.md                    # Entry point — the operating protocol
+├── agents/                     # 26 role prompts (Orchestrator, workers, council, experts)
+├── references/                 # 63 trigger-loaded protocols
+│   ├── expert-packs/           # 6 domain-specific methodology packs
+│   ├── gate-predicates.md      # 41 hard gates (mechanically + agent-attested tiers)
 │   └── ...
-├── references/
-│   ├── alignment-protocol.md
-│   ├── project-understanding.md
-│   ├── loop-runtime.md
-│   ├── runtime-capabilities.md
-│   ├── platform-codex.md
-│   ├── platform-claude-code.md
-│   ├── excellence-loop.md
-│   ├── recovery-protocol.md
-│   ├── alignment-dashboard-html.md
+├── scripts/                    # 23 validation & runtime scripts
+│   ├── bagel_v3_check.py       # Master validator (17+ sub-checks)
+│   ├── expert_strategy_check.py# Expert autonomy + semantic integrity
+│   ├── skill_lint.py           # Schema-drift + cross-file consistency
+│   ├── test_prompts_dryrun.py  # Test-prompts regression suite
 │   └── ...
-├── scripts/
-│   ├── detect_runtime_capabilities.py
-│   ├── bagel_v3_check.py
-│   ├── bagel_run_check.py
-│   ├── bagel_memory_check.py
-│   ├── flywheel_check.py
-│   ├── evidence_replay_check.py
-│   ├── resume_integrity_check.py
-│   ├── scope_check.py
-│   ├── evaluation_quality_check.py
-│   ├── expert_strategy_check.py
-│   ├── roi_check.py
-│   ├── supervisor_boundary_check.py
-│   └── skill_lint.py
-└── evals/
-    └── evals.json
+├── evals/
+│   └── evals.json              # 120 behavior evals
+└── test-prompts.json           # 4 hard-scenario pressure tests
 ```
 
-## Installation
-
-### Codex
-
-Clone this repository or copy the `bagel-genesis/` folder into your Codex skills directory.
-
-Common local install:
-
-```bash
-mkdir -p ~/.codex/skills
-cp -R bagel-genesis ~/.codex/skills/
-```
-
-Then start a Codex session and ask for BAGEL by name, for example:
-
-```text
-Use the bagel-genesis skill. I want to align on this product idea, then run stable long-run autonomous iteration overnight.
-```
-
-### Claude Code
-
-Clone this repository somewhere Claude Code can read it, then reference the skill in your project instructions or ask Claude Code to use the `bagel-genesis` skill folder directly.
-
-Example prompt:
-
-```text
-Use /path/to/bagel-genesis as the BAGEL Genesis skill. First run deep alignment, then start stable long-run autonomous iteration. Do not remain in planning-only mode after alignment.
-```
-
-For long unattended work, configure Claude Code's available loop/scheduled-task mechanism, or let BAGEL detect and record whether only manual resume is available.
-
-### GitHub Source Install
-
-```bash
-git clone https://github.com/BRSAMAyu/bagel-genesis.git
-```
-
-Then copy or symlink the `bagel-genesis` directory into the skill location used by your agent platform.
-
-## Quick Start
-
-### Blank-Slate Product
-
-```text
-Use bagel-genesis.
-
-I want to build a polished app from this rough idea:
-...
-
-Start with standard alignment. Then use stable_long_run autonomous iteration for up to 12 cycles, checkpoint every 30 minutes, and wake me only for true hard-stops.
-```
-
-### Existing Project Takeover
-
-```text
-Use bagel-genesis.
-
-This repo is an existing product. First run Project Cartographer to understand what exists, what must be preserved, and what can be redesigned. Then ask me to veto the protected/replaceable draft. After that, run stable_long_run polish and implementation.
-```
-
-### Research or Optimization Run
-
-```text
-Use bagel-genesis.
-
-I want an autonomous experiment loop. Align on the benchmark, baseline, and stop criteria. If the first approach stalls, generate alternative hypotheses and keep testing. Record progress deltas and preserve all evidence.
-```
-
-## Runtime Configuration
-
-Before promising autonomous continuation, BAGEL should run:
-
-```bash
-python scripts/detect_runtime_capabilities.py --out .bagel/runtime_capabilities.yaml
-```
-
-This detects platform clues, CLI tools, scheduler availability, Git support, browser/visual-check support, and local tool-provisioning capability. The agent then maps those facts to one of:
-
-- `single_session`
-- `degraded_resume`
-- `scheduled_resume`
-- `external_harness`
-
-For explicit autonomous iteration, BAGEL must record a loop binding:
-
-```yaml
-loop_binding:
-  mode: scheduled_resume | external_harness | active_session_loop | degraded_resume   # <= 25 min
-  platform: codex | claude_code | other
-  schedule_id: ""
-  trigger_interval_minutes: 10
-  next_wakeup_at: "ISO-8601"
-  resume_command_or_action: ""
-  proof:
-    - "automation id, cron entry, scheduled task, active /loop config, or harness command"
-```
-
-If the result is `degraded_resume`, the agent must not claim it will continue unattended and STATUS.md is marked `[DEGRADED]`.
-
-## `.bagel/` Runtime State
-
-BAGEL writes project-local durable state under `.bagel/`. This directory is runtime state and should usually be ignored by Git.
-
-Quick mode uses a compact control plane:
-
-```text
-.bagel/
-├── state.yaml
-├── constitution.yaml
-├── context.yaml
-├── ledger.yaml
-├── STATUS.md
-├── evidence/
-│   ├── progress-deltas.yaml
-│   └── bar-raises.yaml
-└── user_briefing/
-    └── alignment-dashboard.html
-```
-
-Full mode expands into detailed files for broad, high-risk, multi-day, or parallel work.
-
-## Validation
-
-Validate the skill itself:
-
-```bash
-python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py /path/to/bagel-genesis
-python /path/to/bagel-genesis/scripts/skill_lint.py /path/to/bagel-genesis
-python3 -m json.tool /path/to/bagel-genesis/evals/evals.json >/dev/null
-```
-
-Validate a BAGEL V2 run:
-
-```bash
-python /path/to/bagel-genesis/scripts/bagel_v3_check.py /path/to/project
-```
-
-`bagel_v3_check.py` calls the operational, Supervisor-boundary, runtime-proof, dispatch-envelope, flywheel, memory, telemetry, deliverable-delta, handoff, evidence replay, scope, evaluation-quality, expert-strategy, ROI, alignment freshness, reference-load, and emergency-stop checks. Individual scripts remain useful for diagnosis.
+---
 
 ## Safety Model
 
-BAGEL is autonomy-first, but not reckless. It should continue through ordinary friction:
+BAGEL is **autonomy-first, not reckless**.
 
-- missing tests or verifiers
-- broken local setup
-- failing experiments
-- UI quality gaps
-- review failures
-- temporary blocked lanes
-- need for local scripts, screenshots, benchmarks, or harnesses
+**Continues through** (autonomy-solvable):
+- missing tests, verifiers, or local tools → Runtime Doctor provisions them
+- broken environment → docker-compose/mock-server repair (real protocol, not in-process stub)
+- failing experiments → strategy switch / breakthrough search
+- review failures, blocked lanes, UI gaps
 
-It should stop or wake the user only for true hard-stops:
-
+**Wakes you only for** (hard-stop boundaries):
 - irreversible or non-recoverable destructive action
-- production data or production infrastructure changes
-- credentials, tokens, paid accounts, or paid services
-- serious security, privacy, legal, or financial risk
-- core product/research identity changes
+- production data or infrastructure changes
+- credentials, tokens, paid resources
+- serious security/privacy/legal/financial risk
+- core product or research identity changes
 - explicit user-forbidden boundaries
 
-## Current Status
+---
 
-BAGEL Genesis v3.0 is documentation-complete and internally validated:
+## Runtime Validation (17+ checks)
 
-- skill metadata validation passes
-- BAGEL consistency lint passes
-- evals JSON is valid and sequential
-- 109 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, Supervisor nesting/resume, Context Tree replace-not-compact policy, V3.1 executable expert autonomy, domain excellence, problem framing, Evaluation Critic, Principal Expert decisions, ROI control, Supervisor boundary and role guard enforcement, runtime proof, replayable evidence, handoff/idempotency, governance budget, scope control, taste freshness, artifact-specific lenses, innovation probes, lesson memory, iteration accounting, Runtime Doctor delegation, and control-plane separation
-- long-run benchmark scaffold exists under `evals/long-run/`
+`bagel_v3_check.py` orchestrates a comprehensive validation suite against any running BAGEL project:
 
-The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.
+```text
+✓ bagel_run_check         ✓ supervisor_boundary      ✓ runtime_proof
+✓ dispatch_envelope       ✓ flywheel                 ✓ bagel_memory
+✓ bagel_telemetry         ✓ deliverable_delta        ✓ resume_integrity
+✓ evidence_replay         ✓ scope                    ✓ evaluation_quality
+✓ expert_strategy         ✓ roi                      ✓ alignment_freshness
+✓ reference_load          ✓ emergency_stop
+```
+
+Each check exits non-zero on failure, making the gate mechanically enforced.
+
+---
+
+## <a id="changelog"></a>Changelog
+
+### v3.4.1 — Darwin convergence (Semantic Integrity Runtime)
+- Fixed `path_ref` runtime bug found by Darwin independent judge (P0-1 council validation was unreachable)
+- Closed named-dependency opt-out hole (missing record now inferred from evidence)
+- Added V3.4 Semantic Integrity Checks table to SKILL.md
+
+### v3.4 — Semantic Integrity Runtime (hard-to-fake expert runtime)
+- **P0-1** Council output content validation (verdict body, not just file existence)
+- **P0-2** Decision owner dispatch registry verification
+- **P0-3** `risk_level`/`risk_basis`/`authority_ref` schema + derived risk checks
+- **P0-4** Supervisor boundary schema enforcement + expanded forbidden commands
+- **P0-5** Parent/child dispatch path conflict detection
+- **P0-6** `git_target` split (branch names with `/` no longer false-flagged)
+- **P0-7** Domain freshness hard-enforce by expert layer mode
+- **P0-8** Premise fidelity / proxy substitution defense
+- **P0-9** Named dependency protocol substitution check
+- **P0-10** Dataset integrity (split hashes, disjointness, test-set tuning)
+- **P1** Schema drift lint, test-prompts dryrun CI, reference source_hash grouping, governance budget breakdown, writing-longform + ops-sre pack expansion
+
+### v3.3 — Coding + research fault-path hardening
+- Requirement Coherence Check + contradiction-family table
+- Unfalsifiable-premise termination rule
+- Runtime Doctor repair primitives (docker-compose/mock-server, forbid in-process stub)
+- Gates promoted from prose to agent-attested mechanism
+
+### v3.2 — Darwin-optimized skill quality (71→85.9)
+- Visual 🔴 checkpoint markers + autonomy-vs-checkpoint disambiguation
+- Consolidated Anti-Patterns & Red Lights chapter (14 entries)
+- Softened hedges → precise thresholds (25%/40% governance budget)
+- Research-experiment pack: 8-step experimental methodology + statistical rigor
+
+### v3.1 — Executable Expert Runtime
+- Expert Strategy Council with real dispatch, Expert Decision v1 schema, ROI controller
+
+### v3.0 — Expert Autonomy Layer
+### v2.0 — Measured Runtime (evidence-not-trust, replace-not-compact)
+### v1.0 — Initial protocol
+
+---
+
+## Credits & Inspiration
+
+- **[Karpathy autoresearch](https://github.com/karpathy/autoresearch)** — the "only keep measurable improvements" ratchet philosophy that inspired the Darwin optimization process used to refine this skill (v3.2→v3.4 were each validated by independent judge agents, keeping only changes that measurably improved quality).
+- **[Microsoft SkillLens](https://arxiv.org/abs/2605.23899)** — empirical evidence that LLM-as-judge skill evaluation is only 46.4% accurate; adding meta-skill dimensions (anti-patterns, failure modes) raises it to 73.8%. BAGEL's 9-dimension rubric and anti-cheat validators are grounded in this research.
+
+---
 
 ## License
 
