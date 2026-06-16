@@ -9,8 +9,9 @@ A skill-level operating protocol that makes an autonomous agent do *real expert 
 `Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.4.1-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v3.5-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
+[![Darwin](https://img.shields.io/badge/Darwin-4%20rounds%2083.8%E2%86%9288.6-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 </div>
@@ -256,6 +257,20 @@ Each check exits non-zero on failure, making the gate mechanically enforced.
 ---
 
 ## <a id="changelog"></a>Changelog
+
+### v3.5 — High-pressure scenario validation (Darwin 4-round ratchet, 83.8→88.6)
+
+Validated the skill against **9 adversarial pressure scenarios** (fault-injection recovery, CAP contradictions, unfalsifiable premises, gameable metrics, monorepo takeover, compaction/resume, production-data hard-stop, governance-budget overload, mid-run scope creep) using independent blind judges. Each round kept only improvements; the ratchet exposed progressively deeper layers until convergence at an implementation-engineering boundary (HL-4).
+
+**Mechanical gates promoted from agent-attested to enforced:**
+- `requirement_coherence_checked` — CAP/latency/strong-vs-eventual/realtime/cost contradiction families; a matched family requires a human decision that *names the family AND carries a resolution action* (a generic "tradeoff" note no longer clears it)
+- `premise_falsifiable` — unfalsifiable subjects (consciousness/qualia/free-will) + prove/exists claims route to 🔴 S1 hard-stop, not silent execution
+- `gameable_metric_paired` — a retrieval headline (hit@1/precision@1/exact-match) cannot be the sole quality signal without a robustness pair (MRR/nDCG/recall@k/held-out)
+- `court_verdict_accepted` — a Constitutional Court ref must point at a record whose verdict is accepted; a rejected/stub ruling fails scope_delta
+- `stale_skill_state` — diffs the SKILL.md hash recorded at spawn against the current skill; a stale topology must be re-anchored, not obeyed
+- Mode-aware governance budget — quick ≤25%, full ≤40%, per-cycle hard fail (was a flat 30% with streak-warning-only)
+
+**Honesty layer:** the Enforcement Model now stratifies gates into robust-mechanical / lexical-keyword / mixed / agent-attested-by-design, and an "Enforcement honesty" section in SKILL.md discloses the 3 known limits (keyword matchers evadable by paraphrase; governance_token_share self-reported; production-data STOP is a human checkpoint by design) — all implementation/platform boundaries, not skill-design gaps.
 
 ### v3.4.1 — Darwin convergence (Semantic Integrity Runtime)
 - Fixed `path_ref` runtime bug found by Darwin independent judge (P0-1 council validation was unreachable)

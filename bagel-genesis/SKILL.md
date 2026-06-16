@@ -534,6 +534,20 @@ These anti-cheat validators are unconditional for any non-lite run. They prevent
 | `validate_premise_fidelity` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity:` | proxy substitution without user consent, silent premise rewrite |
 | `validate_named_dependency_protocol` | `.bagel/expert/named-dependency-protocol.yaml` | in-memory fallback for a named external dependency (scan: in_memory/fake_redis/mock_redis/hashmap) |
 | `validate_dataset_integrity` | `.bagel/expert/dataset-integrity.yaml` | missing split hashes, no disjointness proof, test-set tuning, all-data preprocessing |
+| `validate_requirement_coherence` | `.bagel/ledger.yaml` → `human_decisions:` | mutually-exclusive requirements (CAP/latency-bandwidth/strong-vs-eventual/realtime-vs-offline/cost-vs-capability) built without a recorded human tradeoff decision |
+| `validate_premise_falsifiable` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity`/`falsifiability:` | unfalsifiable premise (consciousness/qualia/free-will + prove/exists claim) run without reframing to a concrete metric + falsifier |
+| `validate_gameable_metric_pairing` | `.bagel/state.yaml` → `evaluation.metrics` | a gameable retrieval headline (hit@1/precision@1/exact-match) used as the sole quality signal without a robustness/ranking pair (MRR/nDCG/MAP/recall@k/held-out) |
+| governance budget mode-aware ceiling | `.bagel/telemetry/cycles.yaml` → `budget.governance_token_share` | governance share exceeding the run-mode cap (quick ≤25%, full ≤40%) — per-cycle hard fail, not just a streak warning |
+
+### Enforcement honesty (what the validators can and cannot guarantee)
+
+The validators above are **hard-to-fake** for the named attack form, not **impossible-to-fake** against an adversarial paraphrase. Three known limits, each a platform/implementation boundary rather than a skill-design gap:
+
+1. **Keyword/label matchers are evadable by synonym.** `validate_named_dependency_protocol` scans for a fixed fallback-label set; `validate_requirement_coherence` matches contradiction-family signal strings; `validate_gameable_metric_pairing` matches gameable metric names. An agent that paraphrases ("LocalStore" instead of "in_memory", "strictly ordered writes" instead of "强一致", "top-1 accuracy" instead of "hit@1") evades the literal match. Closing this requires semantic parsing, which is implementation engineering outside skill scope. The matchers still raise the bar against the common/careless cheat and pair with the agent-attested gates as a second line.
+2. **`governance_token_share` is self-reported.** A skill-level script cannot measure the agent's real token spend; it reads the number the agent records. The mode-aware ceiling (25%/40%) is enforced against the reported number, so an agent that lies about its share evades the budget gate. Independent token accounting is a platform-engineering capability, recorded as a known limit.
+3. **The production-data/credential hard-stop (S7) has no code-diff scanner.** A STOP for production-data risk is, by design, a human judgment checkpoint (🔴 CHECKPOINT · S1 HARD-STOP) — no script can decide whether a given connection is a sanctioned read or an unsanctioned PII sample. The hard-stop boundary is enforced by the checkpoint protocol and Anti-Pattern #9, not by a regex over the codebase.
+
+Do not present these limits as solved. They are disclosed so downstream agents and auditors know exactly which guarantees are mechanical and which depend on cooperative/honest execution.
 
 ## Hard Gates
 

@@ -54,8 +54,20 @@ def collect_cycles(root: Path) -> list[dict[str, Any]]:
 
 
 def configured_budget(root: Path, state: dict[str, Any]) -> dict[str, Any]:
+    # Mode-aware default ceiling, matching SKILL.md governance-budget rule:
+    # quick_autonomy ≤ 25%, full_genesis ≤ 40%, parallel_advanced ≤ 40%.
+    # The run mode is recorded in state.run_mode (or state.bagel_mode).
+    mode = str(state.get("run_mode") or state.get("bagel_mode") or "").lower()
+    if mode in {"full_genesis", "full", "parallel_advanced", "parallel"}:
+        mode_ceiling = 0.40
+    elif mode in {"quick_autonomy", "quick"}:
+        mode_ceiling = 0.25
+    else:
+        # Unknown/unset mode: use the stricter default so a missing run_mode cannot
+        # silently widen the governance budget beyond the quick_autonomy ceiling.
+        mode_ceiling = 0.25
     defaults = {
-        "max_control_plane_share_per_cycle": 0.30,
+        "max_control_plane_share_per_cycle": mode_ceiling,
         "first_deliverable_delta_required_by_cycle": 2,
         "max_cycles_without_deliverable_delta": 2,
     }
@@ -119,12 +131,25 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
 
         if isinstance(share, (int, float)) and share > max_share:
             high_governance_streak += 1
+            # Per-cycle hard fail: a single cycle breaching the governance ceiling is a
+            # governance_budget_respected gate failure, not just a warning. The ceiling is
+            # mode-aware (quick ≤0.25, full ≤0.40) per SKILL.md L337.
+            fail(errors, f"cycle {idx}: governance_token_share {share:.2f} exceeds ceiling {max_share:.2f} for this run mode (governance_budget_respected gate)")
         else:
             high_governance_streak = 0
         if high_governance_streak >= 2:
             warn(warnings, f"cycle {idx}: governance_token_share exceeded {max_share:.2f} for 2 consecutive cycles")
-        if max_share > 0.30 and not budget.get("approval_ref"):
-            fail(errors, "governance_budget.max_control_plane_share_per_cycle cannot exceed 0.30 without approval_ref")
+        # Hard guardrail: the configured ceiling must not exceed the mode's documented cap
+        # (quick_autonomy 0.25, full_genesis/parallel_advanced 0.40) without an approval_ref.
+        # SKILL.md L337: quick ≤25%, full ≤40%. An unapproved ceiling above the mode cap
+        # means governance silently widened beyond what the run mode permits.
+        mode = str(state.get("run_mode") or state.get("bagel_mode") or "").lower()
+        if mode in {"full_genesis", "full", "parallel_advanced", "parallel"}:
+            mode_cap = 0.40
+        else:
+            mode_cap = 0.25  # quick_autonomy and unknown both get the stricter cap
+        if max_share > mode_cap and not budget.get("approval_ref"):
+            fail(errors, f"governance_budget.max_control_plane_share_per_cycle cannot exceed {mode_cap:.2f} for {mode or 'quick_autonomy'} mode without approval_ref (SKILL.md governance-budget rule)")
         if max_no_delta > 2 and not budget.get("approval_ref"):
             fail(errors, "governance_budget.max_cycles_without_deliverable_delta cannot exceed 2 without approval_ref")
 

@@ -108,6 +108,28 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             errors.append(f"{path}: architecture boundary change requires approval_ref")
         if rec.get("product_identity_changed") is True and not rec.get("constitutional_court_ref"):
             errors.append(f"{path}: product identity change requires constitutional_court_ref")
+        elif rec.get("product_identity_changed") is True:
+            # S9 fix: the ref must point to a Court record whose verdict ACCEPTED the
+            # amendment — not merely an existing file. A rejected/stub ruling must not
+            # satisfy the scope_delta gate (Judge G bypass: any existing file passed).
+            court_ref = str(rec.get("constitutional_court_ref") or "")
+            court_path = root / court_ref if not court_ref.startswith("/") else Path(court_ref)
+            verdict_accepted = False
+            verdict_detail = ""
+            if court_path.exists():
+                court_record = as_dict(load_yaml(court_path, {}))
+                # accept several common verdict field shapes
+                verdict = str(court_record.get("verdict") or court_record.get("decision") or court_record.get("ruling") or "").lower()
+                verdict_accepted = verdict in {"accept", "accepted", "approve", "approved", "amendment_accepted"}
+                verdict_detail = f"verdict='{verdict}'"
+            else:
+                verdict_detail = "ref file not found"
+            if not verdict_accepted:
+                errors.append(
+                    f"{path}: product identity change requires a Constitutional Court record "
+                    f"with an accepted verdict at {court_ref} ({verdict_detail}). A rejected "
+                    f"or stub ruling does not satisfy scope_delta_within_contract."
+                )
         sensitive = [key for key in SENSITIVE_KEYS if rec.get(f"{key}_touched") is True or rec.get(key) is True]
         if sensitive and not rec.get("explicit_contract_ref"):
             errors.append(f"{path}: sensitive scope touched ({', '.join(sensitive)}) without explicit_contract_ref")

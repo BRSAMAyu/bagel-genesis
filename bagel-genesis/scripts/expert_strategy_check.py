@@ -370,6 +370,164 @@ def validate_breakthrough(root: Path, state: dict[str, Any], errors: list[str]) 
             errors.append(f"breakthrough candidate {i}: breakthrough_quality needs at least 2 true properties")
 
 
+# Contradiction families for requirement_coherence_checked (S2 scenario gate).
+# Each family lists signals that, when 2+ co-occur in the requirement set, indicate a
+# jointly-unsatisfiable requirement pair that must be resolved by a recorded human decision.
+_REQUIREMENT_CONTRADICTION_FAMILIES = {
+    "cap_consistency_vs_availability": (
+        "strong consistency", "强一致", "linearizable", "serializable",
+        "high availability", "高可用", "partition tolerance", "分区容忍",
+        "断网继续写", "partition-tolerant writes",
+    ),
+    "latency_bandwidth": (
+        "p99 < 10ms", "p99<10ms", "p99 < 5ms", "p99 < 1ms",
+        "sub-10ms", "sub 10ms", "毫秒级", "极低延迟",
+        "cross-region strong consistency", "跨大洲强一致", "跨区域强一致",
+    ),
+    "strong_vs_eventual_merge": (
+        "strong consistency", "强一致",
+        "offline", "离线", "offline 24h", "离线24", "离线编辑", "long offline mutation",
+        "auto-merge", "自动合并", "automatic merge", "conflict-free merge",
+    ),
+    "realtime_vs_offline": (
+        "hard real-time", "硬实时", "real-time guarantee", "实时保证",
+        "unbounded offline", "无限离线", "offline buffering", "离线缓冲",
+    ),
+    "cost_vs_capability": (
+        "enterprise", "企业级",
+        "no dependencies", "不许加依赖", "zero infra", "zero budget", "不加任何依赖",
+    ),
+}
+
+
+def _requirement_text(root: Path, state: dict[str, Any]) -> str:
+    """Collect the full requirement/claim text for contradiction/falsifiability scanning."""
+    chunks: list[str] = []
+    constitution = as_dict(load_yaml(root / ".bagel/constitution.yaml", {}))
+    for key in ("vision", "north_star", "non_goals", "assumptions", "requirements", "completion_horizon"):
+        chunks.append(str(constitution.get(key) or ""))
+    chunks.append(str(state.get("task_queue") or ""))
+    chunks.append(str(state.get("current_requirements") or ""))
+    framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+    chunks.append(str(framing.get("user_stated_problem") or ""))
+    chunks.append(str(framing.get("inferred_real_problem") or ""))
+    return "\n".join(chunks).lower()
+
+
+def validate_requirement_coherence(root: Path, state: dict[str, Any], errors: list[str]) -> None:
+    """requirement_coherence_checked gate (S2 scenario).
+
+    Scan the requirement set against the contradiction families. When 2+ signals from
+    the same family co-occur, a contradiction is matched; a matched contradiction MUST
+    have a recorded human decision in the ledger that (a) references the matched family
+    and (b) names the requirement dropped/relaxed or the tradeoff accepted. A generic
+    "tradeoff" note that does not name the family or the requirement does NOT clear the
+    gate — that would let an unrelated color-choice decision satisfy a CAP contradiction.
+    "你看着办" is explicitly NOT a resolution.
+    """
+    text = _requirement_text(root, state)
+    if not text.strip():
+        return  # nothing to check pre-alignment
+    ledger = as_dict(load_yaml(root / ".bagel/ledger.yaml", {}))
+    human_decisions = as_list(ledger.get("human_decisions"))
+    # Pre-compute, per family, whether a human decision resolves THAT family.
+    # A resolution must both (a) cite the family id/synonym AND (b) name a requirement
+    # relaxation/drop/tradeoff action — not just contain the word "tradeoff".
+    RESOLUTION_KEYWORDS = ("relax", "drop", "relaxed", "dropped", "tradeoff", "trade-off",
+                           "accept", "降低", "放弃", "妥协", "权衡", "取舍", "接受")
+    for family, signals in _REQUIREMENT_CONTRADICTION_FAMILIES.items():
+        matched = [s for s in signals if s in text]
+        if len(matched) < 2:
+            continue
+        # Does any human_decision resolve THIS specific family? It must reference the
+        # family (by id, or by one of its signals) AND carry a resolution action verb.
+        family_id = family.lower()
+        signal_tokens = tuple(s.lower() for s in matched)
+        resolved = False
+        for d in human_decisions:
+            dtext = str(d).lower()
+            references_family = family_id in dtext or any(tok in dtext for tok in signal_tokens)
+            has_action = any(kw in dtext for kw in RESOLUTION_KEYWORDS)
+            if references_family and has_action:
+                resolved = True
+                break
+        if not resolved:
+            errors.append(
+                f"requirement_coherence_checked: contradiction family '{family}' matched "
+                f"(signals: {matched[:3]}). This requires a human decision in "
+                f".bagel/ledger.yaml human_decisions: that BOTH references this family "
+                f"(id '{family}' or one of its signals: {signal_tokens[:3]}) AND names the "
+                f"requirement dropped/relaxed or the tradeoff accepted. A generic unrelated "
+                f"'tradeoff' note does not clear this gate. '你看着办' is not a resolution."
+            )
+
+
+# Unfalsifiability signals — premises that cannot be operationalized into a test.
+# When these name an undefinable subject, the premise must be reframed, not run.
+_UNFALSIFIABLE_SUBJECTS = (
+    "consciousness", "意识", "qualia", "感受质", "free will", "自由意志",
+    "subjective experience", "主观体验", "what it is like", "phenomenal",
+    "hard problem of consciousness",
+)
+_UNFALSIFIABLE_CLAIM_MARKERS = (
+    "prove", "证明", "disprove", "is computable", "可计算", "can be computed",
+    "is real", "是真实的", "exists", "qualia exists",
+)
+# A falsifiable premise must record a concrete metric AND a concrete falsifier.
+_FALSIFIER_REQUIRED_FIELDS = ("falsifiable_metric", "falsifier")
+
+
+def validate_premise_falsifiable(root: Path, state: dict[str, Any], errors: list[str]) -> None:
+    """premise_falsifiable gate (S3 scenario).
+
+    For research/theory/benchmark runs, the premise must be operationalizable. If the
+    stated problem names an unfalsifiable subject (consciousness/qualia/free will) with
+    a proof/exists claim and records no concrete metric + falsifier, the gate fails and
+    routes to a CHECKPOINT S1 hard-stop — the agent must NOT silently run the experiment
+    or substitute a proxy.
+    """
+    artifact_type = str(
+        as_dict(state.get("artifact_profile")).get("type")
+        or as_dict(load_yaml(root / ".bagel/constitution.yaml", {})).get("artifact_type")
+        or ""
+    ).lower()
+    is_research_like = any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study"))
+    framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+    stated = str(framing.get("user_stated_problem") or "").lower()
+    # Detect an unfalsifiable subject + proof/exists claim even outside an explicit research type
+    has_unfalsifiable_subject = any(s in stated for s in _UNFALSIFIABLE_SUBJECTS)
+    has_proof_claim = any(m in stated for m in _UNFALSIFIABLE_CLAIM_MARKERS)
+    if not (is_research_like or (has_unfalsifiable_subject and has_proof_claim)):
+        return  # gate only applies to research/theory or a clearly unfalsifiable claim
+    # premise_fidelity or a dedicated falsifier block records the operationalization
+    pf = as_dict(framing.get("premise_fidelity"))
+    falsifier_block = as_dict(framing.get("falsifiability") or framing.get("falsifier_record"))
+    source = pf or falsifier_block
+    # If the premise was reframed to a falsifiable sub-question, it must be labeled as such
+    reframed_as_falsifiable = (
+        source.get("reframed_as_subquestion") is True
+        or source.get("checkpoint_required") is True
+        or source.get("falsifiable_metric")
+    )
+    if has_unfalsifiable_subject and has_proof_claim and not reframed_as_falsifiable:
+        errors.append(
+            "premise_falsifiable: the stated problem names an unfalsifiable subject "
+            "(e.g. consciousness/qualia/free will) with a prove/exists claim but records "
+            "no reframing to a falsifiable sub-question. This premise CANNOT be run as-is; "
+            "it must route to a 🔴 CHECKPOINT S1 hard-stop and be reframed into a concrete "
+            "metric + falsifier (see research-experiment §1). Do not silently run it or "
+            "substitute a proxy."
+        )
+        return
+    # When a falsifier is expected, require both a metric and a falsifier
+    if is_research_like and not source.get("falsifiable_metric") and not source.get("falsifier"):
+        errors.append(
+            "premise_falsifiable: research/theory artifact requires a concrete "
+            "falsifiable_metric AND a concrete falsifier recorded in "
+            ".bagel/expert/problem-framing.yaml (premise_fidelity or falsifiability block)"
+        )
+
+
 def validate_premise_fidelity(root: Path, errors: list[str]) -> None:
     """P0-8: premise fidelity / proxy-substitution defense.
 
@@ -569,6 +727,11 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         domain = as_dict(load_yaml(root / ".bagel/expert/domain-excellence.yaml", {}))
         validate_domain_model(root, domain, errors, warnings)
         validate_breakthrough(root, state, errors)
+        # S2/S3 scenario safety gates run in every mode (they are safety checks, not
+        # expert-ritual checks): a CAP contradiction or unfalsifiable premise must be
+        # caught even in a lite run, not silently built.
+        validate_requirement_coherence(root, state, errors)
+        validate_premise_falsifiable(root, state, errors)
         return errors, warnings
 
     for rel, required_fields in REQUIRED_EXPERT_FILES.items():
@@ -600,6 +763,9 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     validate_premise_fidelity(root, errors)
     validate_named_dependency_protocol(root, errors)
     validate_dataset_integrity(root, errors)
+    # S2/S3 scenario gates: requirement coherence + premise falsifiability
+    validate_requirement_coherence(root, state, errors)
+    validate_premise_falsifiable(root, state, errors)
     return errors, warnings
 
 
