@@ -9,9 +9,9 @@ A skill-level operating protocol that makes an autonomous agent do *real expert 
 `Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.6-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v3.7-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
-[![Darwin](https://img.shields.io/badge/Darwin-91.1-blueviolet)](#changelog)
+[![Darwin](https://img.shields.io/badge/Darwin-5%20judges-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 </div>
@@ -257,6 +257,19 @@ Each check exits non-zero on failure, making the gate mechanically enforced.
 ---
 
 ## <a id="changelog"></a>Changelog
+
+### v3.7 — Five-judge full-skill audit (5 independent perspectives, 6 consensus weaknesses fixed)
+
+Dispatched 5 independent agents from completely different perspectives (architecture/coherence, adversarial red-team, usability/executability, research-integrity, completeness/coverage) to freely and fully review the entire skill. They found 8 consensus weaknesses (C1-C8) the prior same-context judges had missed. 5 Darwin rounds fixed C1-C6:
+
+- **C1 (omission-as-pass):** scope_check + dispatch now derive coverage from `git diff` — an agent that makes out-of-scope edits without recording a scope_delta **fails** (was: silently passed when the record was omitted)
+- **C2 (statistical rigor):** new `validate_statistical_rigor` — headline claims require n_seeds≥5, a significance test (paired_t/wilcoxon/bootstrap) with p_value, effect_size, correction, AND **p_value < pre_registered_threshold** (presence-only was theater)
+- **C3 (claim-evidence matrix):** new `validate_claim_evidence_matrix` — each claim maps to metric + run_refs (files must exist) + ablation_status + reproducibility_status; headline claims fail if ablation=pending or repro=missing
+- **C4 (output-side secret leak):** new `no_hardcoded_secrets` gate — scans generated code for AWS keys / GitHub PATs / private key blocks / Stripe live keys / Slack tokens; fails **unconditionally** (no acknowledgment can clear a committed secret)
+- **C5 (gate-index drift):** SKILL.md Hard Gates replaced static 40-item list with family-grouped pointer to the authoritative 53-predicate table + `skill_lint.check_version_drift` catches future drift
+- **C6 (v2_check + compact):** orchestrator.md v2_check→v3_check, "Context Compaction" → "Context Hygiene (handoff-and-replace)" — aligns with replace-not-compact policy
+
+Remaining (C7 a11y/perf/i18n ungated, C8 evidence existence-only for non-dataset claims) are disclosed as known limits — they require domain-specific tooling integration (axe-core, Lighthouse) beyond skill-scope validators.
 
 ### v3.6 — Deep gap closure (Darwin ratchet, 88.6→91.1)
 

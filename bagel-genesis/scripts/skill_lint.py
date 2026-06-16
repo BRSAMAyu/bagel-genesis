@@ -103,6 +103,7 @@ def main() -> int:
     failures.extend(check_v20_measured_runtime(root))
     failures.extend(check_loading_matrix_files_exist(root))
     failures.extend(check_v34_schema_drift(root))
+    failures.extend(check_version_drift(root))
 
     if failures:
         print("BAGEL skill lint failed:")
@@ -799,6 +800,36 @@ def check_v34_schema_drift(root: Path) -> list[str]:
         for f in sorted(missing):
             out.append(f"schema drift: {councilor}.md expert_council_verdict missing expected field {f!r}")
 
+    return out
+
+
+def check_version_drift(root: Path) -> list[str]:
+    """v3.7 cross-file version-consistency checks (Judge S1 finding C5+C6).
+
+    Catches: (1) deprecated bagel_v2_check.py references in agent/reference prompts
+    (the real suite is bagel_v3_check.py); (2) the "compact" instruction in orchestrator.md
+    contradicting the replace-not-compact policy; (3) SKILL.md gate-index under-counting
+    gate-predicates.md (the static list was replaced with a pointer, but verify it stays
+    a pointer, not a re-enumerated list that drifts).
+    """
+    out: list[str] = []
+    # C6a: no agent/reference prompt should reference the deprecated bagel_v2_check.py
+    for mdfile in sorted(root.glob("agents/*.md")) + sorted(root.glob("references/*.md")):
+        content = mdfile.read_text(encoding="utf-8", errors="ignore")
+        if "bagel_v2_check.py" in content:
+            out.append(f"{mdfile.relative_to(root)}: references deprecated bagel_v2_check.py — use bagel_v3_check.py (the v2 file is a legacy shim)")
+    # C6b: orchestrator.md must not instruct self-compaction (replace-not-compact policy)
+    orch_path = root / "agents/orchestrator.md"
+    orch = orch_path.read_text(encoding="utf-8", errors="ignore") if orch_path.exists() else ""
+    if re.search(r"(?im)^\s*compact\s+(after|or discard|context)", orch):
+        out.append("agents/orchestrator.md: instructs self-compaction which contradicts the replace-not-compact policy (supervisor-resilience.md). Use handoff-and-replace.")
+    # C5: SKILL.md Hard Gates section should reference gate-predicates.md, not re-enumerate
+    skill_path = root / "SKILL.md"
+    skill = skill_path.read_text(encoding="utf-8", errors="ignore") if skill_path.exists() else ""
+    if "## Hard Gates" in skill:
+        gates_section = skill.split("## Hard Gates")[1].split("##")[0]
+        if "gate-predicates.md" not in gates_section:
+            out.append("SKILL.md: Hard Gates section does not reference gate-predicates.md as the authoritative source — a static list here will drift from the real predicate table")
     return out
 
 

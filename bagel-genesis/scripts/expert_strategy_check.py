@@ -920,6 +920,134 @@ def validate_dataset_integrity(root: Path, errors: list[str]) -> None:
         errors.append("dataset_integrity: preprocessing_fit_on=all_data without justification (potential leakage)")
 
 
+def validate_claim_evidence_matrix(root: Path, state: dict[str, Any], errors: list[str]) -> None:
+    """C3 fix (Judge S4): the claim-evidence matrix (research-experiment §7) was never validated.
+
+    For research/theory/benchmark artifacts with a claim-evidence.yaml, each claim row must
+    carry a metric, non-empty run_refs (evidence files that exist), an ablation_status, and a
+    reproducibility_status. A headline claim with ablation_status=pending or reproducibility_status
+    =missing fails — the claim outruns its evidence.
+    """
+    artifact_type = str(
+        as_dict(state.get("artifact_profile")).get("type")
+        or as_dict(load_yaml(root / ".bagel/constitution.yaml", {})).get("artifact_type")
+        or ""
+    ).lower()
+    if not any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study")):
+        return  # claim-evidence matrix only applies to empirical/research artifacts
+    ce_path = root / ".bagel/expert/claim-evidence.yaml"
+    if not ce_path.exists():
+        # check whether the run made headline claims that require a matrix
+        framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+        has_headline_claim = bool(framing.get("headline_claim") or framing.get("primary_claim"))
+        if has_headline_claim:
+            errors.append(
+                "claim_evidence_matrix: a headline claim is recorded but no .bagel/expert/"
+                "claim-evidence.yaml exists. Every research claim must map to a claim-evidence "
+                "row with metric, run_refs, ablation_status, and reproducibility_status "
+                "(research-experiment §7)."
+            )
+        return
+    ce = as_dict(load_yaml(ce_path, {}))
+    claims = as_list(ce.get("claims") or ce.get("claim_evidence"))
+    if not claims:
+        errors.append("claim_evidence_matrix: claim-evidence.yaml exists but has no claim rows")
+        return
+    for i, raw in enumerate(claims, start=1):
+        c = as_dict(raw)
+        for field in ("claim_text", "metric", "run_refs"):
+            if not c.get(field):
+                errors.append(f"claim_evidence_matrix: claim {i} missing required field {field}")
+        run_refs = as_list(c.get("run_refs"))
+        if run_refs:
+            missing_refs = [str(r) for r in run_refs if not (root / str(r)).exists()]
+            if missing_refs:
+                errors.append(f"claim_evidence_matrix: claim {i} run_refs point to nonexistent files: {missing_refs[:3]}")
+        ablation = str(c.get("ablation_status") or "").lower()
+        repro = str(c.get("reproducibility_status") or "").lower()
+        is_headline = c.get("is_headline") is True or "headline" in str(c.get("claim_text") or "").lower()
+        if is_headline and ablation == "pending":
+            errors.append(f"claim_evidence_matrix: claim {i} is a headline claim but ablation_status=pending — a headline claim must survive ablation before it can be reported")
+        if is_headline and repro == "missing":
+            errors.append(f"claim_evidence_matrix: claim {i} is a headline claim but reproducibility_status=missing — a headline claim must have verified or claimed reproducibility")
+
+
+def validate_statistical_rigor(root: Path, state: dict[str, Any], errors: list[str]) -> None:
+    """C2 fix (Judge S4): statistical rigor was prose-only — no validator enforced it.
+
+    For research/theory/benchmark artifacts with headline claims, require:
+    - n_seeds >= 3 (>= 5 for headline claims)
+    - a test_result block with {test_type, statistic, p_value, effect_size, correction_applied}
+      where test_type is paired_t or wilcoxon and correction_applied is bonferroni/bh/none
+    - a pre_registered_threshold; if changed, a threshold_change_reason + checkpoint
+    Catches: single-seed wins, missing p-values, post-hoc threshold movement.
+    """
+    artifact_type = str(
+        as_dict(state.get("artifact_profile")).get("type")
+        or as_dict(load_yaml(root / ".bagel/constitution.yaml", {})).get("artifact_type")
+        or ""
+    ).lower()
+    if not any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study")):
+        return
+    # Only enforce when a statistical-results record exists OR headline claims exist
+    sr_path = root / ".bagel/expert/statistical-rigor.yaml"
+    ce_path = root / ".bagel/expert/claim-evidence.yaml"
+    has_headline = False
+    if ce_path.exists():
+        ce = as_dict(load_yaml(ce_path, {}))
+        for raw in as_list(ce.get("claims") or ce.get("claim_evidence")):
+            c = as_dict(raw)
+            if c.get("is_headline") is True or "headline" in str(c.get("claim_text") or "").lower():
+                has_headline = True
+                break
+    if not sr_path.exists():
+        if has_headline:
+            errors.append(
+                "statistical_rigor: headline research claims exist but no .bagel/expert/"
+                "statistical-rigor.yaml record exists. Headline claims require n_seeds>=5, "
+                "a test_result block (paired_t/wilcoxon + p_value + effect_size + correction), "
+                "and a pre_registered_threshold (research-experiment §8)."
+            )
+        return
+    sr = as_dict(load_yaml(sr_path, {}))
+    n_seeds = sr.get("n_seeds")
+    if not isinstance(n_seeds, (int, float)) or n_seeds < 3:
+        errors.append(f"statistical_rigor: n_seeds={n_seeds} is below the minimum of 3 (>=5 for headline claims) — a single-seed result is not statistically valid")
+    elif has_headline and n_seeds < 5:
+        errors.append(f"statistical_rigor: n_seeds={n_seeds} is below 5 for a headline claim — headline claims need >=5 seeds")
+    seeds = as_list(sr.get("seeds"))
+    if seeds and len(seeds) < 3:
+        errors.append(f"statistical_rigor: seeds list has {len(seeds)} entries, below the minimum of 3")
+    test = as_dict(sr.get("test_result"))
+    if has_headline or sr.get("test_result"):
+        for field in ("test_type", "statistic", "p_value", "effect_size", "correction_applied"):
+            if not test.get(field):
+                errors.append(f"statistical_rigor: test_result missing required field {field}")
+        test_type = str(test.get("test_type") or "").lower()
+        if test_type and test_type not in {"paired_t", "paired-t", "wilcoxon", "t_test", "t-test", "bootstrap"}:
+            errors.append(f"statistical_rigor: test_result.test_type='{test_type}' is not a recognized significance test (paired_t/wilcoxon/bootstrap)")
+        correction = str(test.get("correction_applied") or "").lower()
+        if correction and correction not in {"none", "bonferroni", "bh", "benjamini-hochberg", "holm"}:
+            errors.append(f"statistical_rigor: test_result.correction_applied='{correction}' is not recognized (none/bonferroni/bh/holm)")
+        # Significance check (Judge U finding): p_value must actually be below the
+        # pre-registered threshold for a headline "win" claim — presence-only is theater.
+        p_value = test.get("p_value")
+        threshold = sr.get("pre_registered_threshold")
+        if has_headline and isinstance(p_value, (int, float)) and isinstance(threshold, (int, float)):
+            if p_value >= threshold:
+                errors.append(
+                    f"statistical_rigor: headline claim reports p_value={p_value} >= pre_registered_threshold={threshold} "
+                    f"— the result is NOT statistically significant at the pre-registered threshold. "
+                    f"A headline 'win' claim requires p_value < threshold."
+                )
+    pre_threshold = sr.get("pre_registered_threshold")
+    if pre_threshold is not None and sr.get("threshold_changed") is True:
+        if not sr.get("threshold_change_reason"):
+            errors.append("statistical_rigor: threshold_changed=true but no threshold_change_reason — moving a pre-registered threshold post-hoc without justification is p-hacking")
+        if sr.get("checkpoint_required") is not True:
+            errors.append("statistical_rigor: threshold_changed=true but checkpoint_required is not true — a moved threshold requires a user checkpoint (potential p-hacking)")
+
+
 def validate(root: Path) -> tuple[list[str], list[str]]:
     state = as_dict(load_yaml(root / ".bagel/state.yaml", {}))
     mode = expert_mode(state)
@@ -938,6 +1066,9 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         # caught even in a lite run, not silently built.
         validate_requirement_coherence(root, state, errors)
         validate_premise_falsifiable(root, state, errors)
+        # C2/C3: research integrity (statistical rigor + claim-evidence matrix)
+        validate_claim_evidence_matrix(root, state, errors)
+        validate_statistical_rigor(root, state, errors)
         return errors, warnings
 
     for rel, required_fields in REQUIRED_EXPERT_FILES.items():
@@ -972,6 +1103,9 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     # S2/S3 scenario gates: requirement coherence + premise falsifiability
     validate_requirement_coherence(root, state, errors)
     validate_premise_falsifiable(root, state, errors)
+    # C2/C3: research integrity (statistical rigor + claim-evidence matrix)
+    validate_claim_evidence_matrix(root, state, errors)
+    validate_statistical_rigor(root, state, errors)
     return errors, warnings
 
 

@@ -75,6 +75,19 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     warnings: list[str] = []
     active_writes: dict[str, str] = {}
     if not rows:
+        # C1 finding (Judge S2+S5): omission-as-pass. If build evidence exists (parallel/
+        # dispatched work started) but NO dispatch envelopes were recorded, warn — an agent
+        # that dispatches workers without envelopes bypasses path-overlap and role-boundary
+        # checks. This is a warning (not error) because quick serial work may legitimately
+        # not use envelopes; full_genesis/parallel_advanced with zero envelopes is suspicious.
+        run_mode = str(state.get("run_mode") or state.get("bagel_mode") or "").lower()
+        has_build_evidence = (root / ".bagel/evidence/progress-deltas.yaml").exists()
+        if has_build_evidence and run_mode in {"full_genesis", "full", "parallel_advanced", "parallel"}:
+            warnings.append(
+                "dispatch_envelope_valid: build evidence exists in full/parallel mode but NO dispatch "
+                "envelopes were recorded. Workers dispatched without envelopes bypass path-overlap and "
+                "role-boundary checks. Record a dispatch envelope for each dispatched worker."
+            )
         return errors, warnings
     for path, env in rows:
         label = str(path.relative_to(root)) if path.is_absolute() and root in path.parents else str(path)
