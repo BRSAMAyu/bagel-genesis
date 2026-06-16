@@ -468,6 +468,28 @@ For existing projects, every dispatch must include the relevant agent-facing pro
 
 Every dispatch should cite the context capsule versions used. If a worker discovers mismatched or stale context, it must report proposed context updates instead of silently working around it.
 
+## Anti-Patterns & Red Lights (consolidated blacklist)
+
+The failure modes below are enumerated across this skill; they are gathered here as one reference so they are not missed. **Each is a red light: hitting it requires the stated corrective action, never silent continuation.** The canonical detail lives at the cited locations; this table is the index.
+
+| # | Red light | Why it fails | Corrective action | See |
+|---|---|---|---|---|
+| 1 | Supervisor/Orchestrator writes product code while true subagents are available | The #1 failure smell — destroys the Separation Principle and independent review | Downgrade to R1 max review, record `collapsed_no_true_subagents` only if subagents truly absent; otherwise dispatch the work below the Orchestrator | L91, `references/agent-operating-model.md` |
+| 2 | Treat `.bagel/` governance artifacts (constitution, STATUS, checks) as the user deliverable | Governance is the control plane, not the product; user gets app/research/doc | Keep governance only in state/ledger/dispatch; never put "fill constitution / run BAGEL checks" in the product task queue | L67, L226 |
+| 3 | Obey stale `.bagel/` topology because it is already written down | Old run may say main=Orchestrator when loaded skill requires nested Supervisor | Migrate state to current skill instructions, spawn fresh Orchestrator; current skill outranks stale artifacts | L65 |
+| 4 | Build/Iterate before Stop Contract is captured | Loop binding before Stop Contract is for Align/Resume protection only | Keep loop phase `align_protection`; 🔴 CHECKPOINT · STOP CONTRACT must pass first | L61, L390 |
+| 5 | Pause for routine approval or idle "just in case" | Autonomy is the default reason this skill exists | Apply the tie-breaker: continue, isolate, or switch strategy; only 🔴 STOP for hard-stop boundaries | L27, L31 |
+| 6 | Self-approve or self-review work as independent (R3) | No independent verification = no R3 claim | Dispatch an independent reviewer below the Orchestrator; downgrade and record as non-independent (R1 max) if impossible | L91, `references/quality-assurance.md` |
+| 7 | Silent skip on git/tsv/gate anomaly | Breaks the ratchet and audit trail | Surface the anomaly to the user first, then apply the recovery menu | L501, `references/recovery-protocol.md` |
+| 8 | Present `degraded_resume` as successful autonomous iteration | It is a marked downgrade, never an equal mode | Mark `.bagel/STATUS.md [DEGRADED]`; continue useful work + write durable resume plan, do not claim full autonomy | L85 |
+| 9 | Wake the user for anything other than a hard-stop boundary | Burns user trust on autonomy-solvable friction | Only wake for: irreversible/non-recoverable destructive action, security/privacy/legal/financial/production-data risk, credentials/paid resources, core identity changes, explicit forbidden boundaries, or genuine impossibility after alternatives exhausted | L27, L382, L501 |
+| 10 | Force-push, reset, or delete user changes when isolating a lane | Destroys user work | Move to its own branch/worktree only; record as `isolated` in `.bagel/state.yaml` | L37 |
+| 11 | Free-browse `references/` from a worker | Workers over-read, dilute attention, blow token budget | Orchestrator puts only triggered references (per Loading Matrix) in the dispatch envelope; worker requests a smaller brief if more is needed | L127, L309 |
+| 12 | Lower a gate to keep moving | Gates are the safety contract | Enter autonomous recovery (shrink task, isolate, diagnose, switch strategy) instead; never lower the gate itself | L501, `references/gate-predicates.md` |
+| 13 | Stop at baseline running | Baseline is the start of the excellence loop, not the end | Continue positive optimization until budget/user/hard-stop/Stop Criteria | L547 |
+
+**Hard-stop boundaries (the ONLY things that wake the user):** irreversible or non-recoverable destructive action · serious security/privacy/legal/financial/production-data risk · credentials or paid external resources · core product/research identity changes · explicit user-forbidden boundaries · genuine impossibility after useful alternatives are exhausted.
+
 ## Hard Gates
 
 Block progress when any predicate in `references/gate-predicates.md` fails. Record results in `.bagel/gates/status.yaml` (full) or in the `gates:` section of `.bagel/state.yaml` (quick). Core predicates:
