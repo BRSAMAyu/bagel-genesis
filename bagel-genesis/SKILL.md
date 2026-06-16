@@ -524,6 +524,17 @@ The failure modes below are enumerated across this skill; they are gathered here
 
 **Hard-stop boundaries (the ONLY things that wake the user):** irreversible or non-recoverable destructive action · serious security/privacy/legal/financial/production-data risk · credentials or paid external resources · core product/research identity changes · explicit user-forbidden boundaries · genuine impossibility after useful alternatives are exhausted.
 
+### V3.4 Semantic Integrity Checks (enforced by expert_strategy_check.py)
+
+These anti-cheat validators are unconditional for any non-lite run. They prevent the most common "form-satisfiable" shortcuts. The agent must populate the record files below to pass them — omitting a record does not skip the check.
+
+| Check | Record file | What it catches |
+|---|---|---|
+| `validate_council_output` | councilor `output_ref` YAML | empty/placeholder verdicts, perspective/agent mismatch, verdict without evidence |
+| `validate_premise_fidelity` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity:` | proxy substitution without user consent, silent premise rewrite |
+| `validate_named_dependency_protocol` | `.bagel/expert/named-dependency-protocol.yaml` | in-memory fallback for a named external dependency (scan: in_memory/fake_redis/mock_redis/hashmap) |
+| `validate_dataset_integrity` | `.bagel/expert/dataset-integrity.yaml` | missing split hashes, no disjointness proof, test-set tuning, all-data preprocessing |
+
 ## Hard Gates
 
 Block progress when any predicate in `references/gate-predicates.md` fails. Record results in `.bagel/gates/status.yaml` (full) or in the `gates:` section of `.bagel/state.yaml` (quick). Core predicates:
