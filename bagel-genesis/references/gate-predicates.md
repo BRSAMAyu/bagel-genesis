@@ -109,6 +109,11 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `leverage_map_current` | `expert_strategy_check.py` |
 | `evaluation_critic_passed` | `evaluation_quality_check.py` |
 | `expert_decision_present` | `expert_strategy_check.py` |
+| `requirement_coherence_checked` | `expert_strategy_check.py` |
+| `premise_falsifiable` | `expert_strategy_check.py` |
+| `premise_fidelity_proven` | `expert_strategy_check.py` |
+| `named_dependency_real_protocol` | `expert_strategy_check.py` |
+| `dataset_integrity_checked` | `expert_strategy_check.py` |
 | `roi_controller_positive_or_switched` | `roi_check.py` |
 | `supervisor_boundary_respected` | `supervisor_boundary_check.py` |
 | `supervisor_role_guard_passed` | `supervisor_boundary_check.py` |
@@ -117,7 +122,7 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 
 **Agent-attested** (the agent records pass/fail based on evidence files, but no script independently re-verifies — these depend on the agent honestly inspecting the cited evidence):
 
-`project_understanding_current`, `evolution_record_present`, `context_fresh_for_dispatch`, `parallel_ownership_safe`, `worker_did_not_merge`, `rollback_point_present_for_risk`, `merge_inputs_clean`, `typed_contracts_present_when_required`, `skeleton_gate_passed_when_required`, `artifact_specific_slice_coverage_present`, `decision_mutations_cleared`, `red_team_blockers_resolved`, `scope_reduction_authorized`, `review_level_satisfied` (the QA-matrix-required-level part), `requirement_coherence_checked`, `premise_falsifiable`, `named_dependency_real_protocol`, `premise_fidelity_proven`, `dataset_integrity_checked`.
+`project_understanding_current`, `evolution_record_present`, `context_fresh_for_dispatch`, `parallel_ownership_safe`, `worker_did_not_merge`, `rollback_point_present_for_risk`, `merge_inputs_clean`, `typed_contracts_present_when_required`, `skeleton_gate_passed_when_required`, `artifact_specific_slice_coverage_present`, `decision_mutations_cleared`, `red_team_blockers_resolved`, `scope_reduction_authorized`, `review_level_satisfied` (the QA-matrix-required-level part).
 
 These agent-attested gates are still mandatory — the agent must check them and record evidence — but they are not independently re-verified by a script. The periodic Independent Flywheel Audit (excellence-loop.md) is the intended backstop: an R3+ reviewer re-checks a sample of agent-attested gates against real repo state. If you need a guarantee that is impossible to self-attest falsely, rely only on the mechanically-enforced set above.
 

@@ -534,6 +534,8 @@ These anti-cheat validators are unconditional for any non-lite run. They prevent
 | `validate_premise_fidelity` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity:` | proxy substitution without user consent, silent premise rewrite |
 | `validate_named_dependency_protocol` | `.bagel/expert/named-dependency-protocol.yaml` | in-memory fallback for a named external dependency (scan: in_memory/fake_redis/mock_redis/hashmap) |
 | `validate_dataset_integrity` | `.bagel/expert/dataset-integrity.yaml` | missing split hashes, no disjointness proof, test-set tuning, all-data preprocessing |
+| `validate_requirement_coherence` | `.bagel/ledger.yaml` → `human_decisions:` | mutually-exclusive requirements (CAP/latency-bandwidth/strong-vs-eventual/realtime-vs-offline/cost-vs-capability) built without a recorded human tradeoff decision |
+| `validate_premise_falsifiable` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity`/`falsifiability:` | unfalsifiable premise (consciousness/qualia/free-will + prove/exists claim) run without reframing to a concrete metric + falsifier |
 
 ## Hard Gates
 
