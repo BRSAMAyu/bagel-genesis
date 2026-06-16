@@ -398,25 +398,55 @@ def validate_premise_fidelity(root: Path, errors: list[str]) -> None:
         errors.append("problem-framing.premise_fidelity: proxy framing must be labeled as a sub-question/proxy, not as answering the original premise")
 
 
+def _collect_source_files(root: Path) -> list[Path]:
+    """Collect candidate source files to scan for fallback labels (product + test code)."""
+    root = Path(root)  # coerce in case a str is passed
+    out: list[Path] = []
+    for subdir in ("src", "lib", "app", "tests", "test", "internal", "cmd", "pkg"):
+        d = root / subdir
+        if d.exists():
+            for ext in ("*.py", "*.ts", "*.js", "*.tsx", "*.jsx", "*.go", "*.rs", "*.java", "*.rb", "*.swift", "*.kt"):
+                out.extend(d.rglob(ext))
+    return out
+
+
 def validate_named_dependency_protocol(root: Path, errors: list[str]) -> None:
     """P0-9: protocol substitution defense.
 
     Detect the "started real Redis, but product code uses in-memory fallback" cheat.
     Each named dependency must attest that product/test code uses the real endpoint,
-    not an in-process substitute.
+    not an in-process substitute. Scans ALL source files (not just agent-declared paths)
+    for fallback labels in both English and Chinese.
     """
+    # Bilingual fallback labels — covers English + Chinese paraphrasing attempts
     SUSPICIOUS_FALLBACK_LABELS = (
-        "in_memory", "in-memory", "fake_redis", "mock_redis", "test_only_store",
-        "hashmap fallback", "hash_map fallback", "dict fallback", "memory_store",
+        # English
+        "in_memory", "in-memory", "inmemory", "fake_redis", "mock_redis",
+        "test_only_store", "hashmap fallback", "hash_map fallback", "hashmapfallback",
+        "dict fallback", "memory_store", "memorystore",
+        "in_process", "inprocess", "local_cache", "stub_redis", "fake_client",
+        "mock_client", "dummy_store", "noop_store", "singleton_cache",
+        # Chinese
+        "内存", "字典替代", "字典缓存", "假数据", "假redis", "模拟redis",
+        "内存存储", "内存缓存", "本地缓存替代", "缓存替代",
+        # common paraphrases
+        "kv cache", "kv_cache", "in-process store", "in_process_store",
+        "memory backend", "memorybackend", "fallback to memory", "fallbacktomemory",
     )
-    # P0-9 hole fix: infer whether named dependencies were declared by scanning
-    # problem-framing + runtime evidence for provisioning signals
-    NAMED_DEP_SIGNALS = ("redis", "postgres", "mysql", "mongo", "kafka", "rabbitmq",
-                         "elasticsearch", "grpc_service", "payment_gateway", "stripe",
-                         "docker-compose", "docker_compose", "docker run")
+    # Bilingual dependency signals — detects whether named deps were declared
+    NAMED_DEP_SIGNALS = (
+        # English
+        "redis", "postgres", "postgresql", "mysql", "mongo", "mongodb",
+        "kafka", "rabbitmq", "elasticsearch", "grpc_service", "grpc service",
+        "payment_gateway", "payment gateway", "stripe", "paypal",
+        "docker-compose", "docker_compose", "docker run",
+        # Chinese
+        "数据库", "缓存", "消息队列", "支付网关", "分布式", "集群",
+        "redis集群", "数据库集群", "第三方服务", "外部依赖",
+    )
     reg_path = root / ".bagel/expert/named-dependency-protocol.yaml"
     if not reg_path.exists():
-        # check if named dependencies were declared anywhere in evidence/framing
+        # P0-9 hole fix: infer whether named dependencies were declared
         framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
         framing_text = str(framing).lower()
         runtime_evidence_signals = False
@@ -429,10 +459,18 @@ def validate_named_dependency_protocol(root: Path, errors: list[str]) -> None:
                         break
                 except OSError:
                     continue
-        has_named_dep_signal = any(s in framing_text for s in NAMED_DEP_SIGNALS) or runtime_evidence_signals
+        # also scan constitution + state for dependency signals (user prompt may mention deps)
+        state = as_dict(load_yaml(root / ".bagel/state.yaml", {}))
+        constitution = as_dict(load_yaml(root / ".bagel/constitution.yaml", {}))
+        meta_text = (str(state) + str(constitution)).lower()
+        has_named_dep_signal = (
+            any(s in framing_text for s in NAMED_DEP_SIGNALS)
+            or runtime_evidence_signals
+            or any(s in meta_text for s in NAMED_DEP_SIGNALS)
+        )
         if has_named_dep_signal:
-            errors.append("named dependencies were declared in problem-framing or runtime evidence, but .bagel/expert/named-dependency-protocol.yaml is missing (cannot skip protocol-substitution check by omitting the record)")
-        return  # only present when the prompt named external dependencies
+            errors.append("named dependencies were declared but .bagel/expert/named-dependency-protocol.yaml is missing (cannot skip protocol-substitution check by omitting the record)")
+        return
     data = as_dict(load_yaml(reg_path, {}))
     deps = as_list(data.get("named_dependencies") or data.get("dependencies"))
     for dep in deps:
@@ -441,26 +479,39 @@ def validate_named_dependency_protocol(root: Path, errors: list[str]) -> None:
         test_uses_real = d.get("test_uses_real_endpoint")
         fallbacks = as_list(d.get("forbidden_fallbacks_detected"))
         waiver = d.get("waiver_ref")
-        # test must use the real endpoint, not a fallback
         if test_uses_real is False:
             errors.append(f"named_dependency {name}: test_uses_real_endpoint=false (product/test code does not exercise real dependency)")
-        # suspicious fallback labels detected without waiver
         if fallbacks and not waiver:
             errors.append(f"named_dependency {name}: forbidden_fallbacks_detected={fallbacks} without waiver_ref (cannot count as real-protocol pass)")
-        # scan product/test path refs for suspicious labels in file content
+        # P0-9 hardening: scan ALL source files for fallback labels, not just agent-declared paths
+        # This prevents an agent from hiding a fallback by not listing the file in refs
+        scan_paths: list[Path] = []
+        # include agent-declared paths
         for pref in as_list(d.get("product_code_path_refs")) + as_list(d.get("test_path_refs")):
-            if not isinstance(pref, str):
+            if isinstance(pref, str):
+                p = root / pref
+                if p.exists() and p not in scan_paths:
+                    scan_paths.append(p)
+        # also scan all source files under src/tests (agent cannot hide by omission)
+        scan_paths.extend(_collect_source_files(root))
+        # deduplicate
+        seen: set[str] = set()
+        for fpath in scan_paths:
+            key = str(fpath)
+            if key in seen:
                 continue
-            fpath = root / pref
-            if fpath.exists():
-                try:
-                    content = fpath.read_text(encoding="utf-8", errors="ignore").lower()
-                except OSError:
-                    continue
-                for label in SUSPICIOUS_FALLBACK_LABELS:
-                    if label in content:
-                        errors.append(f"named_dependency {name}: suspicious fallback label {label!r} found in {pref}")
-                        break
+            seen.add(key)
+            if not fpath.exists() or not fpath.is_file():
+                continue
+            try:
+                content = fpath.read_text(encoding="utf-8", errors="ignore").lower()
+            except OSError:
+                continue
+            for label in SUSPICIOUS_FALLBACK_LABELS:
+                if label in content:
+                    rel = fpath.relative_to(root) if root in fpath.parents else fpath
+                    errors.append(f"named_dependency {name}: suspicious fallback label {label!r} found in {rel}")
+                    break
 
 
 def validate_dataset_integrity(root: Path, errors: list[str]) -> None:
