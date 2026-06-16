@@ -55,13 +55,29 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             errors.append(f"alignment_freshness reports {key}=fail")
     if not freshness.get("reviewer_ref"):
         errors.append("alignment_freshness requires reviewer_ref; self-score is not enough")
-    if not freshness.get("constitution_hash") or not freshness.get("taste_kernel_hash"):
-        warnings.append("alignment_freshness missing constitution_hash or taste_kernel_hash")
+    # P0-7: domain freshness hard-enforce by expert layer mode
+    mode = str(state.get("expert_layer_mode") or as_dict(state.get("bagel_worth_it_check")).get("expert_layer_mode") or "standard")
+    hard = mode in {"standard", "full"}
+    missing_hashes = []
+    if not freshness.get("constitution_hash"):
+        missing_hashes.append("constitution_hash")
+    if not freshness.get("taste_kernel_hash"):
+        missing_hashes.append("taste_kernel_hash")
+    if missing_hashes:
+        if hard:
+            errors.append(f"alignment_freshness missing {missing_hashes} (standard/full mode requires both)")
+        else:
+            warnings.append(f"alignment_freshness missing {missing_hashes}")
     domain = as_dict(load_yaml(bagel / "expert/domain-excellence.yaml", {}))
     if domain:
         current_constitution = file_hash(bagel / "constitution.yaml") or file_hash(bagel / "constitution.json")
         if current_constitution and domain.get("constitution_hash") and domain.get("constitution_hash") != current_constitution:
             errors.append("domain_excellence_model constitution_hash is stale; refresh domain model before continuing")
+        # P0-7: in standard/full, missing constitution_hash on domain model is also a fail (not just staleness)
+        if hard and not domain.get("constitution_hash"):
+            errors.append("domain_excellence_model missing constitution_hash (standard/full mode requires it)")
+        if hard and not domain.get("artifact_profile_hash") and (bagel / "artifact_profile.yaml").exists():
+            errors.append("domain_excellence_model missing artifact_profile_hash while artifact_profile exists (standard/full mode requires it)")
         artifact_profile = file_hash(bagel / "artifact_profile.yaml")
         if artifact_profile and domain.get("artifact_profile_hash") and domain.get("artifact_profile_hash") != artifact_profile:
             errors.append("domain_excellence_model artifact_profile_hash is stale; refresh domain model before continuing")

@@ -34,10 +34,21 @@ PREBOOT_ACTIONS = {
 }
 FORBIDDEN_TERMS = {
     "npm test",
+    "pnpm test",
+    "yarn test",
+    "bun test",
     "pytest",
+    "uv run pytest",
     "mvn",
     "gradle",
+    "go test",
+    "cargo test",
+    "make test",
+    "deno test",
+    "dotnet test",
     "package install",
+    "npm install",
+    "pip install",
     "browser screenshot",
     "runtime debug",
     "implementation",
@@ -125,6 +136,26 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             for forbidden in ("product_file_edit", "tests", "runtime_debug", "dependency_install", "project_file_read", "product_file_write"):
                 if action.get(forbidden) is True:
                     errors.append(f"{path}: pre_boot_exemption forbids {forbidden}")
+        else:
+            # P0-4: schema enforcement for post-bootstrap Supervisor actions.
+            # Supervisor must delegate, not execute product/test/debug work directly.
+            if action.get("command_executed") is True:
+                errors.append(f"{path}: post-bootstrap Supervisor action command_executed=true is forbidden (delegate to Orchestrator)")
+            product_read = as_list(action.get("product_files_read"))
+            product_written = as_list(action.get("product_files_written"))
+            if product_read:
+                errors.append(f"{path}: Supervisor read product files {product_read} (forbidden; delegate to Orchestrator)")
+            if product_written:
+                errors.append(f"{path}: Supervisor wrote product files {product_written} (forbidden; delegate to Orchestrator)")
+            tools_used = [str(t).lower() for t in as_list(action.get("tools_used"))]
+            for tool in tools_used:
+                if tool in {"edit", "write"} or (tool == "bash" and any(
+                    term in text for term in FORBIDDEN_TERMS
+                )):
+                    errors.append(f"{path}: Supervisor used tool {tool!r} on product/test work (forbidden)")
+            # Supervisor actions must record delegation intent
+            if action.get("delegated_to_orchestrator") is False and kind not in {"status_proxy", "resume_capsule_update"}:
+                errors.append(f"{path}: post-bootstrap Supervisor action should delegate_to_orchestrator=true (kind={kind!r})")
         if mode == "nested_supervisor" and not preboot:
             if not guard:
                 errors.append(f"{path}: Supervisor action missing role_guard")
