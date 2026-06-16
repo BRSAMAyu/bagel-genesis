@@ -71,9 +71,9 @@ Load only the prompt needed for the current stage and role.
 8. 🔴 CHECKPOINT · BUILD UNLOCK: Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`. This checkpoint is logged but does not require a user pause unless a gate fails 3×.
 9. Spawn Orchestrator or continue Orchestrator according to Supervisor mode.
 
-Loop binding before Stop Contract is allowed only for Align/Resume protection. Build/Iterate before Stop Contract is forbidden.
+Loop binding before Stop Contract is allowed only for Align/Resume protection (see Loop Binding rule below). Build/Iterate before Stop Contract is forbidden.
 
-Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn. It immediately spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. The Orchestrator reads the minimum stage capsule, dispatches bounded subagents for all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and review work, verifies returned artifacts, then saves durable state under `.bagel/`. Neither Supervisor nor Orchestrator writes product code while subagents are available.
+Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn, then spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. Product code/tests/skeleton/diagnosis/evaluation/review are dispatched below the Orchestrator (see Roles — neither Supervisor nor Orchestrator writes product code while subagents are available).
 
 Current skill instructions outrank stale `.bagel/` control-plane artifacts. If an old run says the main session was Orchestrator but the loaded skill says nested Supervisor is required, migrate the state and spawn a fresh Orchestrator. Do not obey stale topology because it is already written down.
 
@@ -95,9 +95,9 @@ V2 capability rule: platform adapter claims are not proof. R3/R4 review, schedul
 
 Before any file modification in an autonomous run, guarantee the working folder is a git repository (`git rev-parse --is-inside-work-tree`). If it is not, initialize one (see `references/git-governance.md` Step 0) or refuse to start autonomous write work. Version control is the precondition for rollback and branch isolation; without it every overnight change is irreversible. The `project_under_version_control` hard gate enforces this.
 
-If a platform cannot support timers, true subagents, or automatic resume after exhausting every native mechanism named in the platform adapter, record `degraded_resume` and mark `.bagel/STATUS.md`. Continue useful work in the current session and write a durable resume plan instead of stopping early. `degraded_resume` is a marked downgrade, never an equal mode - never present it as successful autonomous iteration.
+If a platform cannot support timers, true subagents, or automatic resume after exhausting every native mechanism named in the platform adapter, record `degraded_resume`, mark `.bagel/STATUS.md [DEGRADED]`, and write a durable resume plan. This is a downgrade — see Anti-Patterns #8: never present it as successful autonomous iteration.
 
-Autonomy is the default reason this skill exists. On Claude Code or Codex, first try to bind BAGEL to the platform-native loop, scheduling, subagent, hook, worktree, browser, computer-use, cloud, and non-interactive capabilities described in `references/platform-claude-code.md` or `references/platform-codex.md`. Treat missing local verifiers, screenshots, test scripts, environment setup, or experiment harnesses as work for the agent system to create inside the autonomy contract, not as a reason to stop.
+On Claude Code or Codex, bind BAGEL to the platform-native loop, scheduling, subagent, hook, worktree, browser, computer-use, cloud, and non-interactive capabilities described in `references/platform-claude-code.md` or `references/platform-codex.md`. Treat missing local verifiers, screenshots, test scripts, environment setup, or experiment harnesses as work for the agent system to create inside the autonomy contract, not as a reason to stop.
 
 ## Roles
 
