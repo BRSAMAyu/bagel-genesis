@@ -819,14 +819,16 @@ def check_version_drift(root: Path) -> list[str]:
         if "bagel_v2_check.py" in content:
             out.append(f"{mdfile.relative_to(root)}: references deprecated bagel_v2_check.py — use bagel_v3_check.py (the v2 file is a legacy shim)")
     # C6b: orchestrator.md must not instruct self-compaction (replace-not-compact policy)
-    orch = read("agents/orchestrator.md")
-    # "Compact after:" or "Compact or discard" are the contradiction signals
+    orch_path = root / "agents/orchestrator.md"
+    orch = orch_path.read_text(encoding="utf-8", errors="ignore") if orch_path.exists() else ""
     if re.search(r"(?im)^\s*compact\s+(after|or discard|context)", orch):
         out.append("agents/orchestrator.md: instructs self-compaction which contradicts the replace-not-compact policy (supervisor-resilience.md). Use handoff-and-replace.")
     # C5: SKILL.md Hard Gates section should reference gate-predicates.md, not re-enumerate
-    skill = read("SKILL.md")
-    if "gate-predicates.md" not in skill.split("## Hard Gates")[1].split("##")[0] if "## Hard Gates" in skill else True:
-        if "## Hard Gates" in skill:
+    skill_path = root / "SKILL.md"
+    skill = skill_path.read_text(encoding="utf-8", errors="ignore") if skill_path.exists() else ""
+    if "## Hard Gates" in skill:
+        gates_section = skill.split("## Hard Gates")[1].split("##")[0]
+        if "gate-predicates.md" not in gates_section:
             out.append("SKILL.md: Hard Gates section does not reference gate-predicates.md as the authoritative source — a static list here will drift from the real predicate table")
     return out
 
