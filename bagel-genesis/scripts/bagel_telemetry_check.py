@@ -111,6 +111,29 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             fail(errors, f"cycle {idx}: outputs.control_plane_delta must be boolean")
             control_delta = False
         share = budget_block.get("governance_token_share")
+        # Gap-2 fix: derive share from a token_log so it's recomputable, not just self-attested.
+        # When a cycle records a token_log of [{role, tokens, category}] entries, recompute the
+        # governance share = sum(governance-category tokens) / sum(all tokens) and compare to the
+        # declared share. A mismatch > 0.05 means the agent lied about its share — fail.
+        token_log = as_list(cycle.get("token_log") or budget_block.get("token_log"))
+        if token_log:
+            GOVERNANCE_CATEGORIES = {"governance", "control_plane", "alignment", "review", "telemetry", "state", "dispatch"}
+            gov_tokens = 0
+            all_tokens = 0
+            for entry in token_log:
+                e = as_dict(entry)
+                tokens = e.get("tokens")
+                category = str(e.get("category") or e.get("role") or "").lower()
+                if isinstance(tokens, (int, float)) and tokens >= 0:
+                    all_tokens += tokens
+                    if any(g in category for g in GOVERNANCE_CATEGORIES):
+                        gov_tokens += tokens
+            if all_tokens > 0 and isinstance(share, (int, float)):
+                derived_share = gov_tokens / all_tokens
+                if abs(derived_share - share) > 0.05:
+                    fail(errors, f"cycle {idx}: governance_token_share {share:.2f} does not match derived share {derived_share:.2f} from token_log (governance={gov_tokens}/{all_tokens} tokens). The reported share is inconsistent with the per-entry token log — recompute honestly.")
+                # Use the derived share for the ceiling check (it's the recomputable truth)
+                share = derived_share
         # P1-3: governance budget breakdown — warn if a single category dominates
         breakdown = as_dict(budget_block.get("governance_budget_breakdown"))
         if breakdown:

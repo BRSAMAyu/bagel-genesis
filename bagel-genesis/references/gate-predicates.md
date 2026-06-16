@@ -74,6 +74,7 @@ gates:
 | `named_dependency_real_protocol` | When a user prompt names an external dependency (database/cache/API/gateway), the local runnable chain exercises that dependency's real client and network protocol — not an in-process substitute that swaps the protocol (e.g. a HashMap for a named Redis dependency). The Runtime Doctor repair evidence in `.bagel/evidence/` records the provisioning command and a healthcheck proving the real client connects. In-process stubs for named external services fail this gate. See SKILL.md Runtime Doctor repair primitives. |
 | `premise_fidelity_proven` | When problem framing records a `premise_fidelity` block, the agent did not silently substitute a proxy for the user's claim. proxy_used=true requires user_authority_ref; core_claim_preserved=false requires checkpoint_required=true. An unfalsifiable premise cannot be converted into a proxy experiment without explicit labeling. See research-experiment.md §1 premise fidelity record. |
 | `dataset_integrity_checked` | For empirical dataset-based claims, `.bagel/expert/dataset-integrity.yaml` exists with train/val/test split hashes, a split_disjointness_check_ref, tuning_used_test_set=false, and justified preprocessing_fit_on. See references/dataset-integrity.md. |
+| `production_data_hardstop_respected` | When source/config/dispatch scans detect production-data/credential signals (cloud keys, non-localhost production connection strings, prod-host patterns, cloud-SDK usage with region), a recorded hard-stop acknowledgment must exist in `.bagel/ledger.yaml` human_decisions:. Otherwise the cycle fails — the agent must remove the production connection (use a local stub per Runtime Doctor) or record the 🔴 CHECKPOINT · S1 HARD-STOP acknowledgment. See scripts/production_surface_check.py. |
 
 ## Enforcement Model (honest)
 
@@ -116,6 +117,7 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `premise_fidelity_proven` | `expert_strategy_check.py` |
 | `named_dependency_real_protocol` | `expert_strategy_check.py` |
 | `dataset_integrity_checked` | `expert_strategy_check.py` |
+| `production_data_hardstop_respected` | `production_surface_check.py` |
 | `roi_controller_positive_or_switched` | `roi_check.py` |
 | `supervisor_boundary_respected` | `supervisor_boundary_check.py` |
 | `supervisor_role_guard_passed` | `supervisor_boundary_check.py` |

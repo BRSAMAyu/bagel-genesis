@@ -538,6 +538,8 @@ These anti-cheat validators are unconditional for any non-lite run. They prevent
 | `validate_premise_falsifiable` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity`/`falsifiability:` | unfalsifiable premise (consciousness/qualia/free-will + prove/exists claim) run without reframing to a concrete metric + falsifier |
 | `validate_gameable_metric_pairing` | `.bagel/state.yaml` → `evaluation.metrics` | a gameable retrieval headline (hit@1/precision@1/exact-match) used as the sole quality signal without a robustness/ranking pair (MRR/nDCG/MAP/recall@k/held-out) |
 | governance budget mode-aware ceiling | `.bagel/telemetry/cycles.yaml` → `budget.governance_token_share` | governance share exceeding the run-mode cap (quick ≤25%, full ≤40%) — per-cycle hard fail, not just a streak warning |
+| governance share derived from token_log | `.bagel/telemetry/cycles.yaml` → `token_log` | declared `governance_token_share` inconsistent with the recomputable share from the per-entry `token_log` (governance-category tokens / all tokens) — catches a self-reported lie |
+| `validate_production_surface` | source/config/dispatch scan → `.bagel/ledger.yaml` → `human_decisions:` | production-data/credential signals (cloud keys AKIA, non-localhost prod connection strings, prod-host patterns, cloud-SDK usage) without a recorded hard-stop acknowledgment |
 
 ### Enforcement honesty (what the validators can and cannot guarantee)
 
@@ -545,11 +547,11 @@ The validators use a **two-tier design**: a structured-declaration path (paraphr
 
 Known residual limits, each a platform boundary rather than a skill-design gap:
 
-1. **Substring fallback is evadable by synonym** — but the structured-declaration path is not. `validate_requirement_coherence` checks declared `requirement_axes` against `_AXIS_CONFLICTS` (consistency/availability/partition/latency/offline_window/merge_model/cost/capability) before falling back to signal matching; `validate_gameable_metric_pairing` checks declared `metric_role` before falling back to name matching. Declare structured fields to get the paraphrase-proof guarantee.
-2. **`governance_token_share` is self-reported** — a skill-level script cannot measure the agent's real token spend. The mode-aware ceiling (25%/40%) is enforced against the reported number. See Gap-2 mitigation below.
-3. **The production-data/credential hard-stop (S7) is a human checkpoint by design** — but a credential-pattern scanner provides a mechanical first line (see Gap-3 below).
+1. **Substring fallback is evadable by synonym** — but the structured-declaration path is not. `validate_requirement_coherence` checks declared `requirement_axes` against `_AXIS_CONFLICTS` (consistency/availability/partition/latency/offline_window/merge_model/cost/capability) before falling back to signal matching; `validate_gameable_metric_pairing` checks declared `metric_role` before falling back to name matching. Declare structured fields to get the paraphrase-proof guarantee. The structured declaration is **mandatory** once a problem-framing with a stated problem exists (not signal-gated); a `no_contradiction_axes_needed: true` attestation is cross-validated against the stated-problem text and refused if it contradicts a strong-axis signal.
+2. **`governance_token_share` is recomputable from `token_log`** — when a cycle records a `token_log` of `[{role, tokens, category}]` entries, the validator recomputes the governance share and fails if the declared share deviates >5% from the derived value. This makes the budget gate falsifiable, not just self-attested. (Residual limit: the token_log entries themselves are agent-recorded; platform-level token accounting would be even stronger.)
+3. **The production-data/credential hard-stop (S7) has a mechanical first line** — `scripts/production_surface_check.py` scans source/config/dispatch envelopes for cloud keys (AKIA shapes), non-localhost production connection strings, prod-host patterns, and cloud-SDK usage with region; detected signals without a recorded hard-stop acknowledgment fail the cycle. The human STOP remains the final authority (intent-sensitive judgment), but silent production connections are now mechanically caught.
 
-Do not present these limits as fully solved. The structured paths make the common cheat impossible; the residual risk is a determined adversarial agent lying in its self-reported telemetry, which requires platform-level token accounting to close.
+Do not present these limits as fully solved. The structured paths, token_log derivation, and credential scanner make the common cheats impossible or falsifiable; the residual risk is a determined adversarial agent fabricating the entire token_log or attestation, which requires platform-level provenance to close.
 
 ## Hard Gates
 

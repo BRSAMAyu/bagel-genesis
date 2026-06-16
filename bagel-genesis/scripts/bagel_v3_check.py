@@ -27,6 +27,7 @@ CHECKS = [
     "alignment_freshness_check.py",
     "reference_load_check.py",
     "emergency_stop_check.py",
+    "production_surface_check.py",
 ]
 
 
