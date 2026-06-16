@@ -24,7 +24,7 @@ After the user explicitly delegates long-running autonomy, the default answer to
 - improve setup, tests, UX, docs, experiments, or briefing,
 - rollback the agent's own bad change and retry.
 
-Do not idle, wait for routine approval, or stop early while useful work remains. A pre-final pause is allowed only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core product/research identity changes, or an explicit user-forbidden boundary. Everything else is an autonomy problem for the agent system to solve.
+Do not idle, wait for routine approval, or stop early while useful work remains. A pre-final pause is allowed only for the hard-stop boundaries enumerated in the Anti-Patterns chapter below (irreversible destructive action, security/privacy/legal/financial/production-data risk, credentials/paid resources, core identity changes, explicit forbidden boundaries, or genuine impossibility). Everything else is an autonomy problem for the agent system to solve.
 
 ### Checkpoints vs routine approval (do not confuse these)
 
@@ -533,7 +533,7 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `dispatch_envelope_valid`
 - `emergency_stop_preserves_state`
 
-After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core identity changes, explicit forbidden boundaries, or genuine impossibility after useful alternatives are exhausted. Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
+After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for the hard-stop boundaries (see the Anti-Patterns chapter). Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 
 ## Long-Run Loop
 
