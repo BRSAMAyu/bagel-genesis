@@ -11,7 +11,7 @@ BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. V2 i
 
 ## Core Philosophy
 
-BAGEL exists to turn user trust, time, and tokens into exceptional finished work through deep alignment followed by sustained autonomous execution. The workflow should expand the agent system's useful autonomy, not make it timid.
+BAGEL exists to turn user trust, time, and tokens into exceptional finished work through deep alignment followed by sustained autonomous execution. The workflow expands the agent system's useful autonomy; it never makes it timid.
 
 After the user explicitly delegates long-running autonomy, the default answer to friction is **continue**:
 
@@ -82,7 +82,7 @@ Current skill instructions outrank stale `.bagel/` control-plane artifacts. If a
 Before any long run or file modification, choose the lightest control plane that can keep the run safe and observable:
 
 - `quick_autonomy`: default for existing projects, bounded modules, clear optimization/research goals, or user requests under 500 words. Create only `.bagel/state.yaml`, `.bagel/constitution.yaml`, `.bagel/context.yaml` when needed, `.bagel/ledger.yaml`, and `.bagel/STATUS.md`; expand lazily only when the current task needs more structure.
-- `full_genesis`: use for blank-slate products, multi-day autonomous builds, high-risk scope, broad project takeover, or when the user explicitly wants full governance. Create the detailed artifacts listed below as needed by each stage.
+- `full_genesis`: use for blank-slate products, multi-day autonomous builds, high-risk scope, broad project takeover, or when the user explicitly wants full governance. Create the detailed artifacts listed below stage by stage (create an artifact when its stage begins, not preemptively).
 - `parallel_advanced`: enable locks, merge queue, agent registry, and git governance only when parallel write agents or multiple worktrees are actually active.
 
 Run capability detection first. Use `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
@@ -137,7 +137,7 @@ Role prompts live in `agents/`. Give an agent one role prompt plus one task enve
 
 ### Per-role reference budget
 
-A worker should not browse the `references/` directory freely. The orchestrator puts only the triggered references (per the Loading Matrix) into the dispatch envelope. Default per-role ceilings:
+A worker never browses the `references/` directory freely. The orchestrator puts only the triggered references (per the Loading Matrix) into the dispatch envelope. Default per-role ceilings:
 
 | Role | May read from references/ | Ceiling |
 |---|---|---|
@@ -423,7 +423,7 @@ context_policy:
     worker_may_merge: false
 ```
 
-Hard rule: context that is not needed for the next decision should become an artifact or be dropped.
+Hard rule: context that is not needed for the next decision becomes an artifact or is dropped.
 
 ## Dispatch Envelope
 
@@ -553,7 +553,7 @@ For long autonomous work, run in cycles:
 12. Replace non-root context when pressure rises: write handoff, validate it, dispatch a fresh child. Do not routine-compact Orchestrator/workers.
 13. Continue, switch strategy, or wake later depending on platform support.
 
-If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run should keep converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
+If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run keeps converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
 
 On Codex, Claude Code, or another platform, use only capabilities detected in `.bagel/runtime_capabilities.yaml`, but do not under-detect platform-native autonomy. On Codex and Claude Code, attempt every native loop mechanism in the platform adapter (in priority order) before falling back to `degraded_resume`; only record `degraded_resume` after all native mechanisms are proven unavailable, and mark STATUS.md `[DEGRADED]`. When no timer exists, end each cycle with a durable checkpoint and a single next command/action so another agent can resume without the transcript. If true multi-agent isolation is unavailable, downgrade independent review claims according to `references/quality-assurance.md`.
 
