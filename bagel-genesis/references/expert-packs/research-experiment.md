@@ -49,3 +49,11 @@ A reviewer running the commands on the recorded environment must reach the same 
 
 ### 7. Honest claims
 Every claim in the final report maps to a row in a claim-evidence matrix: claim → metric → run(s) → ablation status → reproducibility status. Claims that outrun their evidence are rejected before delivery. Negative results and null findings are recorded, not hidden — `common_amateur_failures: hidden_data_leakage` includes hidden negative results.
+
+### 8. Statistical rigor (signal vs noise)
+Mean ± std across 3 seeds is descriptive only — it cannot tell signal from noise. For a claim to count as a real effect rather than run-to-run variance:
+
+- **Significance test**: report a paired test on the matched seeds (paired t-test for ≥5 seeds; Wilcoxon signed-rank for 3-4 seeds or non-normal data). Report the p-value and effect size (Cohen's d or relative delta). A "win" with p > 0.05 is a tie, not a win.
+- **Multiple-comparison correction**: the ablation matrix runs many comparisons. Apply Bonferroni (conservative) or Benjamini-Hochberg (FDR) across the family of tests; an uncorrected p<0.05 in one of 10 ablation rows is expected by chance. Report which correction was applied.
+- **Power / sample size**: if the effect is smaller than the seed-to-seed std, 3 seeds cannot reliably detect it. For headline claims where the expected delta is small, either increase seeds until the confidence interval excludes zero, or explicitly report the result as "not statistically distinguishable from baseline." Do not claim a small advantage that is within noise.
+- **Pre-registration binding**: the primary metric and the decision threshold (e.g. "method wins if val_bpb drops ≥0.005 with p<0.05 corrected") are fixed before running, recorded in the reproducibility package, and not moved after seeing results. Moving the threshold post-hoc is `evaluation_traps: posthoc_story`.
