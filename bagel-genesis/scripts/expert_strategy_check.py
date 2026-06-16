@@ -505,25 +505,29 @@ def validate_requirement_coherence(root: Path, state: dict[str, Any], errors: li
     # --- Structured-path integrity checks (bypasses 1, 2, 4) ---
     valid_axis_strengths: set[tuple[str, str]] = set()
     has_requirements_text = bool(text.strip())
-    # The structured declaration is MANDATORY for any Build/Iterate run with requirements
-    # text — NOT gated behind a paraphrase-evadable risk-signal check (Judge M+N finding:
-    # gating the mandatory path on a substring matcher reintroduces the evasion one level up).
-    # A trivial build declares requirement_axes: [] with no_contradiction_axes_needed: true
-    # to explicitly attest "I checked, no CAP-like axes apply" — an auditable self-attest
-    # the fallback still scans, rather than a silent skip.
-    framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+    # The structured declaration is MANDATORY once alignment has produced a problem-framing
+    # artifact (the post-alignment requirement record) — NOT gated behind a paraphrase-evadable
+    # risk-signal check (Judge M+N finding: gating the mandatory path on a substring matcher
+    # reintroduces the evasion one level up). A pre-alignment run with only a task_queue is not
+    # yet forced (no requirement record exists to tag). A trivial aligned build attests
+    # no_contradiction_axes_needed: true (an auditable self-attest the fallback still scans).
+    framing_path = root / ".bagel/expert/problem-framing.yaml"
+    has_problem_framing = framing_path.exists()
+    framing = as_dict(load_yaml(framing_path, {}))
     axes_attested_none = framing.get("no_contradiction_axes_needed") is True
+    has_stated_problem = bool(str(framing.get("user_stated_problem") or "").strip())
 
-    if has_requirements_text:
+    if has_problem_framing and has_stated_problem:
         if not declared and not axes_attested_none:
             # MANDATORY: either declare real axes, or explicitly attest none apply.
             errors.append(
-                "requirement_coherence_checked: requirements exist but no requirement_axes "
-                "are declared in .bagel/expert/problem-framing.yaml. Tag each requirement with "
-                "{requirement_axis, strength} from the fixed enum (consistency/availability/"
-                "partition_tolerance/latency/offline_window/merge_model/cost/capability) so the "
-                "contradiction check is paraphrase-proof. If genuinely no contradiction axes "
-                "apply, set no_contradiction_axes_needed: true (the substring fallback still scans)."
+                "requirement_coherence_checked: a problem-framing with a stated problem exists "
+                "but no requirement_axes are declared in .bagel/expert/problem-framing.yaml. Tag "
+                "each requirement with {requirement_axis, strength} from the fixed enum "
+                "(consistency/availability/partition_tolerance/latency/offline_window/merge_model/"
+                "cost/capability) so the contradiction check is paraphrase-proof. If genuinely no "
+                "contradiction axes apply, set no_contradiction_axes_needed: true (the substring "
+                "fallback still scans)."
             )
         elif declared:
             # Bypass 2: single-axis starvation — need >=2 axes to detect any conflict
