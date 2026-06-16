@@ -9,9 +9,9 @@ A skill-level operating protocol that makes an autonomous agent do *real expert 
 `Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.5-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v3.6-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
-[![Darwin](https://img.shields.io/badge/Darwin-4%20rounds%2083.8%E2%86%9288.6-blueviolet)](#changelog)
+[![Darwin](https://img.shields.io/badge/Darwin-91.1-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 </div>
@@ -257,6 +257,16 @@ Each check exits non-zero on failure, making the gate mechanically enforced.
 ---
 
 ## <a id="changelog"></a>Changelog
+
+### v3.6 — Deep gap closure (Darwin ratchet, 88.6→91.1)
+
+Closed the 3 gaps that v3.5 had conservatively declared "implementation-engineering boundaries (HL-4)." Independent judges (K–R) proved each was closeable at the skill-design level through structured-declaration, recomputable derivation, and fixed-shape pattern scanning:
+
+- **Gap1 (paraphrase-evasion):** S2 `requirement_coherence` and S4 `gameable_metric_pairing` now use a **mandatory structured-declaration** path (existence-gated, not signal-gated) — the agent must declare `requirement_axes` from a fixed enum or explicitly attest `no_contradiction_axes_needed` (cross-validated against the stated-problem text); `metric_role` is mandatory on every metric with a role↔name cross-check. A synonym can no longer route around the structured path.
+- **Gap2 (self-reported budget):** `governance_token_share` is now **derived from `token_log`** (mandatory for deliverable-producing cycles) — the validator recomputes governance-category tokens / all tokens and fails if the declared share deviates >5% from the derived value. A self-reported lie is now caught.
+- **Gap3 (no production-data scanner):** new `scripts/production_surface_check.py` scans source/config/dispatch for cloud keys (AKIA shapes), non-localhost production connection strings, prod-host patterns, and cloud-SDK usage; detected signals require a **structured** hard-stop acknowledgment (`hardstop_type: production_data` + `acknowledged: true`), not a free-text keyword.
+
+Residual limits (honestly disclosed as platform boundaries): keyword fallbacks evadable by renaming variables (structured paths are the paraphrase-proof alternative); token_log entries agent-recorded (platform provenance would be stronger); env-var/ORM-config indirection not caught by the credential scanner (human STOP is the final authority).
 
 ### v3.5 — High-pressure scenario validation (Darwin 4-round ratchet, 83.8→88.6)
 

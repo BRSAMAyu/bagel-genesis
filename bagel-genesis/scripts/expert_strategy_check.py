@@ -371,13 +371,56 @@ def validate_breakthrough(root: Path, state: dict[str, Any], errors: list[str]) 
 
 
 # Contradiction families for requirement_coherence_checked (S2 scenario gate).
-# Each family lists signals that, when 2+ co-occur in the requirement set, indicate a
-# jointly-unsatisfiable requirement pair that must be resolved by a recorded human decision.
+# PRIMARY: structured declared axes (paraphrase-proof). FALLBACK: signal substring
+# matching for runs that have not yet declared structured requirement axes.
+#
+# The structured path is authoritative: the agent must tag each requirement with a
+# {requirement_axis, strength} pair from a fixed enum below. A contradiction is matched
+# when two requirements carry conflicting axis strengths (e.g. consistency=strong AND
+# partition_tolerance=required). This cannot be paraphrased away — the axis is declared,
+# not inferred from free text. The signal-substring path is a fallback for pre-structured
+# runs only and is explicitly weaker (a synonym can evade it).
+
+# Fixed enum of requirement axes. An axis maps to a contradiction family when two
+# requirements demand incompatible axis strengths.
+_REQUIREMENT_AXES = {
+    "consistency": {"strong", "eventual", "none"},
+    "availability": {"high", "best_effort"},
+    "partition_tolerance": {"required", "not_required"},
+    "latency": {"hard_realtime", "soft", "unbounded"},
+    "offline_window": {"bounded", "unbounded", "none"},
+    "merge_model": {"automatic", "manual", "none"},
+    "cost": {"zero_infra", "budgeted", "enterprise"},
+    "capability": {"minimal", "standard", "enterprise"},
+}
+
+# Axis pairs that conflict (contradiction families). If req A demands the left strength
+# and req B demands the right strength for the same pair, the set is jointly unsatisfiable.
+_AXIS_CONFLICTS = {
+    "cap_consistency_vs_availability": (
+        ("consistency", "strong"), ("availability", "high"), ("partition_tolerance", "required"),
+    ),
+    "latency_bandwidth": (
+        ("consistency", "strong"), ("latency", "hard_realtime"),
+    ),
+    "strong_vs_eventual_merge": (
+        ("consistency", "strong"), ("offline_window", "unbounded"), ("merge_model", "automatic"),
+    ),
+    "realtime_vs_offline": (
+        ("latency", "hard_realtime"), ("offline_window", "unbounded"),
+    ),
+    "cost_vs_capability": (
+        ("cost", "zero_infra"), ("capability", "enterprise"),
+    ),
+}
+
+# FALLBACK signal substring families (pre-structured runs only). These are evadable by
+# paraphrase — the structured axis path above is the authoritative, paraphrase-proof check.
 _REQUIREMENT_CONTRADICTION_FAMILIES = {
     "cap_consistency_vs_availability": (
-        "strong consistency", "强一致", "linearizable", "serializable",
-        "high availability", "高可用", "partition tolerance", "分区容忍",
-        "断网继续写", "partition-tolerant writes",
+        "strong consistency", "强一致", "linearizable", "serializable", "strictly ordered",
+        "high availability", "高可用", "极高可用", "partition tolerance", "分区容忍",
+        "断网继续写", "partition-tolerant writes", "total order broadcast", "raft quorum",
     ),
     "latency_bandwidth": (
         "p99 < 10ms", "p99<10ms", "p99 < 5ms", "p99 < 1ms",
@@ -400,6 +443,28 @@ _REQUIREMENT_CONTRADICTION_FAMILIES = {
 }
 
 
+def _collect_declared_requirement_axes(root: Path, state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect structured requirement_axis declarations (paraphrase-proof path).
+
+    The agent may declare requirements with explicit axis tags in
+    .bagel/expert/problem-framing.yaml under requirement_axes:, or in
+    .bagel/constitution.yaml under requirements:. Each entry should carry an id,
+    a requirement_axis from _REQUIREMENT_AXES, and a strength.
+    """
+    out: list[dict[str, Any]] = []
+    framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+    for raw in as_list(framing.get("requirement_axes")):
+        out.append(as_dict(raw))
+    constitution = as_dict(load_yaml(root / ".bagel/constitution.yaml", {}))
+    for raw in as_list(constitution.get("requirements")):
+        d = as_dict(raw)
+        if d.get("requirement_axis") or d.get("axis"):
+            out.append(d)
+    for raw in as_list(state.get("declared_requirements")):
+        out.append(as_dict(raw))
+    return out
+
+
 def _requirement_text(root: Path, state: dict[str, Any]) -> str:
     """Collect the full requirement/claim text for contradiction/falsifiability scanning."""
     chunks: list[str] = []
@@ -417,46 +482,187 @@ def _requirement_text(root: Path, state: dict[str, Any]) -> str:
 def validate_requirement_coherence(root: Path, state: dict[str, Any], errors: list[str]) -> None:
     """requirement_coherence_checked gate (S2 scenario).
 
-    Scan the requirement set against the contradiction families. When 2+ signals from
-    the same family co-occur, a contradiction is matched; a matched contradiction MUST
-    have a recorded human decision in the ledger that (a) references the matched family
-    and (b) names the requirement dropped/relaxed or the tradeoff accepted. A generic
-    "tradeoff" note that does not name the family or the requirement does NOT clear the
-    gate — that would let an unrelated color-choice decision satisfy a CAP contradiction.
-    "你看着办" is explicitly NOT a resolution.
+    MANDATORY structured-declaration check (paraphrase-proof) + fallback.
+    The structured path is REQUIRED for Build/Iterate runs that declare any requirement:
+    the agent must tag requirements with {requirement_axis, strength} from the fixed enum.
+    This closes the synonym-evasion gap because the axis is declared, not inferred.
+
+    Hardened against 5 bypasses found by Darwin judges:
+    1. enum-validation: a declared strength NOT in _REQUIREMENT_AXES[axis] is rejected
+    2. single-axis starvation: fewer than 2 declared axes is flagged (cannot detect conflicts)
+    3. declared-vs-freetext inconsistency: if free text carries a signal the declared axes
+       contradict (e.g. declared consistency=eventual but vision says "强一致"), flag it
+    4. the structured path is MANDATORY when requirements exist (not opt-in)
+    5. a matched contradiction requires a family-linked + action-verb human decision
+
+    A generic "tradeoff" note that does not name the family/requirement does NOT clear
+    the gate. "你看着办" is explicitly NOT a resolution.
     """
     text = _requirement_text(root, state)
-    if not text.strip():
-        return  # nothing to check pre-alignment
+    declared = _collect_declared_requirement_axes(root, state)
+    matched_families: dict[str, list[str]] = {}
+
+    # --- Structured-path integrity checks (bypasses 1, 2, 4) ---
+    valid_axis_strengths: set[tuple[str, str]] = set()
+    has_requirements_text = bool(text.strip())
+    # The structured declaration is MANDATORY once alignment has produced a problem-framing
+    # artifact (the post-alignment requirement record) — NOT gated behind a paraphrase-evadable
+    # risk-signal check (Judge M+N finding: gating the mandatory path on a substring matcher
+    # reintroduces the evasion one level up). A pre-alignment run with only a task_queue is not
+    # yet forced (no requirement record exists to tag). A trivial aligned build attests
+    # no_contradiction_axes_needed: true (an auditable self-attest the fallback still scans).
+    framing_path = root / ".bagel/expert/problem-framing.yaml"
+    has_problem_framing = framing_path.exists()
+    framing = as_dict(load_yaml(framing_path, {}))
+    axes_attested_none = framing.get("no_contradiction_axes_needed") is True
+    has_stated_problem = bool(str(framing.get("user_stated_problem") or "").strip())
+
+    # Cross-validate a "no axes needed" attestation against the stated-problem text:
+    # if the text carries a strong-axis freetext signal (consistency/availability/
+    # partition/latency/offline/merge), the attestation is a lie and must be refused
+    # (Judge O finding: unvalidated attestation was a clean escape for a paraphrased
+    # contradiction). This reuses the _FREETEXT_AXIS_SIGNALS table defined below.
+    stated_text = str(framing.get("user_stated_problem") or "").lower()
+    inferred_text = str(framing.get("inferred_real_problem") or "").lower()
+    attestation_text = stated_text + "\n" + inferred_text
+    _STRONG_AXIS_SIGNALS = {
+        "consistency": ("strong consistency", "强一致", "linearizable", "serializable", "strictly ordered", "线性一致"),
+        "availability": ("high availability", "高可用", "always-on", "极高可用", "永远在线", "continuously reachable"),
+        "partition_tolerance": ("partition", "分区", "断网", "network split", "disconnected"),
+        "latency": ("p99", "毫秒", "极低延迟", "real-time", "实时", "sub-10ms"),
+        "offline_window": ("offline", "离线", "unbounded offline"),
+        "merge_model": ("auto-merge", "自动合并", "automatic merge"),
+    }
+    attestation_contradicted = any(
+        any(sig in attestation_text for sig in signals)
+        for signals in _STRONG_AXIS_SIGNALS.values()
+    )
+    if axes_attested_none and attestation_contradicted:
+        errors.append(
+            "requirement_coherence_checked: no_contradiction_axes_needed=true is attested but "
+            "the stated/inferred problem carries a strong-axis signal (consistency/availability/"
+            "partition/latency/offline/merge). The attestation contradicts the requirement text — "
+            "declare the real requirement_axes instead of attesting none apply."
+        )
+        axes_attested_none = False  # treat as not-attested so the mandatory branch fires
+
+    if has_problem_framing and has_stated_problem:
+        if not declared and not axes_attested_none:
+            # MANDATORY: either declare real axes, or explicitly attest none apply.
+            errors.append(
+                "requirement_coherence_checked: a problem-framing with a stated problem exists "
+                "but no requirement_axes are declared in .bagel/expert/problem-framing.yaml. Tag "
+                "each requirement with {requirement_axis, strength} from the fixed enum "
+                "(consistency/availability/partition_tolerance/latency/offline_window/merge_model/"
+                "cost/capability) so the contradiction check is paraphrase-proof. If genuinely no "
+                "contradiction axes apply, set no_contradiction_axes_needed: true (the substring "
+                "fallback still scans)."
+            )
+        elif declared:
+            # Bypass 2: single-axis starvation — need >=2 axes to detect any conflict
+            parsed_axes: list[tuple[str, str, str]] = []  # (axis, strength, source_id)
+            for d in declared:
+                axis = str(d.get("requirement_axis") or d.get("axis") or "").lower()
+                strength = str(d.get("strength") or d.get("value") or "").lower()
+                rid = str(d.get("id") or "")
+                if not axis or not strength:
+                    errors.append(
+                        f"requirement_coherence_checked: declared requirement_axis entry "
+                        f"{rid or '(no id)'} missing requirement_axis or strength"
+                    )
+                    continue
+                # Bypass 1: enum-validation — reject unknown axis or strength
+                if axis not in _REQUIREMENT_AXES:
+                    errors.append(
+                        f"requirement_coherence_checked: declared axis '{axis}' "
+                        f"(req {rid}) is not in the fixed enum {sorted(_REQUIREMENT_AXES)}"
+                    )
+                    continue
+                if strength not in _REQUIREMENT_AXES[axis]:
+                    errors.append(
+                        f"requirement_coherence_checked: declared strength '{strength}' for "
+                        f"axis '{axis}' (req {rid}) is not in the allowed set "
+                        f"{sorted(_REQUIREMENT_AXES[axis])}"
+                    )
+                    continue
+                parsed_axes.append((axis, strength, rid))
+                valid_axis_strengths.add((axis, strength))
+            # Bypass 2: need >=2 valid axes to detect conflicts
+            if len(parsed_axes) < 2:
+                errors.append(
+                    "requirement_coherence_checked: fewer than 2 valid requirement_axes "
+                    "declared — contradiction conflicts require >=2 axes to detect. "
+                    "Declare an axis for each distinct requirement."
+                )
+
+    # --- Conflict detection (structured path, paraphrase-proof) ---
+    for family, conflict_axes in _AXIS_CONFLICTS.items():
+        hits = [f"{a}={s}" for (a, s) in conflict_axes if (a, s) in valid_axis_strengths]
+        if len(hits) >= 2:
+            matched_families[family] = [f"declared:{h}" for h in hits]
+
+    # --- Bypass 3: declared-vs-freetext inconsistency ---
+    # If the agent declared structured axes BUT the free text contains a signal that
+    # contradicts a declared axis (e.g. declared consistency=eventual, text says "强一致"),
+    # the declaration is inconsistent with the stated requirement — flag it.
+    if has_requirements_text and valid_axis_strengths:
+        _FREETEXT_AXIS_SIGNALS = {
+            "consistency": ("strong consistency", "强一致", "linearizable", "serializable", "strictly ordered"),
+            "availability": ("high availability", "高可用", "always-on", "极高可用"),
+            "partition_tolerance": ("partition", "分区", "断网", "network split"),
+            "latency": ("p99 < 10ms", "p99<10ms", "毫秒", "极低延迟", "real-time", "实时"),
+            "offline_window": ("offline", "离线", "unbounded offline"),
+            "merge_model": ("auto-merge", "自动合并", "automatic merge"),
+        }
+        for axis, signals in _FREETEXT_AXIS_SIGNALS.items():
+            text_hit = any(s in text for s in signals)
+            if not text_hit:
+                continue
+            # What did the agent declare for this axis?
+            declared_for_axis = {s for (a, s) in valid_axis_strengths if a == axis}
+            # Strong signals in text vs weak declaration = inconsistency
+            strong_strengths = {"strong", "high", "required", "hard_realtime", "unbounded", "automatic", "enterprise"}
+            if declared_for_axis and not (declared_for_axis & strong_strengths):
+                errors.append(
+                    f"requirement_coherence_checked: declared {axis}={declared_for_axis} but "
+                    f"free-text requirements reference a strong {axis} signal "
+                    f"({[s for s in signals if s in text][:2]}). The structured declaration "
+                    f"is inconsistent with the stated requirement — re-tag the axis honestly "
+                    f"or the contradiction check cannot be trusted."
+                )
+
+    # --- FALLBACK: signal-substring (for families the structured path did not match) ---
+    if has_requirements_text:
+        for family, signals in _REQUIREMENT_CONTRADICTION_FAMILIES.items():
+            if family in matched_families:
+                continue
+            matched = [s for s in signals if s in text]
+            if len(matched) >= 2:
+                matched_families[family] = [f"signal:{s}" for s in matched[:3]]
+
+    # --- Resolution check (family-linked + action-verb) ---
     ledger = as_dict(load_yaml(root / ".bagel/ledger.yaml", {}))
     human_decisions = as_list(ledger.get("human_decisions"))
-    # Pre-compute, per family, whether a human decision resolves THAT family.
-    # A resolution must both (a) cite the family id/synonym AND (b) name a requirement
-    # relaxation/drop/tradeoff action — not just contain the word "tradeoff".
     RESOLUTION_KEYWORDS = ("relax", "drop", "relaxed", "dropped", "tradeoff", "trade-off",
                            "accept", "降低", "放弃", "妥协", "权衡", "取舍", "接受")
-    for family, signals in _REQUIREMENT_CONTRADICTION_FAMILIES.items():
-        matched = [s for s in signals if s in text]
-        if len(matched) < 2:
-            continue
-        # Does any human_decision resolve THIS specific family? It must reference the
-        # family (by id, or by one of its signals) AND carry a resolution action verb.
+    for family, evidence in matched_families.items():
         family_id = family.lower()
-        signal_tokens = tuple(s.lower() for s in matched)
+        evidence_tokens = tuple(e.lower() for e in evidence)
         resolved = False
         for d in human_decisions:
             dtext = str(d).lower()
-            references_family = family_id in dtext or any(tok in dtext for tok in signal_tokens)
+            references_family = family_id in dtext or any(tok in dtext for tok in evidence_tokens)
             has_action = any(kw in dtext for kw in RESOLUTION_KEYWORDS)
             if references_family and has_action:
                 resolved = True
                 break
         if not resolved:
+            path_note = "structured-axis (authoritative)" if any("declared:" in e for e in evidence) else "signal-substring (fallback)"
             errors.append(
                 f"requirement_coherence_checked: contradiction family '{family}' matched "
-                f"(signals: {matched[:3]}). This requires a human decision in "
+                f"({path_note}; evidence: {evidence[:3]}). This requires a human decision in "
                 f".bagel/ledger.yaml human_decisions: that BOTH references this family "
-                f"(id '{family}' or one of its signals: {signal_tokens[:3]}) AND names the "
+                f"(id '{family}' or one of its axes/signals: {evidence_tokens[:3]}) AND names the "
                 f"requirement dropped/relaxed or the tradeoff accepted. A generic unrelated "
                 f"'tradeoff' note does not clear this gate. '你看着办' is not a resolution."
             )
