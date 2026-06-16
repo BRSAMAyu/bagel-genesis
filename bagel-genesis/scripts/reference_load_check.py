@@ -38,7 +38,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     for path in (root / ".bagel/telemetry").glob("reference-reads*.yaml") if (root / ".bagel/telemetry").exists() else []:
         data = load_yaml(path, {})
         reads.extend(as_dict(item) for item in as_list(data.get("reference_reads") if isinstance(data, dict) else data))
-    full_by_ref: dict[str, int] = {}
+    full_by_ref_hash: dict[tuple[str, str], int] = {}
     state = as_dict(load_yaml(root / ".bagel/state.yaml", {}))
     phase = state.get("phase") or state.get("status") or state.get("run_status")
     build_started = phase in {"Build", "Iterate", "Polish", "excellence_loop", "complete"} or bool(state.get("task_queue"))
@@ -51,12 +51,15 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         if not item.get("trigger"):
             warnings.append(f"{ref or '<unknown>'}: reference read missing trigger")
         if item.get("read_mode") == "full":
-            full_by_ref[ref] = full_by_ref.get(ref, 0) + 1
-        if item.get("token_estimate") and isinstance(item.get("token_estimate"), int) and item["token_estimate"] > 12000:
-            warnings.append(f"{ref}: large reference read token_estimate={item['token_estimate']}")
-    for ref, count in full_by_ref.items():
+            # P1-2: group by (reference, source_hash) — same ref + changed hash = allowed re-read
+            sh = str(item.get("source_hash") or "<missing>")
+            full_by_ref_hash[(ref, sh)] = full_by_ref_hash.get((ref, sh), 0) + 1
+        if item.get("tokenEstimate") and isinstance(item.get("tokenEstimate"), int) and item["tokenEstimate"] > 12000:
+            warnings.append(f"{ref}: large reference read tokenEstimate={item['tokenEstimate']}")
+    # P1-2: fail only on repeated full reads of the SAME (ref, source_hash) — a changed source_hash means the reference content legitimately changed
+    for (ref, sh), count in full_by_ref_hash.items():
         if ref and count > 2:
-            errors.append(f"{ref}: repeated full reads ({count}); use cached_facts/digest unless source_hash changed")
+            errors.append(f"{ref}: repeated full reads ({count}) of identical source_hash; use cached_facts/digest unless source_hash changed")
     if build_started and not reads and not (expert_mode == "lite" and state.get("reference_telemetry_waiver") == "lite_minimal"):
         errors.append("Build/Iterate requires reference-read telemetry or explicit lite-mode waiver")
     for name, row in cached.items():

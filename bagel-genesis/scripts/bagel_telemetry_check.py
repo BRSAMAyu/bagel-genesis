@@ -99,6 +99,14 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             fail(errors, f"cycle {idx}: outputs.control_plane_delta must be boolean")
             control_delta = False
         share = budget_block.get("governance_token_share")
+        # P1-3: governance budget breakdown — warn if a single category dominates
+        breakdown = as_dict(budget_block.get("governance_budget_breakdown"))
+        if breakdown:
+            total = sum(float(v) for v in breakdown.values() if isinstance(v, (int, float)))
+            for cat, val in breakdown.items():
+                if isinstance(val, (int, float)) and total > 0 and val / total > 0.6:
+                    warn(warnings, f"cycle {idx}: governance category {cat} consumes {val/total:.0%} of budget (single-category dominance)")
+                    break
 
         if deliverable_delta is True and first_deliverable_seen_at is None:
             first_deliverable_seen_at = idx
