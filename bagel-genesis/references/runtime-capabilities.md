@@ -35,7 +35,33 @@ runtime:
     - "Will keep running after quota exhaustion without a scheduler"
   resume_artifact: ".bagel/runs/<run_id>/handoff.json"
   next_action_artifact: ".bagel/ledger/next-dispatch.md"
+runtime_capabilities:
+  platform: codex | claude_code | other
+  detected_at: "ISO-8601"
+  capabilities:
+    true_subagents:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/subagent-proof.yaml"
+      last_verified_at: "ISO-8601"
+    timers_or_wakeup:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/loop-proof.yaml"
+      last_verified_at: "ISO-8601"
+    hooks:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/hooks-proof.yaml"
+      last_verified_at: "ISO-8601"
+    browser_or_visual:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/visual-proof.yaml"
+      last_verified_at: "ISO-8601"
 ```
+
+V2 rule: `adapter_claim` is not proof. It only says the platform adapter believes the capability should exist. `observed: true` requires a real `proof_ref` file created during this run.
 
 ## Capability Levels
 
@@ -57,9 +83,9 @@ For known agentic platforms, uncertainty means "check the adapter," not "assume 
 ## Preflight
 
 1. Detect platform and load the matching adapter reference when available.
-2. Map native scheduling/loop capability to `scheduled_resume` or `external_harness` - attempt every native mechanism first; `degraded_resume` is only for after all are proven unavailable.
-3. Map native subagents/background agents to R3 review capability when they have isolated context and inspect artifacts rather than worker self-justification.
-4. Map native hooks/non-interactive mode/cloud tasks to gate enforcement, resume, and automation options.
+2. Map native scheduling/loop capability to `scheduled_resume` or `external_harness` - attempt every native mechanism first; `degraded_resume` is only for after all are proven unavailable. `scheduled_resume` requires `timers_or_wakeup.observed: true` and a proof file.
+3. Map native subagents/background agents to R3 review capability only when `true_subagents.observed: true` and the proof shows isolated context. Adapter claims alone are R1/R2 at most.
+4. Map native hooks/non-interactive mode/cloud tasks to gate enforcement, resume, and automation options. Hooks cannot be marked enabled unless `hooks.observed: true`.
 5. Record unsupported features explicitly only after checking the adapter and current environment.
 6. Choose run mode from `references/quality-assurance.md`.
 7. Set maximum cycle length and checkpoint cadence.

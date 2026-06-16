@@ -23,7 +23,16 @@ VALID_STOP = {"progressing", "recovering", "excellence_loop", "waiting_for_capac
 SUPERVISOR_MODES = {"nested_supervisor", "collapsed_no_true_subagents"}
 IMPLEMENTER_ROLES = {"Implementer", "Skeleton Builder"}
 REVIEWER_ROLES = {"Spec Reviewer", "Code Quality Reviewer", "Independent Reviewer", "Red-Team Oracle"}
-EXPLORER_LENSES = {"structure", "behavior", "convention", "surface"}
+ARTIFACT_LENS_PACKS = {
+    "software": {"structure", "behavior", "convention", "surface"},
+    "software_product": {"structure", "behavior", "convention", "surface"},
+    "existing_software": {"structure", "behavior", "convention", "surface"},
+    "research": {"methodology", "evidence", "argument", "reproducibility"},
+    "writing": {"structure", "voice", "pacing", "continuity"},
+    "document_deck": {"structure", "visual_hierarchy", "narrative", "readability"},
+    "data": {"schema", "provenance", "transformation", "validation"},
+    "data_analysis": {"schema", "provenance", "transformation", "validation"},
+}
 EVALUATION_ROLES = {"Evaluation Architect"}
 RUNTIME_ROLES = {"Runtime Doctor"}
 CONTROL_PLANE_TERMS = {
@@ -163,7 +172,61 @@ def validate_git(root: Path, state: dict[str, Any], errors: list[str]) -> None:
         fail(errors, "state.gates.project_under_version_control must be pass/true before autonomous write work")
 
 
-def validate_loop(state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+def runtime_capabilities(root: Path, state: dict[str, Any]) -> dict[str, Any]:
+    rc = as_dict(state.get("runtime_capabilities"))
+    if "capabilities" in rc:
+        return rc
+    file_rc = as_dict(load_yaml(root / ".bagel/runtime_capabilities.yaml", {}))
+    if "runtime_capabilities" in file_rc:
+        return as_dict(file_rc.get("runtime_capabilities"))
+    return rc
+
+
+def capability(rc: dict[str, Any], name: str) -> dict[str, Any]:
+    return as_dict(as_dict(rc.get("capabilities")).get(name))
+
+
+def observed_true(rc: dict[str, Any], name: str) -> bool:
+    return capability(rc, name).get("observed") is True
+
+
+def proof_exists(root: Path, cap: dict[str, Any]) -> bool:
+    ref = cap.get("proof_ref")
+    return isinstance(ref, str) and bool(ref) and (root / ref).exists()
+
+
+def validate_runtime_capability_proofs(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+    """V2 proof model: adapter_claim is never enough for unattended/R3 claims."""
+    rc = runtime_capabilities(root, state)
+    if not rc:
+        warn(warnings, "runtime_capabilities missing; cannot verify V2 proof model")
+        return
+    caps = as_dict(rc.get("capabilities"))
+    if not caps:
+        warn(warnings, "runtime_capabilities.capabilities missing; legacy booleans cannot prove platform features")
+        return
+    for name, raw_cap in caps.items():
+        cap = as_dict(raw_cap)
+        if cap.get("adapter_claim") is True and not cap.get("proof_ref"):
+            fail(errors, f"capability {name}: adapter_claim requires proof_ref")
+        if cap.get("observed") is True and not proof_exists(root, cap):
+            fail(errors, f"capability {name}: observed=true requires an existing proof_ref")
+
+    loop = as_dict(state.get("loop_binding"))
+    if loop.get("mode") == "scheduled_resume" and not observed_true(rc, "timers_or_wakeup"):
+        fail(errors, "scheduled_resume requires timers_or_wakeup.observed=true")
+    hooks = as_dict(state.get("hooks"))
+    if hooks.get("enabled") is True and not observed_true(rc, "hooks"):
+        fail(errors, "hooks.enabled=true requires hooks.observed=true")
+    for record in collect_registry(root, state):
+        if record.get("claimed_level") in {"R3", "R4"} or record.get("derived_level") in {"R3", "R4"}:
+            if not observed_true(rc, "true_subagents"):
+                fail(errors, "R3/R4 review requires true_subagents.observed=true")
+            elif not proof_exists(root, capability(rc, "true_subagents")):
+                fail(errors, "R3/R4 review requires true_subagents proof_ref file")
+
+
+def validate_loop(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
     loop = as_dict(state.get("loop_binding"))
     if not loop:
         fail(errors, "state.loop_binding is missing; autonomous iteration has no timer/loop proof")
@@ -188,7 +251,7 @@ def validate_loop(state: dict[str, Any], errors: list[str], warnings: list[str])
         if not any("P2" in str(item) or str(item) in {"external_harness", "cron", "launchd", "cli_loop"} for item in attempted):
             warn(warnings, "degraded_resume does not show a clearly labeled P2/external harness attempt")
 
-    detected_at = parse_time(as_dict(state.get("runtime_capabilities")).get("detected_at"))
+    detected_at = parse_time(runtime_capabilities(root, state).get("detected_at"))
     alignment_started_at = parse_time(as_dict(state.get("alignment")).get("started_at"))
     loop_created_at = parse_time(loop.get("created_at"))
     if detected_at and alignment_started_at and loop_created_at and loop_created_at > alignment_started_at:
@@ -199,9 +262,9 @@ def validate_loop(state: dict[str, Any], errors: list[str], warnings: list[str])
 
 def validate_supervisor(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
     """Validate v1.6 outer Supervisor layer for long Claude/Codex runs."""
-    runtime = as_dict(state.get("runtime_capabilities"))
+    runtime = runtime_capabilities(root, state)
     platform = str(runtime.get("platform") or as_dict(state.get("runtime")).get("platform") or "").lower()
-    true_subagents = runtime.get("supports_true_subagents")
+    true_subagents = observed_true(runtime, "true_subagents") if "capabilities" in runtime else runtime.get("supports_true_subagents")
     should_have_supervisor = platform in {"claude_code", "codex"} and true_subagents is True
 
     supervisor = as_dict(state.get("supervisor"))
@@ -527,20 +590,32 @@ def validate_context_verified(root: Path, state: dict[str, Any], errors: list[st
         role = record_role(record).lower()
         if lens or "explorer" in role:
             explorers.append(record)
+    expected_lenses = required_lenses(root, state)
     lenses = {
         str(item.get("lens") or item.get("exploration_lens") or "").lower()
         for item in explorers
-        if str(item.get("lens") or item.get("exploration_lens") or "").lower() in EXPLORER_LENSES
+        if str(item.get("lens") or item.get("exploration_lens") or "").lower() in expected_lenses
     }
     if len(lenses) < 2:
-        fail(errors, "existing-project takeover requires >=2 recorded exploration lenses before Build")
+        fail(errors, f"existing-project takeover requires >=2 recorded artifact-specific exploration lenses before Build; expected one of {sorted(expected_lenses)}")
 
-    runtime_caps = as_dict(state.get("runtime_capabilities"))
-    true_subagents = runtime_caps.get("supports_true_subagents")
+    runtime_caps = runtime_capabilities(root, state)
+    true_subagents = observed_true(runtime_caps, "true_subagents") if "capabilities" in runtime_caps else runtime_caps.get("supports_true_subagents")
     if true_subagents is not False:
         explorer_ids = {record_id(item) for item in explorers if record_id(item)}
         if len(lenses) >= 2 and len(explorer_ids) < 2:
             fail(errors, "exploration lenses were recorded but do not show >=2 distinct agent/session ids")
+
+
+def required_lenses(root: Path, state: dict[str, Any]) -> set[str]:
+    profile = as_dict(state.get("artifact_profile"))
+    if not profile:
+        profile_file = as_dict(load_yaml(root / ".bagel/artifact_profile.yaml", {}))
+        profile = as_dict(profile_file.get("artifact_profile"))
+    primary = str(profile.get("primary_type") or "existing_software")
+    if primary == "mixed":
+        return set().union(*ARTIFACT_LENS_PACKS.values())
+    return ARTIFACT_LENS_PACKS.get(primary, ARTIFACT_LENS_PACKS["existing_software"])
 
 
 def _flatten_items(d: dict[str, Any], prefix: str = "") -> list[tuple[str, Any]]:
@@ -568,7 +643,8 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     validate_git(root, state, errors)
-    validate_loop(state, errors, warnings)
+    validate_runtime_capability_proofs(root, state, errors, warnings)
+    validate_loop(root, state, errors, warnings)
     validate_supervisor(root, state, errors, warnings)
     validate_alignment_floor(state, errors, warnings)
     validate_stop_contract(root, state, errors, warnings)

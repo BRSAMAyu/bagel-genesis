@@ -7,7 +7,7 @@ description: "Use when Codex, Claude Code, or another agent must turn a vague hi
 
 Turn a vague vision or an existing partially built project into an excellent finished deliverable by running a constraint-first, context-sparse, multi-agent build loop.
 
-BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. It first performs deeper-than-native planning alignment, then runs an autonomous external loop that keeps improving the deliverable through continuous positive optimization — generating and raising quality standards as the artifact matures — until budget/token capacity is exhausted, the user stops it, a hard-stop boundary is reached, or genuine optimization exhaustion is independently confirmed. Persist only the smallest state needed to keep the run moving.
+BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. V2 is the **Measured Autonomous Runtime**: it first performs deeper-than-native planning alignment, then runs an autonomous external loop that keeps improving the deliverable through continuous positive optimization while proving capabilities, replaying evidence, measuring context pressure, validating handoffs, controlling scope, and preventing governance-only progress. Persist only the smallest state needed to keep the run moving.
 
 ## Core Philosophy
 
@@ -56,6 +56,8 @@ Before any long run or file modification, choose the lightest control plane that
 - `parallel_advanced`: enable locks, merge queue, agent registry, and git governance only when parallel write agents or multiple worktrees are actually active.
 
 Run capability detection first. Prefer `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
+
+V2 capability rule: platform adapter claims are not proof. R3/R4 review, scheduled resume, hooks, and visual claims require `runtime_capabilities.capabilities.<name>.observed: true` plus a real `proof_ref` under `.bagel/evidence/runtime/`. If the proof is missing, keep working but downgrade the claim and repair the runtime substrate.
 
 **Supervisor layer comes first on Claude Code/Codex.** If true subagents are available, load `references/supervisor-resilience.md`, bind a low-frequency Supervisor heartbeat, write `.bagel/supervisor/resume-capsule.md`, then spawn the inner Orchestrator from clean context. The Supervisor remains the user-facing proxy and last-resort recovery layer. If true subagents are unavailable, record `supervisor.mode: collapsed_no_true_subagents` and continue with the older main-as-Orchestrator model.
 
@@ -131,6 +133,11 @@ Default quick control state under `.bagel/`:
 ├── supervisor/         # heartbeat, resume capsule, user proxy, respawn log
 ├── evidence/
 │   └── progress-deltas.yaml
+├── telemetry/
+│   └── cycles.yaml
+├── handoffs/
+├── actions/
+├── scope/
 ├── innovation/
 └── lessons/
 ```
@@ -203,6 +210,15 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/supervisor-resilience.md` | Claude Code/Codex true subagents are available; handling compaction/resume/new conversation; spawning or respawning Orchestrator; translating user instructions into BAGEL state | single-session work with no long-run autonomy or no true subagent support | always |
 | `references/platform-claude-code.md` / `references/platform-codex.md` | detected platform is CC/Codex and you must bind dispatch, subagents, hooks, loop, resume, or visual checks to native capabilities | platform is other, or run is single-session with no native loop needed | always |
 | `references/runtime-capabilities.md` | before first autonomous cycle; before promising timers/resume/subagents | capabilities already detected and recorded in state | always |
+| `references/v2-measured-runtime.md` | configuring or repairing V2 validators, evidence replay, telemetry, idempotent resume, or measured-autonomy checks | doing a one-off non-autonomous task | always |
+| `references/telemetry-protocol.md` | recording cycle telemetry, governance budget, context pressure, or deliverable/control-plane delta | no autonomous cycle has started | always |
+| `references/evidence-protocol.md` | recording command, benchmark, screenshot, experiment, or metric evidence | no evidence claim is being made | always |
+| `references/handoff-integrity.md` | replacing Orchestrator/worker/helper, resuming from new conversation, or validating idempotency | no replacement/resume/action boundary exists | always |
+| `references/scope-control.md` | dispatching or merging any write task with allowed paths/dependencies/sensitive surfaces | read-only analysis only | always |
+| `references/alignment-freshness.md` | iteration end, user instruction change, taste-sensitive work, final delivery, or direction change | alignment is fresh and no taste-sensitive change occurred | always |
+| `references/reference-loading.md` | diagnosing over-reading or updating reference digest telemetry | short single-cycle work with no reference telemetry | full |
+| `references/start-prompts.md` | user asks how to launch BAGEL or needs a copy-paste start prompt | an active run is already aligned and started | full |
+| `references/packaging-boundary.md` | packaging/releasing the skill or deciding whether README is runtime context | normal run execution | full |
 | `references/artifact-types.md` | choosing gates or QA for a new artifact type (software / research / writing / data) | artifact type already profiled and recorded | always |
 | `references/evaluation-framework.md` | generating or refreshing metrics/rubrics for an iteration, slice, research hypothesis, UI polish pass, strategy switch, or final delivery | a fresh active evaluation spec already covers the decision | always |
 | `references/project-understanding.md` | workspace is non-empty and you will modify existing behavior | blank-slate build | full |
@@ -313,7 +329,7 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
 - Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`. Once chosen, the run must reach that depth's floor (see `references/alignment-protocol.md` Run-Mode Depth) before entering Build; the `constitution_approved` gate enforces this.
 - Innovation ambition: whether the system should optimize the supplied concept, differentiate it, or spend explicit budget on breakthrough-level concept probes.
-- **Stop Contract (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml`. This is the single most important alignment artifact — it defines when the overnight run ends.
+- **Stop Contract (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** persist as `stop_contract` with max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml`. This is the single most important alignment artifact — it defines when the overnight run ends.
 - Briefing format: Markdown only or optional HTML dashboard, plus update frequency.
 
 Use `references/alignment-protocol.md` for the question tree and choice cards. When the platform supports structured user choices, use them for autonomy level, run budget, takeover aggressiveness, taste source, research verification, and hard-stop boundaries. For open questions, include why the question matters, neutral examples, and the default if skipped.
@@ -419,6 +435,13 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `metric_delta_has_evidence_artifact`
 - `review_level_consistent_with_registry`
 - `bar_raise_has_value_class`
+- `runtime_capability_observed_with_proof`
+- `handoff_validation_passed`
+- `action_idempotency_safe`
+- `evidence_replay_integrity_passed`
+- `governance_budget_respected`
+- `scope_delta_within_contract`
+- `alignment_freshness_current`
 
 After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core identity changes, explicit forbidden boundaries, or genuine impossibility after useful alternatives are exhausted. Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 
@@ -434,12 +457,11 @@ For long autonomous work, run in cycles:
 6. Write a progress delta in `.bagel/evidence/progress-deltas.yaml`.
 7. Update `.bagel/STATUS.md` with: run status, current focus, timeline, budget allocation, latest delta assessment, recent autonomous decisions, blocked lanes, and next action. See `references/runtime-protocol.md` for the full template.
 8. Update loop telemetry: elapsed time, cycles, agents dispatched, compactions, recovery events, timer wakeups, tests, screenshots, token estimate when available.
-9. Run `python scripts/bagel_run_check.py <project-root>` to verify the operational substrate: git rollback, loop binding, agent dispatch, role separation, and briefing ownership.
-10. Run `python scripts/flywheel_check.py <project-root>` when `.bagel/` exists. Treat either script failing as a gate failure: fix the evidence/state, rollback or isolate a bad change, dispatch the missing agent/reviewer/curator, or switch strategy before continuing.
-11. Run `python scripts/bagel_memory_check.py <project-root>` when `.bagel/` exists. Treat failure as a memory/decision gate: capture reusable lessons from recovery, or record required innovation probes before claiming the run is learning or pursuing novelty.
-12. Persist structured output.
-13. Compact: update state and next action, then drop task-local context.
-14. Continue, switch strategy, or wake later depending on platform support.
+9. Run `python scripts/bagel_v2_check.py <project-root>` as the main validator. It calls the operational, flywheel, memory, telemetry, handoff, evidence replay, scope, alignment freshness, and reference-load checks.
+10. Treat any V2 check failure as a gate failure: repair evidence/state, rollback or isolate a bad change, dispatch the missing agent/reviewer/curator, validate a handoff, or switch strategy before continuing.
+11. Persist structured output.
+12. Replace non-root context when pressure rises: write handoff, validate it, dispatch a fresh child. Do not routine-compact Orchestrator/workers.
+13. Continue, switch strategy, or wake later depending on platform support.
 
 If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run should keep converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
 

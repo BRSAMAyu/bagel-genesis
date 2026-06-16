@@ -20,6 +20,28 @@ runtime:
   supports_tool_self_provisioning: true
 ```
 
+Also record the V2 proof model. Adapter support is not proof:
+
+```yaml
+runtime_capabilities:
+  platform: claude_code
+  capabilities:
+    true_subagents:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/subagent-proof.yaml"
+    timers_or_wakeup:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/loop-proof.yaml"
+    hooks:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/hooks-proof.yaml"
+```
+
+Create the proof file when the capability is actually bound or tested. `observed: true` with a missing proof file is invalid.
+
 You **must attempt** each native loop mechanism in priority order before any fallback: (1) `/loop` for same-session repeated work, (2) scheduled task / cloud Routine / desktop scheduled task invoking Claude, (3) CLI non-interactive execution (`claude -p`/SDK) driven by an external scheduler. Record proof for each attempt. Only when **all** of these are proven unavailable or user-forbidden may you record `degraded_resume` (formerly `manual_resume`) and mark STATUS.md `[DEGRADED - no native loop bound]`. `degraded_resume` is a marked downgrade, never an equal mode. Loop interval must be <= 25 minutes.
 
 ## Native Primitives
@@ -47,7 +69,7 @@ Map BAGEL roles to Claude Code agents:
 - Spec Reviewer, Code Quality Reviewer, Independent Reviewer, Red-Team Oracle: separate subagents with clean context and artifact-only inputs.
 - Integration Manager: main session mode or dedicated agent with merge queue, locks, and post-merge verification.
 
-For R3 review, use a true subagent, background agent, agent team member, or separate session that did not implement the change. Same conversation role switching is not R3.
+For R3 review, use a true subagent, background agent, agent team member, or separate session that did not implement the change, and require `true_subagents.observed: true` with a proof file. Same conversation role switching is not R3.
 
 ## Nested Supervisor Pattern
 

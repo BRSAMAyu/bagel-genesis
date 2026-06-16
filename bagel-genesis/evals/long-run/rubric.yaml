@@ -1,0 +1,13 @@
+metrics:
+  P0_closed: "Count of originally blocking issues resolved with evidence."
+  P1_closed: "Count of high-value issues resolved with evidence."
+  regressions_introduced: "New failing tests, broken flows, or contradicted claims."
+  evidence_replay_pass_rate: "Share of evidence records that pass evidence_replay_check.py."
+  premature_completion_rate: "Runs marked complete before iteration/value/final gates."
+  context_recovery_success: "Fresh agent resumes correctly from .bagel/ without transcript."
+  deliverable_delta_per_cycle: "Cycles with user artifact changes divided by total cycles."
+  governance_overhead_share: "Estimated control-plane token/time share."
+comparisons:
+  - raw_claude_or_codex
+  - bagel_v1_7
+  - bagel_v2_0

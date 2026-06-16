@@ -33,6 +33,34 @@ artifact_profile:
 | `data_analysis` | dataset/question/chart | data pipeline + assumptions map | data validation, reproducibility, statistical critique |
 | `mixed` | typed module | explicit per-module profile | combine only relevant gates |
 
+## Artifact-Specific Lens Packs
+
+Project understanding and takeover review must use lenses that fit the artifact type. Do not hard-code software lenses for research, writing, or data work.
+
+```yaml
+lens_packs:
+  software:
+    required_min_lenses: 2
+    lenses: [structure, behavior, convention, surface]
+  existing_software:
+    required_min_lenses: 2
+    lenses: [structure, behavior, convention, surface]
+  research:
+    required_min_lenses: 2
+    lenses: [methodology, evidence, argument, reproducibility]
+  writing:
+    required_min_lenses: 2
+    lenses: [structure, voice, pacing, continuity]
+  document_deck:
+    required_min_lenses: 2
+    lenses: [structure, visual_hierarchy, narrative, readability]
+  data_analysis:
+    required_min_lenses: 2
+    lenses: [schema, provenance, transformation, validation]
+```
+
+`scripts/bagel_run_check.py` validates the recorded lenses against the active artifact profile.
+
 ## Applicability Rules
 
 - Visual/design-token gates apply only to visual artifacts or when visual presentation affects quality.

@@ -160,7 +160,7 @@ The Supervisor is allowed to replace the Orchestrator. The Orchestrator is not a
 
 ## Replace-Not-Compact Rule
 
-For non-root agents, context exhaustion is handled by replacement, not by trying to compact the same agent indefinitely.
+For non-root agents, context exhaustion is handled by replacement, not by trying to compact the same agent indefinitely. The machine-readable policy value is `replace_not_compact`.
 
 - Supervisor replaces Orchestrator.
 - Orchestrator replaces specialists.

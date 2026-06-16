@@ -1,6 +1,6 @@
 # BAGEL Genesis
 
-> A long-run autonomy protocol for Claude Code and Codex: align deeply, bind a real loop, dispatch clean-context agents, keep improving until the agreed iteration/budget boundary.
+> V2 Measured Autonomous Runtime for Claude Code and Codex: align deeply, bind a proven loop, dispatch clean-context agents, replay evidence, control scope, and keep improving until the agreed iteration/budget boundary.
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -17,12 +17,12 @@ Normal agent usage is already powerful, but it often fails in exactly the places
 - it treats "all requested features are done" as final completion instead of the first iteration;
 - it reports progress that is hard to verify the next morning.
 
-**BAGEL Genesis turns that into a governed autonomous loop.** It makes the agent first clarify the user's real goal, taste, hard-stops, budget, runtime mode, and evaluation criteria; then it keeps running through implementation, review, recovery, bar-raising, and the next iteration.
+**BAGEL Genesis V2 turns that into a measured autonomous runtime.** It makes the agent first clarify the user's real goal, taste, hard-stops, budget, runtime mode, and evaluation criteria; then it keeps running through implementation, review, recovery, bar-raising, and the next iteration while mechanically checking that progress is real.
 
 The key idea is simple:
 
 ```text
-Deep Align -> Bind Loop -> Build -> Verify -> Raise the Bar -> Iterate Again
+Deep Align -> Prove Runtime -> Bind Loop -> Build -> Replay Evidence -> Raise the Bar -> Iterate Again
 ```
 
 The run stops only when the user-set iteration/budget boundary is reached, the user stops it, token/runtime capacity is exhausted with a checkpoint, or a true hard-stop is hit.
@@ -42,6 +42,10 @@ The run stops only when the user-set iteration/budget boundary is reached, the u
 | "Initial goals done" = final | Iteration Contract: initial goals complete one iteration; next target set must be raised if budget remains |
 | Repeating the same failure | Lesson memory promotes recovery into reusable gotchas and playbooks |
 | Fake progress | `bagel_run_check.py`, `flywheel_check.py`, and `bagel_memory_check.py` mechanically validate the run state |
+| Platform capability assumptions | V2 proof model: adapter claims are not proof; R3/scheduled resume/hooks require observed proof files |
+| `.bagel/` self-consistent fiction | Evidence replay validates command metadata, stdout/stderr hashes, and replay policy |
+| Governance work crowding out product work | Telemetry tracks control-plane vs deliverable deltas and fails control-plane-only Build cycles |
+| Silent scope creep | Scope deltas track allowed/touched paths, dependencies, sensitive surfaces, and approvals |
 
 ## When To Use It
 
@@ -133,14 +137,13 @@ At alignment, the agent should persist these choices:
 Run these from the repository root that contains `.bagel/`:
 
 ```bash
-python bagel-genesis/scripts/bagel_run_check.py /path/to/project
-python bagel-genesis/scripts/flywheel_check.py /path/to/project
-python bagel-genesis/scripts/bagel_memory_check.py /path/to/project
+python bagel-genesis/scripts/bagel_v2_check.py /path/to/project
 python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```
 
 What they catch:
 
+- unproved runtime capabilities behind R3/scheduled resume/hooks claims;
 - missing git rollback or loop/timer proof;
 - missing agent dispatch records;
 - control-plane work mistaken as product work;
@@ -151,28 +154,29 @@ What they catch:
 - bar raises without brainstormers or Judgment Council;
 - complete status before `iterations_completed >= max_iterations`;
 - recovery-heavy runs that learned no reusable lessons.
+- evidence hash mismatches, unsafe resume/idempotency, scope creep, stale taste alignment, and governance-only progress.
 
 ## Current Contents
 
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 20 role prompts
-├── references/      # 39 trigger-loaded protocols
-├── scripts/         # 5 validators/helpers
-└── evals/           # 68 behavior evals
+├── agents/          # 19 role prompts
+├── references/      # 48 trigger-loaded protocols
+├── scripts/         # 13 validators/helpers
+└── evals/           # 78 behavior evals + long-run scaffold
 ```
 
 ## Status
 
-Current version: **v1.7**.
+Current version: **v2.0 — Measured Autonomous Runtime**.
 
 Validated locally:
 
 - skill metadata validation passes;
 - BAGEL consistency lint passes;
 - evals JSON is valid and sequential;
-- targeted runtime checks catch real-world failures around control-plane confusion, missing evaluation specs, premature completion, Orchestrator context pollution, and missing Supervisor/resume protection.
+- targeted runtime checks catch real-world failures around unproved platform claims, control-plane confusion, missing evaluation specs, premature completion, Orchestrator context pollution, missing Supervisor/resume protection, evidence replay mismatch, handoff loss, idempotency risk, scope creep, and stale taste alignment.
 
 ## Honest Boundaries
 

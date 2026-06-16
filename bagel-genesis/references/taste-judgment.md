@@ -12,22 +12,22 @@ Canonical dimensions:
 
 ```yaml
 judgment_dimensions:
-  - id: user_impact
+  - id: impact
     question: "Will users actually feel this as a meaningful improvement?"
     reject_if: "Users would not notice or experience gets worse."
-  - id: elegance
-    question: "Does this solve more with less complexity?"
-    reject_if: "Complexity rises sharply while value barely rises."
   - id: coherence
     question: "Does this strengthen the product's core identity?"
     reject_if: "It conflicts with or dilutes the constitution north star."
-  - id: durability
-    question: "Will this still matter in six months?"
-    reject_if: "It is a short-term patch with no durable value."
+  - id: elegance
+    question: "Does this solve more with less complexity?"
+    reject_if: "Complexity rises sharply while value barely rises."
   - id: surprise
+    optional: true
     question: "Would a user or reviewer remember this as unusually good?"
     boost_if: "Surprising and coherent, not surprising by going off-identity."
 ```
+
+`impact`, `coherence`, and `elegance` are the three required dimensions. `surprise` is an optional boost signal, not a standalone veto dimension.
 
 ## Judgment Record
 
@@ -46,6 +46,7 @@ councilors:
     verdict: strong_yes
     reasoning: ""
     evidence_cited: []
+    blocking_concern: null
   - dimension: elegance
     agent_id: "agent-judge-elegance"
     session_id: "session-..."
@@ -73,6 +74,16 @@ merge_result:
 This is not majority vote.
 
 - Any `strong_no` means `status: vetoed`.
+- Any `strong_no` must include:
+
+```yaml
+blocking_concern:
+  type: identity_drift | user_harm | complexity_explosion | evidence_gap | reversibility_risk
+  explanation: ""
+  evidence_refs: []
+  what_would_change_my_mind: ""
+```
+
 - `strong_yes_count >= 2` and `no_count == 0` and `strong_no_count == 0` means `status: passed`.
 - All other outcomes are `status: disputed`.
 

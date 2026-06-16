@@ -63,6 +63,24 @@ When a non-root agent reaches the replacement threshold:
 
 Do not compress Orchestrator or worker contexts as the normal continuation mechanism. Compression hides what was kept/lost; replacement makes the boundary explicit and auditable.
 
+## Context Pressure Telemetry
+
+The Context Tree Principle is not trusted unless measured. Each cycle writes `.bagel/telemetry/cycles.yaml` with:
+
+```yaml
+context_pressure:
+  supervisor_estimated_tokens: 0
+  supervisor_soft_max_tokens: 200000
+  orchestrator_estimated_tokens: 0
+  orchestrator_context_window_tokens: 0
+  worker_max_estimated_tokens: 0
+  replacement_threshold_percent: 70
+  replacement_due: false
+  handoff_ref: null
+```
+
+If a non-root agent crosses the replacement threshold, its parent must validate a handoff and spawn a fresh child. `scripts/bagel_telemetry_check.py` fails if Orchestrator crosses threshold without `replacement_due` and a `handoff_ref`.
+
 ## Supervisor Duties
 
 Supervisor owns:

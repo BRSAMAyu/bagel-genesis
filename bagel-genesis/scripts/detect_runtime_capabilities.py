@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Detect local runtime capabilities for BAGEL without assuming platform features."""
+"""Detect local runtime capabilities for BAGEL without treating claims as proof."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -24,6 +26,31 @@ def command_works(args: list[str]) -> bool:
 
 def bool_yaml(value: bool) -> str:
     return "true" if value else "false"
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def proof_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def capability_yaml(name: str, adapter_claim: bool, observed: bool | None, proof_ref: str, reason: str) -> str:
+    if observed is True:
+        observed_value = "true"
+    elif observed is False:
+        observed_value = "false"
+    else:
+        observed_value = "unknown"
+    verified = now_iso() if observed is not None else "null"
+    return f"""    {name}:
+      adapter_claim: {bool_yaml(adapter_claim)}
+      observed: {observed_value}
+      proof_ref: "{proof_ref}"
+      last_verified_at: {verified}
+      proof_summary: "{reason}"
+"""
 
 
 def detect_platform() -> tuple[str, str]:
@@ -95,11 +122,29 @@ def render_yaml() -> str:
         session_mode = "degraded_resume"
 
     screenshot_list = ", ".join(screenshot_tools) if screenshot_tools else "none"
+    detected_at = now_iso()
+
+    true_subagents_observed: bool | None = None
+    timers_observed: bool | None = None
+    hooks_observed: bool | None = None
+    if platform == "codex":
+        true_subagents_observed = None
+        timers_observed = None
+        hooks_observed = None
+    elif platform == "claude_code":
+        true_subagents_observed = claude_cli
+        timers_observed = None
+        hooks_observed = None
+    else:
+        true_subagents_observed = False
+        timers_observed = cron_like
+        hooks_observed = False
 
     return f"""runtime:
   platform: {platform}
   platform_adapter: "{adapter}"
   session_mode: {session_mode}
+  detected_at: "{detected_at}"
   project_is_git_repo: {bool_yaml(project_is_repo)}
   loop_interval_max_minutes: 25
   degradation_allowed: true
@@ -127,6 +172,18 @@ def render_yaml() -> str:
     - "Do not promise automatic wakeup unless a scheduler, automation, or harness is actually configured"
   resume_artifact: ".bagel/runs/<run_id>/handoff.json"
   next_action_artifact: ".bagel/ledger/next-dispatch.md"
+runtime_capabilities:
+  platform: {platform}
+  platform_adapter: "{adapter}"
+  detected_at: "{detected_at}"
+  capabilities:
+{capability_yaml("true_subagents", supports_subagents, true_subagents_observed, ".bagel/evidence/runtime/subagent-proof.yaml", "adapter claim only unless proof file records a real isolated dispatch")}
+{capability_yaml("timers_or_wakeup", supports_timers, timers_observed, ".bagel/evidence/runtime/loop-proof.yaml", "adapter claim only unless proof file records a bound schedule/loop")}
+{capability_yaml("hooks", supports_hooks, hooks_observed, ".bagel/evidence/runtime/hooks-proof.yaml", "adapter claim only unless proof file records configured hook execution")}
+{capability_yaml("browser_or_visual", browser_or_visual, browser_or_visual, ".bagel/evidence/runtime/visual-proof.yaml", "detected local visual commands: " + screenshot_list)}
+  proof_model:
+    adapter_claim_is_not_proof: true
+    detector_digest: "{proof_hash(platform + adapter + detected_at)[:16]}"
 """
 
 

@@ -57,3 +57,27 @@ evidence:
 ```
 
 If a high-impact decision was made without a collective record, the run must explain why it was below the collective-decision threshold.
+
+## Adaptive Bar-Raise Policy
+
+Do not run maximum ceremony for every mechanical target adjustment. Use this policy:
+
+```yaml
+bar_raise_policy:
+  mechanical_tightening:
+    examples: ["coverage 80->85", "benchmark +5% target"]
+    brainstormers_required: 0
+    judgment_required: false
+  new_quality_dimension:
+    brainstormers_required: 2
+    judgment_required: optional
+  direction_change:
+    brainstormers_required: 2
+    judgment_required: true
+  innovation_probe:
+    brainstormers_required: 2
+    product_visionary_required: true
+    judgment_required: true
+```
+
+The purpose is not fewer agents by default; it is to spend group intelligence where direction quality matters.

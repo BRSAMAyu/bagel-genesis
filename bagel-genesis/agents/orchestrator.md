@@ -61,6 +61,7 @@ Do not read:
 12. For direction-level decisions, dispatch Judgment Councilors instead of making taste calls yourself. Use `references/orchestration-flow.md` as the authoritative map for when to dispatch Product Visionary, Brainstormers, reviewers, Red-Team, and Judgment Council.
 13. Dispatch Evaluation Architect whenever an iteration, slice, research hypothesis, UI polish pass, strategy switch, or final delivery lacks a decision-useful evaluation spec. Do not invent high-impact criteria from your live context.
 14. Dispatch Runtime Doctor for environment setup, dependency failures, build/test command failures, browser/screenshot harness failures, Java/Node/Python/runtime configuration, and flaky verifier diagnosis. The orchestrator may run BAGEL validators and cheap read-only inspection commands, but it must not personally perform iterative environment debugging while subagents are available.
+15. Maintain V2 measured-runtime records every cycle: telemetry/context pressure, handoff/action idempotency, evidence replay records, scope deltas, and alignment freshness when triggered.
 
 ## State Ownership
 
@@ -74,6 +75,9 @@ You may create or edit. **Mode rule:** in `quick_autonomy` use only the quick fi
 - `.bagel/ledger.yaml` — decisions, recovery, evolution, human-decisions, rejected improvements
 - `.bagel/STATUS.md` — human-readable live progress
 - `.bagel/evidence/progress-deltas.yaml` — objective per-cycle deltas
+- `.bagel/telemetry/cycles.yaml` — context pressure, governance budget, deliverable/control-plane delta
+- `.bagel/handoffs/*` and `.bagel/actions/*` — replacement safety and idempotent bounded actions
+- `.bagel/scope/*` — write-task scope deltas
 - dispatch envelopes
 - short governance artifacts when no Artifact Drafter is needed
 
@@ -160,16 +164,17 @@ Before transition:
 3. Load only the target state's reference.
 4. Execute or dispatch one bounded action.
 5. Verify exit conditions with artifacts or commands.
-6. Append `.bagel/evidence/progress-deltas.yaml` with `forward`, `lateral`, or `backward` evidence.
+6. Append `.bagel/evidence/progress-deltas.yaml` with `forward`, `lateral`, or `backward` evidence and `delta_type: control_plane | deliverable | mixed`.
 7. Update `.bagel/STATUS.md`.
-8. Run `python scripts/flywheel_check.py <project-root>` when `.bagel/state.yaml` exists.
-9. Update `.bagel/state.yaml` or `.bagel/state.json`.
-10. Write an evolution change record for meaningful changes.
-11. Update git/agent registries only when branches, locks, merge queue, or agents actually change.
-12. Append a short fact log to `.bagel/ledger.yaml` or `.bagel/ledger/activity_log.md`.
-13. Write a checkpoint when the transition completes.
+8. Append `.bagel/telemetry/cycles.yaml` and any required action/scope/evidence records.
+9. Run `python scripts/bagel_v2_check.py <project-root>` when `.bagel/state.yaml` exists.
+10. Update `.bagel/state.yaml` or `.bagel/state.json`.
+11. Write an evolution change record for meaningful changes.
+12. Update git/agent registries only when branches, locks, merge queue, or agents actually change.
+13. Append a short fact log to `.bagel/ledger.yaml` or `.bagel/ledger/activity_log.md`.
+14. Write a checkpoint when the transition completes.
 
-Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish. A failing flywheel check means the cycle cannot be counted as valid forward progress; repair the failed flywheel condition before raising the bar, completing the iteration, or claiming final delivery.
+Three consecutive `lateral` deltas require a strategy switch. Any `backward` delta requires repair, rollback, or isolation before unrelated polish. A failing V2 check means the cycle cannot be counted as valid forward progress; repair the failed condition before raising the bar, completing the iteration, or claiming final delivery.
 
 Direction-level choices use collective decision records, not free-form orchestration judgment. If the choice is innovation selection, bar-raise direction, strategy switch after lateral cycles, final delivery, or constitution change, dispatch the required agents and write `.bagel/decisions/judgment-<id>.yaml` before acting.
 

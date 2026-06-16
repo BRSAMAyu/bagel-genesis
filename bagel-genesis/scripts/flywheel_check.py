@@ -27,6 +27,15 @@ BAR_RAISE_VALUE_CLASSES = {
     "churn",
 }
 
+ITERATION_VALUE_CLASSES = {
+    "closes_P0_or_P1",
+    "primary_metric_delta",
+    "new_quality_dimension",
+    "reproducibility_gain",
+    "user_visible_friction_removed",
+    "hypothesis_result",
+}
+
 
 def load_yaml(path: Path, default: Any) -> Any:
     if not path.exists():
@@ -94,6 +103,16 @@ def validate_judgment_record(root: Path, judgment_ref: Any, expected_type: str, 
     merge = as_dict(record.get("merge_result"))
     if merge.get("status") != "passed" or merge.get("judgment_passed") is not True:
         fail(errors, f"{label}: judgment record must have merge_result.status=passed and judgment_passed=true")
+    for i, councilor in enumerate(councilors, start=1):
+        if councilor.get("verdict") == "strong_no":
+            concern = as_dict(councilor.get("blocking_concern"))
+            if not concern:
+                fail(errors, f"{label}: councilor {i} strong_no requires blocking_concern")
+            if not concern.get("type") or not concern.get("what_would_change_my_mind"):
+                fail(errors, f"{label}: councilor {i} blocking_concern requires type and what_would_change_my_mind")
+            refs = as_list(concern.get("evidence_refs") or councilor.get("evidence_cited"))
+            if not refs:
+                fail(errors, f"{label}: councilor {i} strong_no requires evidence_refs")
 
 
 def validate_progress_deltas(root, state, errors, warnings):
@@ -107,6 +126,8 @@ def validate_progress_deltas(root, state, errors, warnings):
         assessment = d.get("net_assessment")
         if assessment not in {"forward", "lateral", "backward", "low_confidence"}:
             fail(errors, f"cycle {i}: net_assessment must be forward|lateral|backward|low_confidence")
+        if d.get("delta_type") not in {"control_plane", "deliverable", "mixed"}:
+            fail(errors, f"cycle {i}: delta_type must be control_plane|deliverable|mixed")
         evidence = as_list(d.get("evidence"))
         if not evidence:
             fail(errors, f"cycle {i}: missing evidence list")
@@ -218,6 +239,16 @@ def validate_iteration_budget(root, state, errors, warnings):
         return
     if isinstance(used, int) and used > cap:
         fail(errors, f"cycles_in_current_iteration={used} exceeds iteration_cycle_cap={cap}")
+
+    for i, record in enumerate(as_list(excel.get("iteration_records") or state.get("iterations")), start=1):
+        row = as_dict(record)
+        if row.get("status") != "complete":
+            continue
+        classes = set(as_list(row.get("value_class")))
+        if not classes & ITERATION_VALUE_CLASSES:
+            fail(errors, f"iteration record {i}: complete iteration lacks a meaningful value_class")
+        if not as_list(row.get("evidence_refs")):
+            fail(errors, f"iteration record {i}: complete iteration requires evidence_refs")
 
     # P0-4: cross-check max_iterations against the Stop Contract in constitution
     # The Stop Contract is authoritative; state.excellence.max_iterations is a cached copy.

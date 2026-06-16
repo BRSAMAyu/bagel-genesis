@@ -1,6 +1,6 @@
 # BAGEL Genesis
 
-> 面向 Claude Code 和 Codex 的长程自治协议：先深度对齐，绑定真实 loop，派遣干净上下文 agent，然后持续迭代到约定的预算/轮次边界。
+> 面向 Claude Code 和 Codex 的 V2 可测量自治运行时：先深度对齐，证明 runtime 能力，绑定真实 loop，派遣干净上下文 agent，复放证据、控制范围，并持续迭代到约定边界。
 
 [English](README.md) | **简体中文**
 
@@ -17,12 +17,12 @@
 - 把“用户最初列的功能做完”当成最终完成，而不是第一轮迭代完成；
 - 第二天汇报很多，但进展是否真实很难验证。
 
-**BAGEL Genesis 把这些变成一个受治理的自主循环。** 它先把用户的目标、品味、硬停边界、预算、运行模式、评价体系对齐清楚，然后持续推进实现、审查、恢复、提标和下一轮迭代。
+**BAGEL Genesis V2 把这些变成一个可测量的自主运行时。** 它先把用户的目标、品味、硬停边界、预算、运行模式、评价体系对齐清楚，然后持续推进实现、审查、恢复、提标和下一轮迭代，并用脚本验证进展是否真实。
 
 核心循环很简单：
 
 ```text
-深度对齐 -> 绑定 loop -> 构建 -> 验证 -> 提高标准 -> 再迭代
+深度对齐 -> 证明 runtime -> 绑定 loop -> 构建 -> 复放证据 -> 提高标准 -> 再迭代
 ```
 
 运行只在这些情况下停止：用户设定的迭代/预算边界到达，用户主动停止，token/运行容量耗尽并写好恢复点，或者遇到真正的硬停边界。
@@ -42,6 +42,10 @@
 | 初始目标完成就停 | Iteration Contract：初始目标完成只算一轮；预算未尽就继续提标 |
 | 反复踩同一个坑 | Lesson memory 把恢复经验沉淀成 gotcha 和 playbook |
 | 进展真假难辨 | `bagel_run_check.py`、`flywheel_check.py`、`bagel_memory_check.py` 机械校验运行状态 |
+| 平台能力靠猜 | V2 proof model：adapter claim 不是 proof；R3、scheduled resume、hooks 都需要 observed proof |
+| `.bagel/` 自洽假账 | Evidence replay 校验命令元数据、stdout/stderr hash 和 replay policy |
+| 治理工作压过产品工作 | Telemetry 区分控制面 delta 和交付面 delta，Build 阶段连续自嗨会失败 |
+| 静默扩 scope | Scope delta 记录 allowed/touched paths、依赖、敏感面和 approval |
 
 ## 什么时候用
 
@@ -133,14 +137,13 @@ BAGEL 应该在对齐阶段持久化这些决策：
 在包含 `.bagel/` 的项目根目录运行：
 
 ```bash
-python bagel-genesis/scripts/bagel_run_check.py /path/to/project
-python bagel-genesis/scripts/flywheel_check.py /path/to/project
-python bagel-genesis/scripts/bagel_memory_check.py /path/to/project
+python bagel-genesis/scripts/bagel_v2_check.py /path/to/project
 python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```
 
 这些脚本会抓：
 
+- R3 / scheduled resume / hooks 等能力缺少真实 observed proof；
 - 缺 git 回滚点或 loop/timer 证据；
 - 缺 agent 派遣记录；
 - 把控制面工作误当成产品任务；
@@ -151,21 +154,22 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 - 没有 Brainstormer 或 Judgment Council 的提标；
 - `iterations_completed < max_iterations` 却标记 complete；
 - 恢复了很多问题却没有沉淀可复用教训。
+- evidence hash 不匹配、handoff 丢状态、idempotency 风险、scope creep、taste alignment 过期、治理自嗨。
 
 ## 当前内容
 
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 20 个角色提示词
-├── references/      # 39 个按触发加载的协议
-├── scripts/         # 5 个校验/辅助脚本
-└── evals/           # 68 条行为评测
+├── agents/          # 19 个角色提示词
+├── references/      # 48 个按触发加载的协议
+├── scripts/         # 13 个校验/辅助脚本
+└── evals/           # 78 条行为评测 + long-run scaffold
 ```
 
 ## 当前状态
 
-当前版本：**v1.7**。
+当前版本：**v2.0 — Measured Autonomous Runtime**。
 
 本地已验证：
 

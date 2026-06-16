@@ -20,6 +20,28 @@ runtime:
   supports_tool_self_provisioning: true
 ```
 
+Also record the V2 proof model. Adapter support is not proof:
+
+```yaml
+runtime_capabilities:
+  platform: codex
+  capabilities:
+    true_subagents:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/subagent-proof.yaml"
+    timers_or_wakeup:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/loop-proof.yaml"
+    hooks:
+      adapter_claim: true
+      observed: true | false | unknown
+      proof_ref: ".bagel/evidence/runtime/hooks-proof.yaml"
+```
+
+Create the proof file when the capability is actually bound or tested. `observed: true` with a missing proof file is invalid.
+
 You **must attempt** each native loop mechanism in priority order before any fallback: (1) thread automation (same-thread heartbeat), (2) standalone/project automation for independent scheduled runs, (3) cloud task, (4) `codex exec` driven by cron/launchd/CI. Record proof for each attempt. Only when **all** of these are proven unavailable or user-forbidden may you record `degraded_resume` (formerly `manual_resume`) and mark STATUS.md `[DEGRADED - no native loop bound]`. `degraded_resume` is a marked downgrade, never an equal mode. Loop interval must be <= 25 minutes.
 
 ## Native Primitives
@@ -47,7 +69,7 @@ Map BAGEL roles to Codex agents:
 - Spec Reviewer, Code Quality Reviewer, Independent Reviewer, Red-Team Oracle: separate subagents that read artifacts/diffs/tests, not implementer chat.
 - Integration Manager: main thread mode or dedicated custom agent with merge-queue scope.
 
-For R3 review, the reviewer must be a true subagent or separate Codex run with a clean prompt and artifact inputs. Same-thread role switching remains R1/R2.
+For R3 review, the reviewer must be a true subagent or separate Codex run with a clean prompt and artifact inputs, and `true_subagents.observed: true` must point to a proof file. Same-thread role switching remains R1/R2.
 
 ## Nested Supervisor Pattern
 

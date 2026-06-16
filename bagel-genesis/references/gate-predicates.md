@@ -51,6 +51,13 @@ gates:
 | `resume_capsule_current` | A long run has `.bagel/supervisor/resume-capsule.md` pointing to STATUS, state, constitution, current context capsule, and exactly one next action. It excludes raw transcripts and reasoning. |
 | `context_tree_budget_policy_present` | Nested Supervisor runs declare `context_budget.root_supervisor_soft_max_tokens <= 200000`, `non_root_policy: replace_not_compact`, and a replacement threshold. Non-root agents continue by handoff + replacement, not routine self-compaction. |
 | `project_under_version_control` | Before the first file modification of an autonomous run, `git rev-parse --is-inside-work-tree` succeeds in the working folder, OR the user explicitly approved `git init` and a baseline commit exists. Without version control, rollback and branch isolation are impossible, so autonomous write work must not start. See `references/git-governance.md` Step 0. |
+| `runtime_capability_observed_with_proof` | R3/R4 review, scheduled resume, hooks, and visual claims use `runtime_capabilities.capabilities.<name>.observed: true` plus an existing `proof_ref`; adapter claims alone do not count. |
+| `handoff_validation_passed` | Replacement/resume handoffs include current state, open risks, next action, last git ref, and a validation report proving the next action is safe to start. |
+| `action_idempotency_safe` | Every bounded action records an idempotency key, side effects, git refs, and retry policy; duplicate keys are retry-safe or fail. |
+| `evidence_replay_integrity_passed` | Runnable evidence records include command/cwd/git_ref/exit_code/stdout/stderr hashes/env digest/replay policy, and recorded hashes match files. |
+| `governance_budget_respected` | Cycle telemetry proves deliverable deltas appear on schedule and governance share does not repeatedly exceed the configured limit. |
+| `scope_delta_within_contract` | Write tasks stay within allowed paths/dependencies/sensitive surfaces, or cite approval/contract/Court evidence. |
+| `alignment_freshness_current` | Iteration end, final delivery, user instruction changes, and taste-sensitive direction changes have evidence-backed alignment freshness review. |
 
 ## Enforcement Model (honest)
 
@@ -75,6 +82,13 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `supervisor_layer_bound` | `bagel_run_check.py` |
 | `resume_capsule_current` | `bagel_run_check.py` |
 | `context_tree_budget_policy_present` | `bagel_run_check.py` |
+| `runtime_capability_observed_with_proof` | `bagel_run_check.py` |
+| `handoff_validation_passed` | `resume_integrity_check.py` |
+| `action_idempotency_safe` | `resume_integrity_check.py` |
+| `evidence_replay_integrity_passed` | `evidence_replay_check.py` |
+| `governance_budget_respected` | `bagel_telemetry_check.py` |
+| `scope_delta_within_contract` | `scope_check.py` |
+| `alignment_freshness_current` | `alignment_freshness_check.py` |
 
 **Agent-attested** (the agent records pass/fail based on evidence files, but no script independently re-verifies — these depend on the agent honestly inspecting the cited evidence):
 

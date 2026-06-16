@@ -100,6 +100,7 @@ def main() -> int:
     failures.extend(check_v14_judgment_council(root))
     failures.extend(check_v15_evaluation_iteration_orchestration(root))
     failures.extend(check_v16_supervisor_resilience(root))
+    failures.extend(check_v20_measured_runtime(root))
     failures.extend(check_loading_matrix_files_exist(root))
 
     if failures:
@@ -197,10 +198,10 @@ def check_v11_requirements(root: Path) -> list[str]:
     # 9. Runtime effectiveness auditor exists and is wired into the run loop.
     if not (root / "scripts" / "bagel_run_check.py").exists():
         out.append("scripts/bagel_run_check.py: v1.1 requires an operational run auditor.")
-    if "bagel_run_check.py" not in skill:
-        out.append("SKILL.md: long-run loop must call scripts/bagel_run_check.py.")
-    if "bagel_run_check.py" not in runtime_proto:
-        out.append("runtime-protocol.md: runtime checks must include scripts/bagel_run_check.py.")
+    if "bagel_run_check.py" not in skill and "bagel_v2_check.py" not in skill:
+        out.append("SKILL.md: long-run loop must call BAGEL runtime validators.")
+    if "bagel_run_check.py" not in runtime_proto and "bagel_v2_check.py" not in runtime_proto:
+        out.append("runtime-protocol.md: runtime checks must include BAGEL runtime validators.")
 
     return out
 
@@ -262,7 +263,7 @@ def check_v12_requirements(root: Path) -> list[str]:
             out.append(f"references/{adapter_name}: wake prompt must contain the pointer-only STATUS/state/SKILL contract.")
 
     # 5. Runtime auditor must enforce the v1.2 guarantees mechanically.
-    for required in ("baseline_manifest", "manifest.yaml", "EXPLORER_LENSES", "loop_binding.created_at"):
+    for required in ("baseline_manifest", "manifest.yaml", "ARTIFACT_LENS_PACKS", "loop_binding.created_at"):
         if required not in run_check:
             out.append(f"scripts/bagel_run_check.py: v1.2 runtime audit missing {required}.")
 
@@ -321,8 +322,8 @@ def check_v13_innovation_memory(root: Path) -> list[str]:
 
     if "Product Visionary" not in skill or "innovation-protocol.md" not in skill:
         out.append("SKILL.md: must include Product Visionary and innovation-protocol in the Loading Matrix.")
-    if "lesson-memory.md" not in skill or "bagel_memory_check.py" not in skill:
-        out.append("SKILL.md: must include lesson-memory and run scripts/bagel_memory_check.py.")
+    if "lesson-memory.md" not in skill or ("bagel_memory_check.py" not in skill and "bagel_v2_check.py" not in skill):
+        out.append("SKILL.md: must include lesson-memory and run BAGEL memory validation.")
     if "Innovation Ambition" not in align or "innovation_contract" not in align:
         out.append("alignment-protocol.md: must capture Innovation Ambition and innovation_contract.")
     if "Product Visionary" not in excellence or "novelty/paradigm" not in excellence:
@@ -499,6 +500,81 @@ def check_v16_supervisor_resilience(root: Path) -> list[str]:
     for phrase in ("validate_supervisor", "SUPERVISOR_MODES", "resume-capsule.md", "current_orchestrator", "replace_not_compact"):
         if phrase not in run_check:
             out.append(f"bagel_run_check.py missing Supervisor runtime audit: {phrase}.")
+
+    return out
+
+
+def check_v20_measured_runtime(root: Path) -> list[str]:
+    """v2.0 checks for measured autonomy, replay, telemetry, and scope control."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    runtime_caps = read("references/runtime-capabilities.md")
+    runtime_proto = read("references/runtime-protocol.md")
+    gate = read("references/gate-predicates.md")
+    run_check = read("scripts/bagel_run_check.py")
+    flywheel = read("scripts/flywheel_check.py")
+    v2_check = read("scripts/bagel_v2_check.py")
+
+    for rel in (
+        "references/v2-measured-runtime.md",
+        "references/telemetry-protocol.md",
+        "references/evidence-protocol.md",
+        "references/handoff-integrity.md",
+        "references/scope-control.md",
+        "references/alignment-freshness.md",
+        "references/reference-loading.md",
+    ):
+        if not (root / rel).exists():
+            out.append(f"{rel}: v2.0 requires this measured-runtime reference.")
+        elif Path(rel).name not in skill:
+            out.append(f"SKILL.md Loading Matrix must include {rel}.")
+
+    for script in (
+        "bagel_telemetry_check.py",
+        "resume_integrity_check.py",
+        "evidence_replay_check.py",
+        "scope_check.py",
+        "alignment_freshness_check.py",
+        "reference_load_check.py",
+        "bagel_cross_check.py",
+    ):
+        if not (root / "scripts" / script).exists():
+            out.append(f"scripts/{script}: v2.0 requires this validator.")
+        elif script != "bagel_cross_check.py" and script not in v2_check:
+            out.append(f"bagel_v2_check.py must call {script}.")
+
+    for phrase in ("adapter_claim", "observed", "proof_ref", "not proof"):
+        if phrase not in runtime_caps:
+            out.append(f"runtime-capabilities.md missing V2 proof-model term: {phrase}.")
+    for phrase in ("validate_runtime_capability_proofs", "observed_true", "proof_exists"):
+        if phrase not in run_check:
+            out.append(f"bagel_run_check.py missing V2 runtime proof audit: {phrase}.")
+    for phrase in ("delta_type", "ITERATION_VALUE_CLASSES", "blocking_concern"):
+        if phrase not in flywheel:
+            out.append(f"flywheel_check.py missing V2 flywheel audit: {phrase}.")
+    for phrase in ("bagel_v2_check.py", "delta_type", ".bagel/telemetry/cycles.yaml"):
+        if phrase not in runtime_proto:
+            out.append(f"runtime-protocol.md missing V2 runtime term: {phrase}.")
+    for gate_id in (
+        "runtime_capability_observed_with_proof",
+        "handoff_validation_passed",
+        "action_idempotency_safe",
+        "evidence_replay_integrity_passed",
+        "governance_budget_respected",
+        "scope_delta_within_contract",
+        "alignment_freshness_current",
+    ):
+        if gate_id not in gate:
+            out.append(f"gate-predicates.md missing V2 gate: {gate_id}.")
+    if not (root / "evals" / "long-run" / "tasks.yaml").exists():
+        out.append("evals/long-run/tasks.yaml: v2.0 requires long-run benchmark scaffold.")
+    if "Measured Autonomous Runtime" not in skill:
+        out.append("SKILL.md must name V2 as the Measured Autonomous Runtime.")
 
     return out
 

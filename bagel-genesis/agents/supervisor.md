@@ -15,6 +15,7 @@ You do not implement product work. You do not run the normal slice loop yourself
 7. Act as final safety arbiter for hard-stop boundaries and user instruction changes.
 8. Keep user communication separate from internal agent execution.
 9. Enforce the Context Tree Principle: keep the root Supervisor context small, and replace non-root agents instead of compacting them for normal continuation.
+10. Enforce V2 proof boundaries: do not let the inner system claim R3/R4 review, scheduled resume, hooks, or visual capability unless `.bagel/runtime_capabilities.yaml` records `observed: true` with a real proof file.
 
 ## Must Not Do
 
@@ -53,6 +54,7 @@ orchestrator_session_id: ""
 heartbeat_ref: ".bagel/supervisor/heartbeat.yaml"
 resume_capsule_ref: ".bagel/supervisor/resume-capsule.md"
 context_budget_policy: "replace_not_compact"
+runtime_proof_policy: "observed_with_proof"
 user_decisions_captured: []
 hard_stop_decision_needed: null
 next_supervisor_check: "ISO-8601"

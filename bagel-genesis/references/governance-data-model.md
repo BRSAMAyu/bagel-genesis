@@ -17,10 +17,16 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Iteration records | `.bagel/state.yaml#iterations` or `.bagel/iterations/ITER-*.yaml` | Iteration target sets, completion evidence, carry-forward items |
 | Supervisor state | `.bagel/state.yaml#supervisor` and `.bagel/supervisor/*` | Outer heartbeat, user proxy, resume capsule, Orchestrator liveness |
 | Progress deltas | `.bagel/evidence/progress-deltas.yaml` | Objective cycle-by-cycle evidence |
+| Replayable evidence | `.bagel/evidence/**/evidence.yaml` | Command/metric/screenshot evidence with hashes and replay policy |
 | Bar raises | `.bagel/evidence/bar-raises.yaml` | Raised standards and why they are valuable |
+| Cycle telemetry | `.bagel/telemetry/cycles.yaml` | Context pressure, governance budget, deliverable/control-plane deltas |
+| Handoffs and actions | `.bagel/handoffs/*`, `.bagel/actions/*` | Replace-not-compact handoffs and idempotent bounded actions |
+| Scope deltas | `.bagel/scope/*` or `.bagel/state.yaml#scope_deltas` | Allowed/touched paths, dependencies, sensitive surfaces |
+| Alignment freshness | `.bagel/alignment/freshness.yaml` or `.bagel/state.yaml#alignment_freshness` | Evidence-backed reanchor/taste drift state |
+| Reference digests | `.bagel/agent_context/reference-digests/*` | Stable summaries and read telemetry for progressive disclosure |
 | Innovation candidates | `.bagel/innovation/ledger.yaml` | Novel concepts, probes, and adopt/park/reject decisions |
 | Lesson memory | `.bagel/ledger.yaml#lessons` or `.bagel/lessons/*` | Reusable gotchas, recovery lessons, and playbooks |
-| Loop binding and telemetry | `.bagel/state.yaml.loop_binding`, `.bagel/state.yaml.telemetry` | Timer/scheduler proof and runtime counters |
+| Loop binding and telemetry | `.bagel/state.yaml.loop_binding`, `.bagel/state.yaml.telemetry`, `.bagel/telemetry/*` | Timer/scheduler proof and runtime counters |
 | Review registry | `.bagel/state.yaml.review_registry` | Derived review independence levels in quick mode |
 | Flywheel integrity | `.bagel/state.yaml.gates.flywheel_integrity_passed` | Latest `scripts/flywheel_check.py` result |
 | Human status entry | `.bagel/STATUS.md` | Single user-readable status entry point |
@@ -30,7 +36,7 @@ In `full_genesis`, these domains may expand to specialized files:
 
 | Domain | Canonical File | Notes |
 |---|---|---|
-| Runtime capability | `.bagel/runtime_capabilities.yaml` | What the platform can actually do |
+| Runtime capability | `.bagel/runtime_capabilities.yaml`, `.bagel/evidence/runtime/*` | What the platform can actually do, split into adapter claim vs observed proof |
 | Artifact profile | `.bagel/artifact_profile.yaml` | Which gates apply |
 | User intent | `.bagel/constitution.json` | Stable promise and boundaries |
 | Human decisions | `.bagel/alignment/human-decisions.yaml` | Approval/delegation/assumption state |
@@ -47,6 +53,10 @@ In `full_genesis`, these domains may expand to specialized files:
 | Change history | `.bagel/evolution/*` | Audit, rollback, rationale |
 | Git/agents | `.bagel/git/*`, `.bagel/agents/*` | Ownership and integration state |
 | Flywheel evidence | `.bagel/evidence/*` | Progress deltas, bar raises, command output, screenshots, benchmarks |
+| Cycle telemetry | `.bagel/telemetry/*` | Context pressure, governance budget, reference reads, deliverable deltas |
+| Handoffs and actions | `.bagel/handoffs/*`, `.bagel/actions/*` | Replacement safety and idempotency |
+| Scope control | `.bagel/scope/*` | Scope deltas and approval/contract refs |
+| Alignment freshness | `.bagel/alignment/freshness.yaml` | Constitution/taste reanchor evidence |
 | Innovation ledger | `.bagel/innovation/ledger.yaml` | Divergent concept candidates and probe evidence |
 | Lesson memory | `.bagel/lessons/*` | Cross-run operational wisdom and reusable playbooks |
 | Loop binding and telemetry | `.bagel/state.json` or `.bagel/progress.json` | Timer/scheduler proof and runtime counters |
@@ -126,6 +136,33 @@ Supervisor recovery:
 ├── orchestration-ledger.yaml
 ├── user-intake.yaml
 └── respawn-log.yaml
+```
+
+V2 measured runtime:
+
+```text
+.bagel/
+├── runtime_capabilities.yaml
+├── evidence/
+│   ├── runtime/
+│   │   ├── subagent-proof.yaml
+│   │   ├── loop-proof.yaml
+│   │   ├── hooks-proof.yaml
+│   │   └── visual-proof.yaml
+│   └── <cycle>/evidence.yaml
+├── telemetry/
+│   ├── cycles.yaml
+│   ├── context-pressure.yaml
+│   ├── governance-budget.yaml
+│   └── reference-reads.yaml
+├── handoffs/
+│   └── <agent-or-cycle>.yaml
+├── actions/
+│   └── <action-id>.yaml
+├── scope/
+│   └── <action-id>.yaml
+└── agent_context/
+    └── reference-digests/
 ```
 
 `.bagel/STATUS.md` is the single entry point for humans after a long run. It summarizes phase, last verified progress, autonomy safety, current blockers, next action, and links to deeper files. In quick mode it is generated from `state.yaml`, `constitution.yaml`, `context.yaml`, `ledger.yaml`, and `evidence/progress-deltas.yaml`. In full mode it may also draw from `state.json`, `progress.json`, `gates/status.yaml`, `task_queue.json`, `human-decisions.yaml`, and `user_briefing/*`. If canonical files disagree, `STATUS.md` must say "state conflict" and link to the conflict report instead of choosing silently.

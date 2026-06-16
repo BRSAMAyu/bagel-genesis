@@ -95,10 +95,19 @@ Also write or update an evolution change record for meaningful changes. The chec
 
 The run's stop boundary lives in the Stop Contract (`.bagel/constitution.yaml.stop_contract`: max_iterations, budget_limit, hard_stops, deadline) — not in STATUS.md narrative. STATUS.md reports progress; the Stop Contract defines when it ends.
 
-Every cycle must update two observable surfaces:
+Every cycle must update three observable surfaces:
 
 - `.bagel/evidence/progress-deltas.yaml`: append the objective delta for the just-finished cycle.
 - `.bagel/STATUS.md`: update the human-readable live status.
+- `.bagel/telemetry/cycles.yaml`: append context pressure, budget split, reference reads, subagent count, and deliverable/control-plane delta.
+
+Every progress delta must include:
+
+```yaml
+delta_type: control_plane | deliverable | mixed
+```
+
+Control-plane-only deltas do not count as meaningful product progress unless they unlock verified deliverable work in the next cycle.
 
 ### STATUS.md Ownership Split (v1.1)
 
@@ -182,14 +191,13 @@ Token usage: {platform_reported | estimated | unavailable}: {value}
 
 If three consecutive deltas are `lateral`, update `STATUS.md` with the strategy switch. If a delta is `backward`, record the rollback/isolation/repair action before starting unrelated polish.
 
-After updating `STATUS.md`, run both runtime validators when `.bagel/state.yaml` exists:
+After updating `STATUS.md`, run the V2 validator when `.bagel/state.yaml` exists:
 
 ```bash
-python scripts/bagel_run_check.py <project-root>
-python scripts/flywheel_check.py <project-root>
+python scripts/bagel_v2_check.py <project-root>
 ```
 
-`bagel_run_check.py` validates the operational substrate: git repository/rollback gate, loop binding and <=25 minute timer, alignment floor, agent dispatch records, implementer/reviewer separation, STATUS sections, and HTML dashboard ownership. `flywheel_check.py` validates progress integrity. If either check fails, set Run Status to `recovering`, list the failed gate under Current Focus, and make the Next Action the repair/rollback/isolation/strategy-switch needed to restore integrity.
+`bagel_v2_check.py` validates the operational substrate, flywheel integrity, lesson/innovation memory, telemetry/context pressure, handoff integrity, evidence replay, scope control, alignment freshness, and reference-loading discipline. If it fails, set Run Status to `recovering`, list the failed gate under Current Focus, and make the Next Action the repair/rollback/isolation/strategy-switch needed to restore integrity.
 
 ## Snapshot Protocol
 

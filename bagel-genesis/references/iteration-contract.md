@@ -34,6 +34,9 @@ iteration:
   metrics_result: []
   review_refs: []
   judgment_ref: ".bagel/decisions/judgment-ITER-001.yaml"
+  value_class:
+    - closes_P0_or_P1 | primary_metric_delta | new_quality_dimension | reproducibility_gain | user_visible_friction_removed | hypothesis_result
+  evidence_refs: []
   git_ref_start: ""
   git_ref_end: ""
   next_iteration_seed:
@@ -45,6 +48,57 @@ iteration:
       - Judgment Council
     candidate_targets: []
 ```
+
+## Adaptive Iteration Budget
+
+Prefer:
+
+```yaml
+iteration_budget:
+  target_iterations: 4
+  max_iterations: 8
+  min_meaningful_iterations: 2
+  expected_cycles_by_iteration: [2, 3, 4]
+  hard_cap: "wall-clock or token cap"
+```
+
+`max_iterations` remains the hard ceiling, but a completed iteration must pass the Iteration Value Gate below.
+
+## Iteration Value Gate
+
+An iteration is meaningful only if it includes at least one:
+
+- `closes_P0_or_P1`
+- `primary_metric_delta`
+- `new_quality_dimension`
+- `reproducibility_gain`
+- `user_visible_friction_removed`
+- `hypothesis_result`
+
+Forbidden as the sole basis:
+
+- governance-only progress,
+- cosmetic churn only,
+- unverifiable claims,
+- metrics that do not affect decisions.
+
+`scripts/flywheel_check.py` validates `value_class` and `evidence_refs` for completed iteration records.
+
+## Near-Ceiling Detector
+
+When a metric appears flat, classify it:
+
+```yaml
+near_ceiling:
+  metric: ""
+  current_value: 0.998
+  target_value: 1.0
+  ratio_to_target: 0.998
+  recent_delta: 0.001
+  classification: still_climbable | near_ceiling | bad_metric
+```
+
+Do not punish a run for tiny absolute deltas when the metric is already near its real ceiling; switch to a better metric or quality dimension.
 
 ## Iteration Start
 
