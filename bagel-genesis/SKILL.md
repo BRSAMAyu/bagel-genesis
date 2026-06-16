@@ -540,6 +540,7 @@ These anti-cheat validators are unconditional for any non-lite run. They prevent
 | governance budget mode-aware ceiling | `.bagel/telemetry/cycles.yaml` → `budget.governance_token_share` | governance share exceeding the run-mode cap (quick ≤25%, full ≤40%) — per-cycle hard fail, not just a streak warning |
 | governance share derived from token_log | `.bagel/telemetry/cycles.yaml` → `token_log` | declared `governance_token_share` inconsistent with the recomputable share from the per-entry `token_log` (governance-category tokens / all tokens) — catches a self-reported lie |
 | `validate_production_surface` | source/config/dispatch scan → `.bagel/ledger.yaml` → `human_decisions:` | production-data/credential signals (cloud keys AKIA, non-localhost prod connection strings, prod-host patterns, cloud-SDK usage) without a recorded hard-stop acknowledgment |
+| `no_hardcoded_secrets` | generated source/config scan | hardcoded secret/key patterns (AWS AKIA, GitHub PAT, private key blocks, Stripe live keys, Slack tokens) in generated code — fails UNCONDITIONALLY (committed secrets are irreversible leaks, no acknowledgment can clear) |
 
 ### Enforcement honesty (what the validators can and cannot guarantee)
 

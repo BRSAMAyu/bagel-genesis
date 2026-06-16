@@ -196,6 +196,42 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             f"actually fired before this work proceeded."
         )
 
+    # C4 fix (Judge S5): generated-artifact secret-leak detection (output-side).
+    # The checks above catch an agent CONNECTING to production (input-side). This catches
+    # an agent HARDCODING a secret into generated code (output-side) — a different, more
+    # severe failure (committed secrets are irreversible leaks). Credential KEY PATTERNS
+    # (not connection strings) in source are ALWAYS a fail regardless of ack — you cannot
+    # "acknowledge" committing a secret; you must remove it.
+    SECRET_KEY_PATTERNS = [
+        re.compile(r"AKIA[0-9A-Z]{16}"),  # AWS access key id
+        re.compile(r"aiza[0-9a-z_\-]{35}"),  # Google API key
+        re.compile(r"[0-9a-zA-Z][0-9a-zA-Z\-_]{19,20}\.[0-9a-zA-Z\-_]{6,}\.[0-9a-zA-Z\-_]{27}"),  # GitHub PAT
+        re.compile(r"-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),  # private key block
+        re.compile(r"sk_live_[0-9a-zA-Z]{24,}"),  # Stripe live secret key
+        re.compile(r"xox[baprs]-[0-9a-zA-Z-]{10,}"),  # Slack token
+    ]
+    secret_leaks: list[str] = []
+    for path in collect_scan_files(root):
+        try:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for pat in SECRET_KEY_PATTERNS:
+            for m in pat.finditer(content):
+                line_no = content[:m.start()].count("\n") + 1
+                secret_leaks.append(f"{path.relative_to(root)}:{line_no}: hardcoded secret pattern {pat.pattern[:35]}")
+    if secret_leaks:
+        seen_s = set()
+        unique_leaks = [s for s in secret_leaks if not (s in seen_s or seen_s.add(s))]
+        errors.append(
+            f"no_hardcoded_secrets: {len(unique_leaks)} hardcoded secret/key pattern(s) detected in "
+            f"generated source/config (first 5: {'; '.join(unique_leaks[:5])}). A committed secret is "
+            f"an irreversible leak — this FAILS unconditionally (no acknowledgment can clear it). "
+            f"Remove the secret from source; load it from an environment variable or secrets manager. "
+            f"(Anti-Pattern: the protocol guards input-side prod access but must also guard output-side "
+            f"secret leakage in generated artifacts.)"
+        )
+
     return errors, warnings
 
 
