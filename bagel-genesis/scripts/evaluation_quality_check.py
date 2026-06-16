@@ -74,21 +74,43 @@ def active_evaluation(root: Path) -> dict[str, Any]:
 def validate_gameable_metric_pairing(metrics: list[dict[str, Any]], errors: list[str]) -> None:
     """S4 scenario gate: a gameable headline metric cannot be the sole quality signal.
 
-    Retrieval-style top-1 metrics (hit@1/precision@1/exact-match) are trivially
-    gameable (memorized index, test-set overfit, inverted lookup). When the spec's
-    metrics list contains one of these WITHOUT a robustness/ranking pair metric
-    (MRR/nDCG/MAP/recall@k/held-out/generalization), the gate fails — the agent
-    could max the headline without improving real quality. This applies even when
-    the gameable metric is the only metric (the worst case).
+    Two-tier check (paraphrase-proof):
+    PRIMARY: if metrics declare a structured `metric_role` from the fixed enum
+    (gameable_top1 / ranking_robustness / held_out_generalization / qualitative /
+    other), check structurally — a metric_role=gameable_top1 without a sibling
+    metric_role=ranking_robustness or held_out_generalization fails. The role is
+    declared, not inferred from the metric name, so it cannot be paraphrased away.
+    FALLBACK: for metrics without a metric_role, scan the name/id/decision_use blob
+    for gameable headline substrings (hit@1/precision@1/exact-match) without a
+    robustness pair (MRR/nDCG/MAP/recall@k/held-out). This is evadable by renaming
+    the metric; the structured role path is the authoritative check.
     """
     if not metrics:
         return
-    # Collect all metric names/ids/decision_uses as a lowercase blob to search
+    metric_dicts = [as_dict(m) for m in metrics]
+    # PRIMARY: structured metric_role declarations
+    roles = [str(m.get("metric_role") or "").lower() for m in metric_dicts]
+    has_structured_role = any(roles)
+    if has_structured_role:
+        has_gameable_role = any(r == "gameable_top1" for r in roles)
+        has_robustness_role = any(r in ("ranking_robustness", "held_out_generalization") for r in roles)
+        if has_gameable_role and not has_robustness_role:
+            errors.append(
+                "evaluation_critic: a metric with metric_role=gameable_top1 is declared "
+                "without a paired metric_role=ranking_robustness or held_out_generalization. "
+                "A gameable top-1 metric cannot be the sole quality signal — declare a "
+                "robustness/ranking role alongside it (structured role path, paraphrase-proof)."
+            )
+            return
+        # If structured roles are present and the pairing holds (or no gameable role),
+        # the structured path is authoritative — do not also run the weaker substring path.
+        if has_gameable_role and has_robustness_role:
+            return
+    # FALLBACK: name/id/decision_use substring matching (evadable by renaming)
     blob_parts: list[str] = []
-    for m in metrics:
-        d = as_dict(m)
+    for m in metric_dicts:
         for key in ("name", "id", "metric", "decision_use", "real_quality_link"):
-            blob_parts.append(str(d.get(key) or ""))
+            blob_parts.append(str(m.get(key) or ""))
     blob = " ".join(blob_parts).lower()
     has_gameable_headline = any(g in blob for g in GAMEABLE_HEADLINE_METRICS)
     if not has_gameable_headline:
@@ -100,7 +122,8 @@ def validate_gameable_metric_pairing(metrics: list[dict[str, Any]], errors: list
             "exact-match@1) is present without a paired robustness/ranking metric "
             "(MRR/nDCG/MAP/recall@k/held-out/generalization). A gameable headline "
             "cannot be the sole quality signal — pair it with a metric that resists "
-            "memorization/index overfit (see evaluation-critic surface_overfit_risk)."
+            "memorization/index overfit, OR declare metric_role on each metric "
+            "(structured path, paraphrase-proof). (see evaluation-critic surface_overfit_risk)."
         )
 
 
