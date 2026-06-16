@@ -42,6 +42,8 @@ Dispatch `agents/product-visionary.md` when:
 
 Use at least two distinct lenses for `breakthrough`; one lens is enough for `differentiated` unless the first pass is quiet.
 
+For `breakthrough`, use `references/breakthrough-search.md`. Generate at least three competing product/research theses before locking direction.
+
 ## Innovation Ledger
 
 Record concept candidates in `.bagel/innovation/ledger.yaml`:
@@ -59,6 +61,13 @@ concepts:
     hard_stop_risk: false
     constitution_change_needed: false
     falsifiable_probe: ""
+    product_thesis:
+      core_bet: ""
+      target_user_behavior_change: ""
+      why_this_beats_incremental_execution: ""
+      must_not_become: ""
+      first_proof_point: ""
+      abandon_if: ""
     decision: probe | adopt | park | reject
     decision_reason: ""
     evidence:

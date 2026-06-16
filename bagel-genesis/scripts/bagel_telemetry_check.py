@@ -92,6 +92,12 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         pressure = as_dict(cycle.get("context_pressure"))
         deliverable_delta = outputs.get("deliverable_delta")
         control_delta = outputs.get("control_plane_delta")
+        if deliverable_delta not in {True, False}:
+            fail(errors, f"cycle {idx}: outputs.deliverable_delta must be boolean")
+            deliverable_delta = False
+        if control_delta not in {True, False}:
+            fail(errors, f"cycle {idx}: outputs.control_plane_delta must be boolean")
+            control_delta = False
         share = budget_block.get("governance_token_share")
 
         if deliverable_delta is True and first_deliverable_seen_at is None:
@@ -109,6 +115,10 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             high_governance_streak = 0
         if high_governance_streak >= 2:
             warn(warnings, f"cycle {idx}: governance_token_share exceeded {max_share:.2f} for 2 consecutive cycles")
+        if max_share > 0.30 and not budget.get("approval_ref"):
+            fail(errors, "governance_budget.max_control_plane_share_per_cycle cannot exceed 0.30 without approval_ref")
+        if max_no_delta > 2 and not budget.get("approval_ref"):
+            fail(errors, "governance_budget.max_cycles_without_deliverable_delta cannot exceed 2 without approval_ref")
 
         threshold = pressure.get("replacement_threshold_percent")
         orch = pressure.get("orchestrator_estimated_tokens")
@@ -121,6 +131,8 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
                 fail(errors, f"cycle {idx}: Orchestrator context crossed threshold but replacement_due is not true")
             if percent >= threshold and not handoff_ref:
                 fail(errors, f"cycle {idx}: Orchestrator context crossed threshold without handoff_ref")
+            elif percent >= threshold and handoff_ref and not (root / str(handoff_ref)).exists():
+                fail(errors, f"cycle {idx}: handoff_ref does not exist: {handoff_ref}")
 
         supervisor_tokens = pressure.get("supervisor_estimated_tokens")
         supervisor_soft = pressure.get("supervisor_soft_max_tokens") or 200000

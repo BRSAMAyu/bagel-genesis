@@ -41,6 +41,8 @@ Owns state transitions, dispatch envelopes, gate enforcement, checkpoints, coord
 
 Owns user-facing alignment, user instruction normalization, heartbeat, Orchestrator spawn/respawn, and highest-level safety arbitration. It reads `.bagel/supervisor/*`, STATUS, constitution, and compact state summaries. It does not run the slice loop, implement, debug, review, or absorb worker details. On Claude Code/Codex it is the preferred role for the main session.
 
+Supervisor has no "small task" exception. Running a validator, trying an environment command, checking browser output, editing a project file, or doing routine recovery is not safer because it is short. If the action belongs to Orchestrator, Runtime Doctor, Implementer, Reviewer, Evaluation Architect, or Principal Expert, Supervisor must dispatch or respawn that owner.
+
 ### Integration Manager
 
 Owns git merge queue, conflict classification, post-merge verification, lock cleanup, and integration change records. In small runs, Orchestrator may enter this mode. It does not implement features except narrow conflict-resolution patches with documented scope.
@@ -150,11 +152,12 @@ firewall:
 For long-running Claude Code/Codex runs with true subagents:
 
 1. Main session loads BAGEL and becomes Supervisor.
-2. Supervisor captures/updates user-facing alignment.
-3. Supervisor writes `.bagel/supervisor/resume-capsule.md` and heartbeat.
-4. Supervisor spawns Orchestrator as a fresh subagent/session with only resume capsule, state pointers, and current next action.
-5. Orchestrator runs the internal BAGEL workflow and dispatches specialists.
-6. Supervisor wakes on heartbeat, checks liveness and hard-stops, and respawns Orchestrator if needed.
+2. Supervisor runs a `state_authority_check`: current loaded skill outranks stale `.bagel/` topology from prior BAGEL versions.
+3. Supervisor captures/updates user-facing alignment.
+4. Supervisor writes `.bagel/supervisor/resume-capsule.md`, heartbeat, and a role-guarded action log.
+5. Supervisor spawns Orchestrator as a fresh subagent/session with only resume capsule, state pointers, and current next action.
+6. Orchestrator runs the internal BAGEL workflow and dispatches specialists.
+7. Supervisor wakes on heartbeat, checks liveness and hard-stops, and respawns Orchestrator if needed.
 
 The Supervisor is allowed to replace the Orchestrator. The Orchestrator is not allowed to replace or rewrite the Supervisor.
 

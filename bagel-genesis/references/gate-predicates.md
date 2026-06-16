@@ -58,6 +58,14 @@ gates:
 | `governance_budget_respected` | Cycle telemetry proves deliverable deltas appear on schedule and governance share does not repeatedly exceed the configured limit. |
 | `scope_delta_within_contract` | Write tasks stay within allowed paths/dependencies/sensitive surfaces, or cite approval/contract/Court evidence. |
 | `alignment_freshness_current` | Iteration end, final delivery, user instruction changes, and taste-sensitive direction changes have evidence-backed alignment freshness review. |
+| `domain_excellence_model_present` | `.bagel/expert/domain-excellence.yaml` defines what excellent, mediocre, hidden quality, failure modes, and expert review questions mean for this artifact. |
+| `problem_framing_locked` | `.bagel/expert/problem-framing.yaml` records stated problem, inferred real problem, considered reframings, chosen framing, and rejected framings before Build. |
+| `leverage_map_current` | `.bagel/expert/leverage-map.yaml` identifies bottlenecks and cites the top leverage action used for iteration target selection. |
+| `evaluation_critic_passed` | Active evaluation spec includes Evaluation Critic review and metric discrimination checks against bad/strong examples. |
+| `expert_decision_present` | High-impact choices have a Principal Expert `expert_decision` with selected direction, rejected alternatives, thesis, confidence, reversibility, evidence, uncertainty, kill criteria, and next action. |
+| `roi_controller_positive_or_switched` | Per-cycle value accounting shows user-relevant value; low/negative ROI streaks trigger strategy switch, scope shrink, breakthrough search, or budget stop. |
+| `supervisor_boundary_respected` | Supervisor action logs contain only alignment, heartbeat, respawn, hard-stop, resume, or user-proxy actions; no implementation/debug/test/browser work. |
+| `supervisor_role_guard_passed` | Nested Supervisor action logs include `role_guard` on every action, affirm current skill overrides stale state, record no task-size exemption, and include spawn/respawn proof for the inner Orchestrator. |
 
 ## Enforcement Model (honest)
 
@@ -89,6 +97,14 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `governance_budget_respected` | `bagel_telemetry_check.py` |
 | `scope_delta_within_contract` | `scope_check.py` |
 | `alignment_freshness_current` | `alignment_freshness_check.py` |
+| `domain_excellence_model_present` | `expert_strategy_check.py` |
+| `problem_framing_locked` | `expert_strategy_check.py` |
+| `leverage_map_current` | `expert_strategy_check.py` |
+| `evaluation_critic_passed` | `evaluation_quality_check.py` |
+| `expert_decision_present` | `expert_strategy_check.py` |
+| `roi_controller_positive_or_switched` | `roi_check.py` |
+| `supervisor_boundary_respected` | `supervisor_boundary_check.py` |
+| `supervisor_role_guard_passed` | `supervisor_boundary_check.py` |
 
 **Agent-attested** (the agent records pass/fail based on evidence files, but no script independently re-verifies — these depend on the agent honestly inspecting the cited evidence):
 

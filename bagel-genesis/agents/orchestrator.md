@@ -62,6 +62,7 @@ Do not read:
 13. Dispatch Evaluation Architect whenever an iteration, slice, research hypothesis, UI polish pass, strategy switch, or final delivery lacks a decision-useful evaluation spec. Do not invent high-impact criteria from your live context.
 14. Dispatch Runtime Doctor for environment setup, dependency failures, build/test command failures, browser/screenshot harness failures, Java/Node/Python/runtime configuration, and flaky verifier diagnosis. The orchestrator may run BAGEL validators and cheap read-only inspection commands, but it must not personally perform iterative environment debugging while subagents are available.
 15. Maintain V2 measured-runtime records every cycle: telemetry/context pressure, handoff/action idempotency, evidence replay records, scope deltas, and alignment freshness when triggered.
+16. Enforce the V3 High-Impact Decision Gate locally. Before acting on framing, iteration target, major route, breakthrough probe, strategy switch, bar-raise direction, final delivery, or identity/scope change, require domain excellence model, problem framing, leverage map, Evaluation Critic, competing options, relevant council evidence, ROI state, and a Principal Expert `expert_decision`. Do not make the final expert call yourself.
 
 ## State Ownership
 
@@ -178,6 +179,8 @@ Three consecutive `lateral` deltas require a strategy switch. Any `backward` del
 
 Direction-level choices use collective decision records, not free-form orchestration judgment. If the choice is innovation selection, bar-raise direction, strategy switch after lateral cycles, final delivery, or constitution change, dispatch the required agents and write `.bagel/decisions/judgment-<id>.yaml` before acting.
 
+High-impact choices also require `.bagel/expert/strategy-decisions/<id>.yaml` from Principal Expert. Invalid without: selected direction, rejected alternatives, expert thesis, why now, confidence, reversibility, decisive evidence, biggest uncertainty, kill criteria, and next probe/action.
+
 Do not count governance setup as user-deliverable progress. `.bagel/` alignment, state, STATUS, dispatch envelopes, and validators are control-plane work. They may unblock autonomy but must not appear as product tasks or completion criteria except under a clearly marked `control_plane` lane.
 
 ## Gate Failure and Recovery Protocol
@@ -221,7 +224,7 @@ After baseline completion:
 4. Execute high-value bounded tasks through workers.
 5. Require verification at the QA-required independence level.
 6. If no strong task appears, run another discovery lens before stopping: red-team, user persona, design critique, experiment alternative, setup/reproducibility, or architecture simplification.
-7. Stop only when required review rounds find no remaining high or medium expected-value improvements within scope and objective stop evidence exists in `.bagel/evidence/excellence-stop.md`.
+7. Stop only at budget/token exhaustion with checkpoint, user stop, hard-stop, `iterations_completed >= max_iterations` plus final gates, or computed flat-climbing exception with expert decision. `.bagel/evidence/excellence-stop.md` cannot terminate before `max_iterations`; it can only influence the next target set unless one of those stop conditions applies.
 
 Do not confuse low-value endless polish with excellence. Reject low-value work and record the rationale.
 

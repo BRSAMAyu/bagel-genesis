@@ -1,6 +1,6 @@
 # BAGEL Genesis
 
-> V2 Measured Autonomous Runtime for Claude Code and Codex: align deeply, bind a proven loop, dispatch clean-context agents, replay evidence, control scope, and keep improving until the agreed iteration/budget boundary.
+> V3 Expert Autonomy Layer for Claude Code and Codex: align deeply, calibrate what expert-level means, choose high-leverage strategy, bind a proven loop, replay evidence, control scope, and keep improving until the agreed iteration/budget boundary.
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -17,12 +17,12 @@ Normal agent usage is already powerful, but it often fails in exactly the places
 - it treats "all requested features are done" as final completion instead of the first iteration;
 - it reports progress that is hard to verify the next morning.
 
-**BAGEL Genesis V2 turns that into a measured autonomous runtime.** It makes the agent first clarify the user's real goal, taste, hard-stops, budget, runtime mode, and evaluation criteria; then it keeps running through implementation, review, recovery, bar-raising, and the next iteration while mechanically checking that progress is real.
+**BAGEL Genesis V3 turns that into a measured expert-autonomy runtime.** It makes the agent first clarify the user's real goal, taste, hard-stops, budget, runtime mode, expert standard, problem framing, leverage map, and evaluation criteria; then it keeps running through implementation, review, recovery, bar-raising, and the next iteration while mechanically checking that progress is real.
 
 The key idea is simple:
 
 ```text
-Deep Align -> Prove Runtime -> Bind Loop -> Build -> Replay Evidence -> Raise the Bar -> Iterate Again
+Deep Align -> Calibrate Expertise -> Frame Problem -> Map Leverage -> Prove Runtime -> Build -> Replay Evidence -> Iterate Again
 ```
 
 The run stops only when the user-set iteration/budget boundary is reached, the user stops it, token/runtime capacity is exhausted with a checkpoint, or a true hard-stop is hit.
@@ -46,6 +46,8 @@ The run stops only when the user-set iteration/budget boundary is reached, the u
 | `.bagel/` self-consistent fiction | Evidence replay validates command metadata, stdout/stderr hashes, and replay policy |
 | Governance work crowding out product work | Telemetry tracks control-plane vs deliverable deltas and fails control-plane-only Build cycles |
 | Silent scope creep | Scope deltas track allowed/touched paths, dependencies, sensitive surfaces, and approvals |
+| Shallow high-level decisions | Domain excellence model, problem framing, leverage map, Evaluation Critic, Principal Expert, and ROI Controller |
+| Supervisor doing worker work | Supervisor boundary check rejects implementation/debug/test work by the root agent |
 
 ## When To Use It
 
@@ -161,22 +163,22 @@ What they catch:
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 19 role prompts
-├── references/      # 48 trigger-loaded protocols
-├── scripts/         # 13 validators/helpers
-└── evals/           # 78 behavior evals + long-run scaffold
+├── agents/          # 20 role prompts
+├── references/      # 56 trigger-loaded protocols
+├── scripts/         # 19 validators/helpers
+└── evals/           # 94 behavior evals + long-run scaffold
 ```
 
 ## Status
 
-Current version: **v2.0 — Measured Autonomous Runtime**.
+Current version: **v3.0 — Expert Autonomy Layer**.
 
 Validated locally:
 
 - skill metadata validation passes;
 - BAGEL consistency lint passes;
 - evals JSON is valid and sequential;
-- targeted runtime checks catch real-world failures around unproved platform claims, control-plane confusion, missing evaluation specs, premature completion, Orchestrator context pollution, missing Supervisor/resume protection, evidence replay mismatch, handoff loss, idempotency risk, scope creep, and stale taste alignment.
+- targeted runtime checks catch real-world failures around unproved platform claims, control-plane confusion, missing expert strategy, shallow evaluation specs, premature completion, Orchestrator/Supervisor boundary pollution, missing Supervisor/resume protection, evidence replay mismatch, handoff loss, idempotency risk, scope creep, low ROI, and stale taste alignment.
 
 ## Honest Boundaries
 

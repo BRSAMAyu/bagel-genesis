@@ -391,10 +391,18 @@ def validate_dispatch(root: Path, state: dict[str, Any], errors: list[str], warn
         return
 
     roles = {record_role(record) for record in records}
-    if not (roles & IMPLEMENTER_ROLES):
-        fail(errors, "no Implementer/Skeleton Builder dispatch found for write work")
-    if not (roles & REVIEWER_ROLES):
-        fail(errors, "no reviewer/red-team dispatch found; review may be self-approved")
+    phase = state.get("phase") or state.get("status") or state.get("run_status")
+    write_work_started = (
+        phase in {"Build", "Iterate", "Polish", "excellence_loop", "complete"}
+        or bool(as_list(state.get("task_queue")))
+        or (root / ".bagel/actions").exists()
+        or (root / ".bagel/evidence/progress-deltas.yaml").exists()
+    )
+    if write_work_started:
+        if not (roles & IMPLEMENTER_ROLES):
+            fail(errors, "no Implementer/Skeleton Builder dispatch found for write work")
+        if not (roles & REVIEWER_ROLES):
+            fail(errors, "no reviewer/red-team dispatch found; review may be self-approved")
 
     implementer_ids = {record_id(record) for record in records if record_role(record) in IMPLEMENTER_ROLES and record_id(record)}
     reviewer_ids = {record_id(record) for record in records if record_role(record) in REVIEWER_ROLES and record_id(record)}

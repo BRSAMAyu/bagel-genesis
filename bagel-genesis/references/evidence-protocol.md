@@ -28,10 +28,14 @@ evidence:
       package_lock_hash: "sha256..."
     replay_policy:
       mode: exact | sampled | not_replayable
+      compare_stdout: exact | normalized | ignore
+      compare_stderr: exact | normalized | ignore
       reason_if_not_replayable: null
 ```
 
 For `not_replayable`, record `manual_evidence_reviewer` and why replay is impossible.
+
+Hashes must be non-empty lowercase 64-character sha256 strings. Empty hash fields are invalid. `exact` replay defaults to normalized stdout/stderr comparison unless explicitly set otherwise with a nondeterminism note.
 
 Run:
 

@@ -24,6 +24,7 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Scope deltas | `.bagel/scope/*` or `.bagel/state.yaml#scope_deltas` | Allowed/touched paths, dependencies, sensitive surfaces |
 | Alignment freshness | `.bagel/alignment/freshness.yaml` or `.bagel/state.yaml#alignment_freshness` | Evidence-backed reanchor/taste drift state |
 | Reference digests | `.bagel/agent_context/reference-digests/*` | Stable summaries and read telemetry for progressive disclosure |
+| Expert autonomy | `.bagel/expert/*` | Domain excellence, problem framing, leverage map, expert decisions, ROI controller |
 | Innovation candidates | `.bagel/innovation/ledger.yaml` | Novel concepts, probes, and adopt/park/reject decisions |
 | Lesson memory | `.bagel/ledger.yaml#lessons` or `.bagel/lessons/*` | Reusable gotchas, recovery lessons, and playbooks |
 | Loop binding and telemetry | `.bagel/state.yaml.loop_binding`, `.bagel/state.yaml.telemetry`, `.bagel/telemetry/*` | Timer/scheduler proof and runtime counters |
@@ -57,6 +58,7 @@ In `full_genesis`, these domains may expand to specialized files:
 | Handoffs and actions | `.bagel/handoffs/*`, `.bagel/actions/*` | Replacement safety and idempotency |
 | Scope control | `.bagel/scope/*` | Scope deltas and approval/contract refs |
 | Alignment freshness | `.bagel/alignment/freshness.yaml` | Constitution/taste reanchor evidence |
+| Expert autonomy | `.bagel/expert/*` | Expert standard pack, strategy decisions, breakthrough search, ROI accounting |
 | Innovation ledger | `.bagel/innovation/ledger.yaml` | Divergent concept candidates and probe evidence |
 | Lesson memory | `.bagel/lessons/*` | Cross-run operational wisdom and reusable playbooks |
 | Loop binding and telemetry | `.bagel/state.json` or `.bagel/progress.json` | Timer/scheduler proof and runtime counters |
@@ -138,6 +140,27 @@ Supervisor recovery:
 └── respawn-log.yaml
 ```
 
+Every `orchestration-ledger.yaml` action in nested Supervisor mode includes:
+
+```yaml
+actions:
+  - action_type: align_user | normalize_user_instruction | bind_heartbeat | spawn_orchestrator | respawn_orchestrator | hard_stop_arbitration | status_proxy | resume_capsule_update
+    checked_at: "ISO-8601"
+    role_guard:
+      current_role: Supervisor
+      intended_owner: Supervisor | Orchestrator | Runtime Doctor | Implementer | Reviewer | Principal Expert
+      allowed_by_supervisor_boundary: true
+      current_skill_overrides_stale_state: true
+      task_size_exemption_used: false
+    orchestrator_agent_id: ""        # required for spawn/respawn
+    orchestrator_session_id: ""      # required for spawn/respawn
+    dispatch_ref: ""                 # one of dispatch_ref/handoff_ref/resume_capsule_ref required for spawn/respawn
+    handoff_ref: ""
+    resume_capsule_ref: ""
+```
+
+`scripts/supervisor_boundary_check.py` treats this ledger as mandatory in nested Supervisor mode. Missing role guards, stale-state override omissions, task-size exemptions, or Supervisor actions that look like implementation/debug/test/browser/runtime work fail the run.
+
 V2 measured runtime:
 
 ```text
@@ -163,6 +186,20 @@ V2 measured runtime:
 │   └── <action-id>.yaml
 └── agent_context/
     └── reference-digests/
+```
+
+Expert autonomy:
+
+```text
+.bagel/expert/
+├── bagel-worth-it.yaml
+├── domain-excellence.yaml
+├── problem-framing.yaml
+├── leverage-map.yaml
+├── breakthrough-search.yaml
+├── roi-controller.yaml
+└── strategy-decisions/
+    └── EXP-001.yaml
 ```
 
 `.bagel/STATUS.md` is the single entry point for humans after a long run. It summarizes phase, last verified progress, autonomy safety, current blockers, next action, and links to deeper files. In quick mode it is generated from `state.yaml`, `constitution.yaml`, `context.yaml`, `ledger.yaml`, and `evidence/progress-deltas.yaml`. In full mode it may also draw from `state.json`, `progress.json`, `gates/status.yaml`, `task_queue.json`, `human-decisions.yaml`, and `user_briefing/*`. If canonical files disagree, `STATUS.md` must say "state conflict" and link to the conflict report instead of choosing silently.

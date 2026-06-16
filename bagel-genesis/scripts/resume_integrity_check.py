@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -11,8 +13,9 @@ from typing import Any
 import yaml
 
 
-REQUIRED_HANDOFF = {"current_state", "open_risks", "next_action", "last_git_ref"}
-REQUIRED_ACTION = {"action_id", "idempotency_key", "status", "owner_agent_id", "git_ref_start", "side_effects"}
+REQUIRED_HANDOFF = {"current_state", "open_risks", "next_action", "last_git_ref", "handoff_validation_report"}
+REQUIRED_VALIDATION = {"validator_agent_id", "validator_session_id", "validated_at", "parent_or_child", "valid", "missing_fields", "state_hash_matches", "next_action_safe_to_start"}
+REQUIRED_ACTION = {"action_id", "idempotency_key", "status", "owner_agent_id", "git_ref_start", "side_effects", "task_id", "allowed_paths", "intent"}
 
 
 def load_yaml(path: Path, default: Any) -> Any:
@@ -47,6 +50,27 @@ def collect_yaml(root: Path, dirs: list[str]) -> list[tuple[Path, dict[str, Any]
     return out
 
 
+def canonical_hash(value: Any) -> str:
+    blob = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()
+
+
+def file_hash(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def idempotency_key(action: dict[str, Any]) -> str:
+    parts = [
+        str(action.get("task_id") or ""),
+        str(action.get("git_ref_start") or ""),
+        ",".join(sorted(str(item) for item in as_list(action.get("allowed_paths")))),
+        " ".join(str(action.get("intent") or "").split()),
+    ]
+    return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
+
+
 def validate(root: Path) -> tuple[list[str], list[str]]:
     bagel = root / ".bagel"
     if not bagel.exists():
@@ -64,6 +88,36 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         if missing:
             errors.append(f"{path}: handoff missing required fields: {', '.join(missing)}")
         report = as_dict(record.get("handoff_validation_report"))
+        if not report:
+            errors.append(f"{path}: handoff_validation_report is required")
+        else:
+            missing_report = sorted(field for field in REQUIRED_VALIDATION if field not in report)
+            if missing_report:
+                errors.append(f"{path}: handoff_validation_report missing required fields: {', '.join(missing_report)}")
+            if report.get("handoff_ref") and str(report.get("handoff_ref")) not in {str(path), str(path.relative_to(root)) if path.is_absolute() and root in path.parents else str(path)}:
+                errors.append(f"{path}: handoff_validation_report.handoff_ref must match actual handoff path")
+        old_agent = record.get("old_agent_id") or record.get("owner_agent_id")
+        if old_agent and report.get("validator_agent_id") == old_agent:
+            errors.append(f"{path}: handoff validator_agent_id must differ from old/owner agent")
+        if report and report.get("parent_or_child") not in {"parent", "fresh_child"}:
+            errors.append(f"{path}: handoff_validation_report.parent_or_child must be parent|fresh_child")
+        if report and report.get("state_hash_matches") is not True:
+            errors.append(f"{path}: handoff_validation_report.state_hash_matches must be true")
+        if report:
+            state_ref = report.get("state_ref")
+            state_hash = report.get("state_hash")
+            algorithm = report.get("state_hash_algorithm")
+            if algorithm != "sha256":
+                errors.append(f"{path}: handoff_validation_report.state_hash_algorithm must be sha256")
+            if state_ref and state_hash:
+                actual = file_hash(root / str(state_ref))
+                if actual != state_hash:
+                    errors.append(f"{path}: handoff_validation_report.state_hash does not match {state_ref}")
+            elif state_hash:
+                if canonical_hash(record.get("current_state")) != state_hash:
+                    errors.append(f"{path}: handoff_validation_report.state_hash does not match current_state")
+            else:
+                errors.append(f"{path}: handoff_validation_report requires state_hash")
         if report and report.get("valid") is not True:
             errors.append(f"{path}: handoff_validation_report.valid is not true")
         if report and report.get("next_action_safe_to_start") is not True:
@@ -87,6 +141,9 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             if "safe_to_retry" not in policy:
                 errors.append(f"{path}: running action requires replay_or_resume_policy.safe_to_retry")
         key = str(action.get("idempotency_key") or "")
+        expected_key = idempotency_key(action)
+        if key and key != expected_key:
+            errors.append(f"{path}: idempotency_key does not match task_id/git_ref_start/allowed_paths/intent")
         if key:
             if key in seen_keys:
                 prev = seen_keys[key]

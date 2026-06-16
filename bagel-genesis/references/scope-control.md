@@ -29,7 +29,9 @@ scope_delta:
 
 Rules:
 
-- Outside-scope path touches require `approval_ref`.
+- Outside-scope path touches require `approval_ref`; `approval_required: false` cannot waive this.
+- `allowed_paths` is mandatory for every write action and must use normalized relative paths.
+- Validators derive touched paths from `git diff --name-only <git_ref_start> HEAD` plus untracked files when `git_ref_start` is available; self-reported `touched_paths_outside_scope` must match derived scope.
 - New runtime or framework dependencies require justification.
 - Product identity changes require Constitutional Court.
 - Auth, privacy, payment, production data, or migration touches require explicit contract or hard-stop.

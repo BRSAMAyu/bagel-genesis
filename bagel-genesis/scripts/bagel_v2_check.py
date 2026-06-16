@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Run the BAGEL V2 measured-autonomy validator suite."""
+"""Run the BAGEL V3 measured expert-autonomy validator suite.
+
+The filename remains bagel_v2_check.py for compatibility with V2 docs and
+existing automation. The suite now includes V3 Expert Autonomy Layer checks.
+"""
 
 from __future__ import annotations
 
@@ -11,30 +15,67 @@ from pathlib import Path
 
 CHECKS = [
     "bagel_run_check.py",
+    "supervisor_boundary_check.py",
     "flywheel_check.py",
     "bagel_memory_check.py",
+    "runtime_proof_check.py",
     "bagel_telemetry_check.py",
+    "deliverable_delta_check.py",
     "resume_integrity_check.py",
     "evidence_replay_check.py",
     "scope_check.py",
+    "evaluation_quality_check.py",
+    "expert_strategy_check.py",
+    "roi_check.py",
     "alignment_freshness_check.py",
     "reference_load_check.py",
 ]
+
+
+def has_build_evidence(project_root: Path) -> bool:
+    evidence_root = project_root / ".bagel/evidence"
+    if (evidence_root / "progress-deltas.yaml").exists():
+        return True
+    if not evidence_root.exists():
+        return False
+    for child in evidence_root.iterdir():
+        if child.name in {"runtime", "baseline", "progress-deltas.yaml"}:
+            continue
+        return True
+    return False
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", nargs="?", default=".")
     parser.add_argument("--strict-warnings", action="store_true")
-    parser.add_argument("--skip-flywheel-if-no-deltas", action="store_true", default=True)
+    parser.add_argument("--allow-no-deltas-before-build", action="store_true", default=True)
     args = parser.parse_args()
 
     project_root = Path(args.root).resolve()
     script_dir = Path(__file__).resolve().parent
+    state = {}
+    try:
+        import yaml
+        state_path = project_root / ".bagel/state.yaml"
+        if state_path.exists():
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        state = {}
+    phase = state.get("phase") or state.get("status") or state.get("run_status")
+    has_actions = (project_root / ".bagel/actions").exists() or bool(state.get("actions"))
+    has_telemetry = (project_root / ".bagel/telemetry/cycles.yaml").exists() or bool((state.get("telemetry") or {}).get("cycles") if isinstance(state.get("telemetry"), dict) else False)
+    has_evidence_refs = has_build_evidence(project_root)
+    build_started = phase in {"Build", "Iterate", "Polish", "excellence_loop", "complete"} or bool(state.get("task_queue")) or has_actions or has_telemetry or has_evidence_refs
     failures: list[str] = []
     for script in CHECKS:
-        if script == "flywheel_check.py" and args.skip_flywheel_if_no_deltas and not (project_root / ".bagel/evidence/progress-deltas.yaml").exists():
-            print("SKIP: flywheel_check.py (no progress-deltas.yaml yet)")
+        if script == "flywheel_check.py" and not (project_root / ".bagel/evidence/progress-deltas.yaml").exists():
+            if args.allow_no_deltas_before_build and not build_started:
+                print("SKIP: flywheel_check.py (no progress-deltas.yaml before Build)")
+                continue
+            print("== flywheel_check.py ==")
+            print("FAIL: Build/Iterate/Polish has started but progress-deltas.yaml is missing")
+            failures.append(script)
             continue
         command = [sys.executable, str(script_dir / script), str(project_root)]
         if args.strict_warnings and script != "flywheel_check.py":
@@ -45,9 +86,9 @@ def main() -> int:
         if result.returncode != 0:
             failures.append(script)
     if failures:
-        print("BAGEL V2 check failed: " + ", ".join(failures), file=sys.stderr)
+        print("BAGEL V3 check failed: " + ", ".join(failures), file=sys.stderr)
         return 1
-    print("BAGEL V2 check passed.")
+    print("BAGEL V3 check passed.")
     return 0
 
 

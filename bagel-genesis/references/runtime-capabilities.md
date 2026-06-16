@@ -63,6 +63,8 @@ runtime_capabilities:
 
 V2 rule: `adapter_claim` is not proof. It only says the platform adapter believes the capability should exist. `observed: true` requires a real `proof_ref` file created during this run.
 
+Proof files must be structured YAML and pass `scripts/runtime_proof_check.py`. Empty files or unrelated notes are not proof.
+
 ## Capability Levels
 
 | Level | Meaning | Allowed Promise |

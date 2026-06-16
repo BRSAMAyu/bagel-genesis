@@ -7,7 +7,7 @@ description: "Use when Codex, Claude Code, or another agent must turn a vague hi
 
 Turn a vague vision or an existing partially built project into an excellent finished deliverable by running a constraint-first, context-sparse, multi-agent build loop.
 
-BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. V2 is the **Measured Autonomous Runtime**: it first performs deeper-than-native planning alignment, then runs an autonomous external loop that keeps improving the deliverable through continuous positive optimization while proving capabilities, replaying evidence, measuring context pressure, validating handoffs, controlling scope, and preventing governance-only progress. Persist only the smallest state needed to keep the run moving.
+BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. V2 is the **Measured Autonomous Runtime**; V3 adds the **Expert Autonomy Layer** on top: it first performs deeper-than-native planning alignment, calibrates domain excellence, reframes the problem, maps leverage, critiques the evaluation system, then runs an autonomous external loop that keeps improving the deliverable through continuous positive optimization while proving capabilities, replaying evidence, measuring context pressure, validating handoffs, controlling scope, and preventing governance-only progress. Persist only the smallest state needed to keep the run moving.
 
 ## Core Philosophy
 
@@ -47,6 +47,8 @@ Load only the prompt needed for the current stage and role.
 
 Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn. It immediately spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. The Orchestrator reads the minimum stage capsule, dispatches bounded subagents for all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and review work, verifies returned artifacts, then saves durable state under `.bagel/`. Neither Supervisor nor Orchestrator writes product code while subagents are available.
 
+Current skill instructions outrank stale `.bagel/` control-plane artifacts. If an old run says the main session was Orchestrator but the loaded skill says nested Supervisor is required, migrate the state and spawn a fresh Orchestrator. Do not obey stale topology because it is already written down.
+
 `.bagel/` artifacts are the control plane, not the user's deliverable. Never put "create BAGEL alignment files", "fill constitution", "update STATUS", "run BAGEL checks", or other governance work into the user-facing product task queue or completion horizon. Governance work may appear only in state/ledger/dispatch records as control-plane tasks. The deliverable is the app, experiment, research result, document, site, or artifact the user asked for.
 
 Before any long run or file modification, choose the lightest control plane that can keep the run safe and observable:
@@ -73,6 +75,8 @@ Autonomy is the default reason this skill exists. On Claude Code or Codex, first
 
 After loading this skill, the main model **adopts the Supervisor role** when true subagents are available, then spawns a BAGEL Orchestrator subagent/session. All product code, tests, skeleton, runtime diagnosis, evaluation design, and independent review **must be dispatched below the Orchestrator** (Claude Code Task tool / custom subagent, Codex subagent / custom agent). Doing implementation directly while subagents are available is the #1 failure smell (see `references/agent-operating-model.md`). Only if the platform truly has no subagent capability may the main model collapse into the Orchestrator role - and then independent review must be downgraded and recorded as non-independent (R1 max), never presented as R3.
 
+There is no "small task" exception. Validation commands, environment setup, browser checks, package installation, routine debugging, and normal BAGEL validators are Orchestrator/Runtime Doctor work, not Supervisor work. Supervisor must write a `role_guard` entry before each action; nested Supervisor runs without a role-guarded spawn record fail `scripts/supervisor_boundary_check.py`.
+
 | Role | Reads | Writes | Must Not Do |
 |---|---|---|---|
 | Supervisor | user messages, `.bagel/supervisor/*`, constitution/state/status summaries | user-intake, heartbeat, resume capsule, respawn log | implement, debug, review, or run normal slice loop |
@@ -92,6 +96,7 @@ After loading this skill, the main model **adopts the Supervisor role** when tru
 | Brainstormer | constitution + taste kernel, current artifact, progress-deltas, state.excellence | improvement ideas under ONE assigned lens | read other brainstormers' output, propose implementation, work outside assigned lens |
 | Product Visionary | constitution, taste kernel, artifact state, progress evidence | divergent concept candidates + falsifiable probes | implement, review, or mutate the constitution directly |
 | Judgment Councilor | one decision, one judgment dimension, constitution, proposal evidence | dimension verdict for Judgment Council | generate ideas, implement, or see other councilors' verdicts |
+| Principal Expert | domain excellence model, problem framing, leverage map, evaluation critic, council verdicts, ROI state, evidence | binding expert_decision record | implement, bypass hard-stops, or make decisions without rejected alternatives/kill criteria |
 | User Alignment Curator | alignment artifacts, decision ledger, progress state | STATUS.md narrative sections + HTML dashboard + user_briefing/ | hide risks or unresolved decisions, write STATUS.md mechanical sections
 
 Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
@@ -115,6 +120,7 @@ A worker should not browse the `references/` directory freely. The orchestrator 
 | Brainstormer | none beyond its envelope (excellence-loop only if ranking ideas) | 0-1 |
 | Product Visionary | innovation-protocol | 1 |
 | Judgment Councilor | taste-judgment only | 1 |
+| Principal Expert | expert-autonomy, domain-excellence-model, problem-framing, leverage-map, evaluation-critic, roi-controller | 3-6 |
 | User Alignment Curator | user-briefing, alignment-protocol | 1-2 |
 
 If a worker's task cannot be completed within its ceiling, the orchestrator derives a compact brief and puts that in the envelope instead of widening the ceiling. This is how "read strictly when needed, do not read otherwise" stays enforceable.
@@ -138,6 +144,7 @@ Default quick control state under `.bagel/`:
 ├── handoffs/
 ├── actions/
 ├── scope/
+├── expert/
 ├── innovation/
 └── lessons/
 ```
@@ -211,6 +218,14 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/platform-claude-code.md` / `references/platform-codex.md` | detected platform is CC/Codex and you must bind dispatch, subagents, hooks, loop, resume, or visual checks to native capabilities | platform is other, or run is single-session with no native loop needed | always |
 | `references/runtime-capabilities.md` | before first autonomous cycle; before promising timers/resume/subagents | capabilities already detected and recorded in state | always |
 | `references/v2-measured-runtime.md` | configuring or repairing V2 validators, evidence replay, telemetry, idempotent resume, or measured-autonomy checks | doing a one-off non-autonomous task | always |
+| `references/expert-autonomy.md` | before Build, at iteration start, after lateral cycles, before high-impact decisions, breakthrough probes, or final delivery | routine low-risk implementation within a locked strategy | always |
+| `references/domain-excellence-model.md` | defining what excellent means for the current domain/artifact | domain excellence model is current and cited by the active evaluation | always |
+| `references/problem-framing.md` | after deep alignment before Build; after repeated lateral cycles; when current framing may be wrong | small clearly-framed repair task | always |
+| `references/leverage-map.md` | choosing iteration targets or strategy after poor/stalled results | a bounded worker task is already selected | always |
+| `references/evaluation-critic.md` | after Evaluation Architect creates/refreshes a spec; metric may be gameable | evaluation spec already has a current critic pass | always |
+| `references/expert-strategy-council.md` | selecting framing, route, iteration target, breakthrough probe, or final delivery | ordinary mechanical implementation | always |
+| `references/breakthrough-search.md` | innovation ambition is breakthrough; local optimization stalls; non-local route may dominate | execution-only preservation work | always |
+| `references/roi-controller.md` | choosing BAGEL mode; after every autonomous cycle; deciding continue vs switch strategy | no autonomous run is active | always |
 | `references/telemetry-protocol.md` | recording cycle telemetry, governance budget, context pressure, or deliverable/control-plane delta | no autonomous cycle has started | always |
 | `references/evidence-protocol.md` | recording command, benchmark, screenshot, experiment, or metric evidence | no evidence claim is being made | always |
 | `references/handoff-integrity.md` | replacing Orchestrator/worker/helper, resuming from new conversation, or validating idempotency | no replacement/resume/action boundary exists | always |
@@ -442,6 +457,14 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `governance_budget_respected`
 - `scope_delta_within_contract`
 - `alignment_freshness_current`
+- `domain_excellence_model_present`
+- `problem_framing_locked`
+- `leverage_map_current`
+- `evaluation_critic_passed`
+- `expert_decision_present`
+- `roi_controller_positive_or_switched`
+- `supervisor_boundary_respected`
+- `supervisor_role_guard_passed`
 
 After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core identity changes, explicit forbidden boundaries, or genuine impossibility after useful alternatives are exhausted. Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 
@@ -457,7 +480,7 @@ For long autonomous work, run in cycles:
 6. Write a progress delta in `.bagel/evidence/progress-deltas.yaml`.
 7. Update `.bagel/STATUS.md` with: run status, current focus, timeline, budget allocation, latest delta assessment, recent autonomous decisions, blocked lanes, and next action. See `references/runtime-protocol.md` for the full template.
 8. Update loop telemetry: elapsed time, cycles, agents dispatched, compactions, recovery events, timer wakeups, tests, screenshots, token estimate when available.
-9. Run `python scripts/bagel_v2_check.py <project-root>` as the main validator. It calls the operational, flywheel, memory, telemetry, handoff, evidence replay, scope, alignment freshness, and reference-load checks.
+9. Run `python scripts/bagel_v2_check.py <project-root>` as the main validator. In V3 this unified suite calls operational, Supervisor-boundary, flywheel, memory, runtime-proof, telemetry, deliverable-delta, handoff, evidence replay, scope, evaluation-quality, expert-strategy, ROI, alignment freshness, and reference-load checks.
 10. Treat any V2 check failure as a gate failure: repair evidence/state, rollback or isolate a bad change, dispatch the missing agent/reviewer/curator, validate a handoff, or switch strategy before continuing.
 11. Persist structured output.
 12. Replace non-root context when pressure rises: write handoff, validate it, dispatch a fresh child. Do not routine-compact Orchestrator/workers.

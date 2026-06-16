@@ -22,6 +22,23 @@ This extra layer protects the most precious context:
 
 If true subagents are unavailable, the main agent may fall back to the older single-Orchestrator model, but it must record `supervisor.mode: collapsed_no_true_subagents`.
 
+## Current Skill Beats Stale State
+
+On resume, `.bagel/` is memory, not authority. If old `.bagel/` files describe a previous topology (for example, main-as-Orchestrator from an older BAGEL version), treat those files as facts to migrate, not as permission to violate the current loaded skill. The current `SKILL.md`, `agents/supervisor.md`, and this protocol outrank stale `STATUS.md`, `state.yaml`, resume capsules, or old ledgers.
+
+Before continuing an old run, Supervisor must classify the loaded state:
+
+```yaml
+state_authority_check:
+  current_skill_version: "v3"
+  loaded_state_version: ""
+  topology_matches_current_skill: true | false
+  stale_state_migration_needed: true | false
+  migration_action: respawn_orchestrator | rewrite_supervisor_capsule | collapsed_no_true_subagents | none
+```
+
+If topology does not match current skill and true subagents are available, Supervisor must migrate by writing a fresh resume capsule and spawning a fresh Orchestrator. It must not keep acting as the old Orchestrator because an old run artifact says so.
+
 ## Context Tree Principle
 
 BAGEL is a tree, not a compressed monologue. The root Supervisor stays alive and small; every other agent is disposable and replaceable.
@@ -100,6 +117,36 @@ Supervisor must not own:
 - review,
 - bar-raise selection,
 - routine task queue execution.
+
+## Role Guard
+
+Every Supervisor action must be preceded by a machine-readable role guard in `.bagel/supervisor/orchestration-ledger.yaml` or `.bagel/state.yaml#supervisor.actions`:
+
+```yaml
+actions:
+  - action_type: spawn_orchestrator
+    checked_at: "ISO-8601"
+    role_guard:
+      current_role: Supervisor
+      intended_owner: Supervisor
+      allowed_by_supervisor_boundary: true
+      current_skill_overrides_stale_state: true
+      task_size_exemption_used: false
+    orchestrator_agent_id: "bagel-orchestrator-001"
+    orchestrator_session_id: "session-..."
+    resume_capsule_ref: ".bagel/supervisor/resume-capsule.md"
+```
+
+For any action whose intended owner is Orchestrator, Runtime Doctor, Implementer, Reviewer, Evaluation Architect, Principal Expert, or another specialist, Supervisor writes the decision and dispatches. It does not do the work. Task size, convenience, "just validation", or "visible progress" never changes the owner.
+
+`scripts/supervisor_boundary_check.py` fails nested Supervisor runs when:
+
+- no auditable Supervisor action log exists,
+- no `spawn_orchestrator` or `respawn_orchestrator` action is recorded,
+- a Supervisor action lacks `role_guard`,
+- `current_skill_overrides_stale_state` is not true,
+- `task_size_exemption_used` is true,
+- the action text indicates implementation, debugging, tests, package setup, browser checks, or routine validators.
 
 ## Required Files
 

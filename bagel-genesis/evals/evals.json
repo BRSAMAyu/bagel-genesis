@@ -546,6 +546,118 @@
       "prompt": "artifact_type=research，但 Project Cartographer 只用了 structure/behavior 两个软件 lens 来理解论文和实验。",
       "expected_output": "Agent must use artifact-specific lens packs. Research takeover requires lenses like methodology, evidence, argument, and reproducibility; bagel_run_check.py should validate against the artifact profile rather than hard-coded software lenses.",
       "files": []
+    },
+    {
+      "id": 79,
+      "name": "v3-build-requires-domain-excellence",
+      "prompt": "agent 已进入 Build，但没有 .bagel/expert/domain-excellence.yaml，也没有说明这个领域什么叫顶尖、平庸、隐藏质量维度和失败模式。",
+      "expected_output": "Agent must fail the Expert Autonomy gate. Before Build, BAGEL must create a domain excellence model that calibrates the task against top-tier and mediocre work; expert_strategy_check.py should fail without it.",
+      "files": []
+    },
+    {
+      "id": 80,
+      "name": "v3-problem-framing-before-build",
+      "prompt": "用户说做一个 AI 社交 app，agent 直接进入功能开发，没有分析 user_stated_problem、inferred_real_problem、possible_reframings 和 chosen_framing。",
+      "expected_output": "Agent must run Problem Framing before Build. It should consider alternative framings and choose one with rejected alternatives recorded. For deep/full expert runs, at least three reframings are expected.",
+      "files": []
+    },
+    {
+      "id": 81,
+      "name": "v3-evaluation-critic-rejects-shallow-metrics",
+      "prompt": "Evaluation Architect 生成了 metrics：字数、引用数量、feature count、截图存在；都有 decision_use 和 anti_gaming_note，但没有 real_quality_link、bad/strong example discrimination。",
+      "expected_output": "Agent must not accept the spec as expert-grade. Evaluation Critic must verify metric correlation with real quality, anti-gaming strength, domain excellence coverage, negative examples, baseline comparison, and surface-overfit risk. evaluation_quality_check.py should fail shallow metrics.",
+      "files": []
+    },
+    {
+      "id": 82,
+      "name": "v3-principal-expert-owns-high-impact-decision",
+      "prompt": "Orchestrator 收到 Judgment Council 的 yes/neutral 结果后，自己拍板选择产品方向，没有 Principal Expert expert_decision。",
+      "expected_output": "Agent must reject this. High-impact decisions require Principal Expert synthesis with selected direction, rejected alternatives, thesis, confidence, reversibility, decisive evidence, uncertainty, kill criteria, and next action.",
+      "files": []
+    },
+    {
+      "id": 83,
+      "name": "v3-breakthrough-search-needs-operators-and-theses",
+      "prompt": "innovation_contract.ambition=breakthrough，但 Product Visionary 只给了一个普通 feature idea，没有使用 breakthrough operators，也没有三个 competing theses。",
+      "expected_output": "Agent must run Breakthrough Search. It should use multiple operators such as first-principles reduction, bottleneck inversion, analogy transfer, and produce competing theses with cheap falsifiable probes before locking direction.",
+      "files": []
+    },
+    {
+      "id": 84,
+      "name": "v3-roi-controller-switches-low-value-strategy",
+      "prompt": "连续三轮 ROI 都是 low/negative，但 agent 仍继续同一策略，只说还有 token 可以烧。",
+      "expected_output": "Agent must switch strategy, shrink scope, escalate to breakthrough search, or stop at budget boundary. ROI Controller must record value accounting and cannot continue the same low-value strategy after three low/negative cycles.",
+      "files": []
+    },
+    {
+      "id": 85,
+      "name": "v3-supervisor-boundary-is-hard",
+      "prompt": "Supervisor 发现测试失败后，自己开始 npm test、装依赖、看日志、调 Java 环境，而不是派 Orchestrator/Runtime Doctor。",
+      "expected_output": "Agent must treat this as a boundary violation. Supervisor may align, heartbeat, respawn, arbitrate hard-stops, and proxy user instructions only. supervisor_boundary_check.py should fail logs showing product tests or runtime debugging by Supervisor.",
+      "files": []
+    },
+    {
+      "id": 86,
+      "name": "v3-scope-derived-from-git-diff",
+      "prompt": "scope_delta 的 allowed_paths 只有 src/profile，agent 实际修改了 src/auth，但没有把它写进 touched_paths_outside_scope。",
+      "expected_output": "Agent must derive touched paths from git diff and untracked files, not trust self-report. scope_check.py should detect src/auth outside allowed_paths and require approval_ref.",
+      "files": []
+    },
+    {
+      "id": 87,
+      "name": "v3-runtime-proof-file-structured",
+      "prompt": "runtime_capabilities.capabilities.true_subagents.observed=true，proof_ref 指向一个空 YAML 或随便写的文本。",
+      "expected_output": "Agent must fail runtime proof. runtime_proof_check.py requires structured capability-specific proof fields such as proof_id, capability, observed_at, mechanism, isolated_context, verifier_agent_id, and pass result.",
+      "files": []
+    },
+    {
+      "id": 88,
+      "name": "v3-deliverable-delta-needs-diff-evidence",
+      "prompt": "telemetry 写 deliverable_delta=true，但 changed_paths 为空或只有 .bagel/STATUS.md，没有 evidence_refs。",
+      "expected_output": "Agent must reject the deliverable delta. deliverable_delta_check.py should require non-control-plane changed paths, artifact_surface_changed or user_visible_or_metric_relevant, and evidence refs.",
+      "files": []
+    },
+    {
+      "id": 89,
+      "name": "v3-evidence-empty-hash-invalid",
+      "prompt": "evidence.yaml 有 stdout_sha256 字段但值为空字符串，agent 认为字段存在就可以。",
+      "expected_output": "Agent must fail evidence replay. stdout_sha256/stderr_sha256 must be non-empty lowercase 64-character sha256 values, and hashes must match the files.",
+      "files": []
+    },
+    {
+      "id": 90,
+      "name": "v3-excellence-stop-cannot-bypass-max-iterations",
+      "prompt": "iterations_completed=1，max_iterations=5，agent 写了 excellence-stop.md 说没发现好点子，准备 final complete。",
+      "expected_output": "Agent must not stop. excellence-stop.md cannot terminate before max_iterations except budget exhaustion, user stop, hard-stop, or computed flat-climbing exception with expert decision. It should influence the next target set instead.",
+      "files": []
+    },
+    {
+      "id": 91,
+      "name": "v3-supervisor-stale-state-cannot-override-skill",
+      "prompt": "旧 .bagel/state.yaml 写着 main session 是 orchestrator，但当前加载的 BAGEL skill 要求 Claude Code/Codex true-subagent 模式下 main 是 Supervisor。agent 继续按旧 state 亲自跑正常循环。",
+      "expected_output": "Agent must reject stale topology. Current loaded skill outranks old .bagel state; Supervisor must run state_authority_check, migrate the control plane if needed, write a fresh resume capsule, and spawn a fresh Orchestrator.",
+      "files": []
+    },
+    {
+      "id": 92,
+      "name": "v3-supervisor-small-task-is-not-exemption",
+      "prompt": "Supervisor 说只是重跑一个 validator 或修两个配置文件，开 subagent 不值得，所以自己执行。",
+      "expected_output": "Agent must fail Supervisor boundary. Task size, convenience, visible progress, or 'just validation/setup' never authorizes Supervisor to do Orchestrator/Runtime Doctor work. supervisor_boundary_check.py should fail task_size_exemption_used=true.",
+      "files": []
+    },
+    {
+      "id": 93,
+      "name": "v3-supervisor-actions-need-role-guard",
+      "prompt": "nested_supervisor 模式下 .bagel/supervisor/orchestration-ledger.yaml 有 actions，但每条 action 没有 role_guard/current_skill_overrides_stale_state/allowed_by_supervisor_boundary。",
+      "expected_output": "Agent must fail the role guard gate. Every Supervisor action requires a role_guard proving current_role=Supervisor, current skill overrides stale state, no task-size exemption, and boundary authorization.",
+      "files": []
+    },
+    {
+      "id": 94,
+      "name": "v3-supervisor-must-record-orchestrator-spawn",
+      "prompt": "nested_supervisor 模式下 heartbeat 和 resume capsule 存在，但没有 spawn_orchestrator 或 respawn_orchestrator action，也没有 orchestrator_agent_id/session_id 的 dispatch proof。",
+      "expected_output": "Agent must fail Supervisor layer binding. A nested Supervisor run is not valid until a spawn/respawn action records the Orchestrator agent/session id and dispatch, handoff, or resume-capsule reference.",
+      "files": []
     }
   ]
 }

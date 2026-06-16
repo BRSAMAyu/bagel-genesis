@@ -1,6 +1,6 @@
 # BAGEL Genesis
 
-> 面向 Claude Code 和 Codex 的 V2 可测量自治运行时：先深度对齐，证明 runtime 能力，绑定真实 loop，派遣干净上下文 agent，复放证据、控制范围，并持续迭代到约定边界。
+> 面向 Claude Code 和 Codex 的 V3 专家自治层：先深度对齐，校准专家级标准，重构问题，识别最高杠杆路线，证明 runtime 能力，复放证据、控制范围，并持续迭代到约定边界。
 
 [English](README.md) | **简体中文**
 
@@ -17,12 +17,12 @@
 - 把“用户最初列的功能做完”当成最终完成，而不是第一轮迭代完成；
 - 第二天汇报很多，但进展是否真实很难验证。
 
-**BAGEL Genesis V2 把这些变成一个可测量的自主运行时。** 它先把用户的目标、品味、硬停边界、预算、运行模式、评价体系对齐清楚，然后持续推进实现、审查、恢复、提标和下一轮迭代，并用脚本验证进展是否真实。
+**BAGEL Genesis V3 把这些变成一个可测量的专家自治运行时。** 它先把用户的目标、品味、硬停边界、预算、运行模式、专家标准、问题框架、杠杆地图、评价体系对齐清楚，然后持续推进实现、审查、恢复、提标和下一轮迭代，并用脚本验证进展是否真实。
 
 核心循环很简单：
 
 ```text
-深度对齐 -> 证明 runtime -> 绑定 loop -> 构建 -> 复放证据 -> 提高标准 -> 再迭代
+深度对齐 -> 校准专家标准 -> 重构问题 -> 杠杆地图 -> 证明 runtime -> 构建 -> 复放证据 -> 再迭代
 ```
 
 运行只在这些情况下停止：用户设定的迭代/预算边界到达，用户主动停止，token/运行容量耗尽并写好恢复点，或者遇到真正的硬停边界。
@@ -46,6 +46,8 @@
 | `.bagel/` 自洽假账 | Evidence replay 校验命令元数据、stdout/stderr hash 和 replay policy |
 | 治理工作压过产品工作 | Telemetry 区分控制面 delta 和交付面 delta，Build 阶段连续自嗨会失败 |
 | 静默扩 scope | Scope delta 记录 allowed/touched paths、依赖、敏感面和 approval |
+| 高层决策浅 | Domain excellence model、problem framing、leverage map、Evaluation Critic、Principal Expert、ROI Controller |
+| Supervisor 偷干 worker 活 | Supervisor boundary check 拒绝根 agent 自己做实现/调试/测试 |
 
 ## 什么时候用
 
@@ -161,15 +163,15 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 19 个角色提示词
-├── references/      # 48 个按触发加载的协议
-├── scripts/         # 13 个校验/辅助脚本
-└── evals/           # 78 条行为评测 + long-run scaffold
+├── agents/          # 20 个角色提示词
+├── references/      # 56 个按触发加载的协议
+├── scripts/         # 19 个校验/辅助脚本
+└── evals/           # 94 条行为评测 + long-run scaffold
 ```
 
 ## 当前状态
 
-当前版本：**v2.0 — Measured Autonomous Runtime**。
+当前版本：**v3.0 — Expert Autonomy Layer**。
 
 本地已验证：
 

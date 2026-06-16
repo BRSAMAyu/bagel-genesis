@@ -31,6 +31,12 @@ cycles:
     outputs:
       control_plane_delta: true
       deliverable_delta: true
+      deliverable_delta_detail:
+        changed_paths: []
+        git_diff_ref: "abc123"
+        artifact_surface_changed: true
+        user_visible_or_metric_relevant: true
+        evidence_refs: []
       evidence_refs: []
 ```
 

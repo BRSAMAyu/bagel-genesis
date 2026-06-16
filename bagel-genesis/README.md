@@ -1,8 +1,8 @@
 # BAGEL Genesis
 
-> V2 Measured Autonomous Runtime: deep upfront alignment + long-running autonomous iteration for Claude Code, Codex, and similar agentic coding systems.
+> V3 Expert Autonomy Layer: deep upfront alignment + expert-calibrated long-running autonomous iteration for Claude Code, Codex, and similar agentic coding systems.
 
-BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. V2 focuses on measurement: runtime capability proof, telemetry, replayable evidence, idempotent resume, scope control, and governance-budget checks.
+BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. V3 adds an Expert Autonomy Layer: domain excellence calibration, problem framing, leverage mapping, Evaluation Critic, Principal Expert decisions, ROI control, runtime capability proof, replayable evidence, idempotent resume, and scope control.
 
 It is not a single mega-prompt. It is a structured skill with:
 
@@ -89,6 +89,18 @@ V2 makes long-run autonomy harder to fake:
 - governance budget distinguishes `.bagel/` control-plane work from deliverable progress;
 - scope deltas catch outside-path edits, new dependencies, sensitive surfaces, and product identity changes.
 
+### V3 Expert Autonomy Layer
+
+V3 adds the high-level work top experts do before and during execution:
+
+- define what top-tier means for this domain and artifact;
+- reframe the user's stated problem into the real problem to solve;
+- maintain a leverage map of bottlenecks and high-upside interventions;
+- critique evaluation specs so metrics cannot reward shallow proxy wins;
+- use Breakthrough Search for non-local improvements when ambition or stagnation demands it;
+- require Principal Expert decisions for high-impact choices;
+- track per-cycle ROI so tokens/time convert into user-relevant value.
+
 ### Objective Progress Signals
 
 Every cycle appends to:
@@ -161,6 +173,10 @@ bagel-genesis/
 │   ├── evidence_replay_check.py
 │   ├── resume_integrity_check.py
 │   ├── scope_check.py
+│   ├── evaluation_quality_check.py
+│   ├── expert_strategy_check.py
+│   ├── roi_check.py
+│   ├── supervisor_boundary_check.py
 │   └── skill_lint.py
 └── evals/
     └── evals.json
@@ -328,12 +344,12 @@ It should stop or wake the user only for true hard-stops:
 
 ## Current Status
 
-BAGEL Genesis v2.0 is documentation-complete and internally validated:
+BAGEL Genesis v3.0 is documentation-complete and internally validated:
 
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 78 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, Supervisor nesting/resume, Context Tree replace-not-compact policy, V2 runtime proof, replayable evidence, handoff/idempotency, governance budget, scope control, taste freshness, artifact-specific lenses, context isolation, Judgment Council taste vetoes, innovation probes, lesson memory, evaluation specs, iteration accounting, Runtime Doctor delegation, and control-plane separation
+- 94 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, Supervisor nesting/resume, Context Tree replace-not-compact policy, V3 expert autonomy, domain excellence, problem framing, Evaluation Critic, Principal Expert decisions, ROI control, Supervisor boundary and role guard enforcement, runtime proof, replayable evidence, handoff/idempotency, governance budget, scope control, taste freshness, artifact-specific lenses, innovation probes, lesson memory, iteration accounting, Runtime Doctor delegation, and control-plane separation
 - long-run benchmark scaffold exists under `evals/long-run/`
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.

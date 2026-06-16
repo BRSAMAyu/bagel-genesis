@@ -37,6 +37,9 @@ Each metric must include:
 - `direction`,
 - `anti_gaming_note`,
 - `decision_use`.
+- `real_quality_link`: why this metric correlates with what the user/domain actually values.
+- `failure_mode_if_optimized`: how this metric can be gamed or overfit.
+- `metric_discrimination_check`: bad example it fails, strong example it passes, and expert-quality signal it detects.
 
 Each qualitative rubric item must include:
 
@@ -79,3 +82,7 @@ Replace a metric when:
 - it cannot be run and no practical evidence procedure exists.
 
 Record replacements in the evolution ledger with the old metric, reason, and new decision-useful signal.
+
+## Evaluation Critic
+
+After Evaluation Architect creates or refreshes a spec, dispatch an independent Evaluation Critic using `references/evaluation-critic.md`. The run cannot enter Build or complete an iteration on a new spec until the critic passes or the spec is repaired.

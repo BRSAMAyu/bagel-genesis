@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -51,13 +52,53 @@ def collect_scope(root: Path) -> list[tuple[Path, dict[str, Any]]]:
     return out
 
 
+def is_safe_rel(path: str) -> bool:
+    p = Path(path)
+    return not p.is_absolute() and ".." not in p.parts and str(path).strip() not in {"", "."}
+
+
+def path_allowed(path: str, allowed: list[str]) -> bool:
+    p = Path(path)
+    for item in allowed:
+        base = Path(item)
+        if p == base or base in p.parents:
+            return True
+    return False
+
+
+def git_changed_paths(root: Path, ref: str | None) -> list[str]:
+    if not ref:
+        return []
+    try:
+        result = subprocess.run(["git", "-C", str(root), "diff", "--name-only", ref, "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10)
+        changed = [line.strip() for line in result.stdout.splitlines() if line.strip()] if result.returncode == 0 else []
+        untracked = subprocess.run(["git", "-C", str(root), "ls-files", "--others", "--exclude-standard"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10)
+        if untracked.returncode == 0:
+            changed.extend(line.strip() for line in untracked.stdout.splitlines() if line.strip())
+        return sorted(path for path in set(changed) if not path.startswith(".bagel/"))
+    except Exception:
+        return []
+
+
 def validate(root: Path) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     for path, rec in collect_scope(root):
-        outside = as_list(rec.get("touched_paths_outside_scope"))
-        approval = rec.get("approval_ref") or rec.get("approval_required") is False
-        if outside and not approval:
+        allowed = [str(item) for item in as_list(rec.get("allowed_paths"))]
+        touched = [str(item) for item in as_list(rec.get("touched_paths"))]
+        actual = git_changed_paths(root, str(rec.get("git_ref_start"))) if rec.get("git_ref_start") else []
+        if actual:
+            touched = sorted(set(touched) | set(actual))
+        outside = sorted(set(str(item) for item in as_list(rec.get("touched_paths_outside_scope"))))
+        if not allowed:
+            errors.append(f"{path}: allowed_paths is required for scope enforcement")
+        for item in allowed + touched:
+            if not is_safe_rel(item):
+                errors.append(f"{path}: path must be normalized relative path, got {item!r}")
+        derived_outside = [item for item in touched if allowed and not path_allowed(item, allowed)]
+        if derived_outside:
+            outside = sorted(set(outside) | set(derived_outside))
+        if outside and not rec.get("approval_ref"):
             errors.append(f"{path}: touched_paths_outside_scope requires approval_ref")
         deps = as_list(rec.get("new_dependencies"))
         dep_scope = rec.get("dependency_scope")
@@ -72,8 +113,8 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             errors.append(f"{path}: sensitive scope touched ({', '.join(sensitive)}) without explicit_contract_ref")
         if rec.get("approval_required") is True and not rec.get("approval_ref"):
             errors.append(f"{path}: approval_required=true but approval_ref missing")
-        if not rec.get("allowed_paths"):
-            warnings.append(f"{path}: allowed_paths missing; scope drift detection is weak")
+        if derived_outside and sorted(as_list(rec.get("touched_paths_outside_scope"))) != outside:
+            errors.append(f"{path}: touched_paths_outside_scope does not match derived git diff outside scope: {outside}")
     return errors, warnings
 
 

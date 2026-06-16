@@ -535,10 +535,16 @@ def check_v20_measured_runtime(root: Path) -> list[str]:
             out.append(f"SKILL.md Loading Matrix must include {rel}.")
 
     for script in (
+        "runtime_proof_check.py",
+        "deliverable_delta_check.py",
         "bagel_telemetry_check.py",
         "resume_integrity_check.py",
         "evidence_replay_check.py",
         "scope_check.py",
+        "evaluation_quality_check.py",
+        "expert_strategy_check.py",
+        "roi_check.py",
+        "supervisor_boundary_check.py",
         "alignment_freshness_check.py",
         "reference_load_check.py",
         "bagel_cross_check.py",
@@ -575,6 +581,73 @@ def check_v20_measured_runtime(root: Path) -> list[str]:
         out.append("evals/long-run/tasks.yaml: v2.0 requires long-run benchmark scaffold.")
     if "Measured Autonomous Runtime" not in skill:
         out.append("SKILL.md must name V2 as the Measured Autonomous Runtime.")
+
+    out.extend(check_v30_expert_autonomy(root))
+
+    return out
+
+
+def check_v30_expert_autonomy(root: Path) -> list[str]:
+    """v3.0 checks for expert autonomy and anti-laziness enforcement."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    orch = read("agents/orchestrator.md")
+    supervisor = read("agents/supervisor.md")
+    gate = read("references/gate-predicates.md")
+    v2_check = read("scripts/bagel_v2_check.py")
+
+    for rel in (
+        "agents/principal-expert.md",
+        "references/expert-autonomy.md",
+        "references/domain-excellence-model.md",
+        "references/problem-framing.md",
+        "references/leverage-map.md",
+        "references/evaluation-critic.md",
+        "references/expert-strategy-council.md",
+        "references/breakthrough-search.md",
+        "references/roi-controller.md",
+    ):
+        if not (root / rel).exists():
+            out.append(f"{rel}: v3.0 requires this expert-autonomy file.")
+        elif Path(rel).name not in skill and not rel.startswith("agents/"):
+            out.append(f"SKILL.md Loading Matrix must include {rel}.")
+
+    if "Principal Expert" not in skill or "Principal Expert" not in orch:
+        out.append("SKILL.md and orchestrator.md must wire the Principal Expert role.")
+    for phrase in ("High-Impact Decision Gate", "domain excellence model", "leverage map", "Evaluation Critic", "ROI state"):
+        if phrase not in orch:
+            out.append(f"orchestrator.md missing V3 high-impact decision invariant: {phrase}.")
+    for phrase in ("Do not run BAGEL validators", "boundary_policy", "role_guard", "small task", "current_skill_overrides_stale_state"):
+        if phrase not in supervisor:
+            out.append(f"supervisor.md missing hard Supervisor boundary term: {phrase}.")
+    sup_ref = read("references/supervisor-resilience.md")
+    for phrase in ("Current Skill Beats Stale State", "Role Guard", "task_size_exemption_used", "supervisor_boundary_check.py"):
+        if phrase not in sup_ref:
+            out.append(f"supervisor-resilience.md missing anti-laziness enforcement term: {phrase}.")
+    sup_check = read("scripts/supervisor_boundary_check.py")
+    for phrase in ("task_size_exemption_used", "current_skill_overrides_stale_state", "spawn_orchestrator", "role_guard"):
+        if phrase not in sup_check:
+            out.append(f"supervisor_boundary_check.py missing anti-laziness validator term: {phrase}.")
+    for script in ("evaluation_quality_check.py", "expert_strategy_check.py", "roi_check.py", "supervisor_boundary_check.py", "runtime_proof_check.py", "deliverable_delta_check.py"):
+        if script not in v2_check:
+            out.append(f"bagel_v2_check.py must call V3 validator {script}.")
+    for gate_id in (
+        "domain_excellence_model_present",
+        "problem_framing_locked",
+        "leverage_map_current",
+        "evaluation_critic_passed",
+        "expert_decision_present",
+        "roi_controller_positive_or_switched",
+        "supervisor_boundary_respected",
+        "supervisor_role_guard_passed",
+    ):
+        if gate_id not in gate:
+            out.append(f"gate-predicates.md missing V3 gate: {gate_id}.")
 
     return out
 
