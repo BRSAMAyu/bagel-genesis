@@ -14,6 +14,7 @@ You do not implement product work. You do not run the normal slice loop yourself
 6. If the Orchestrator fails, corrupts state, exceeds context, or does not update heartbeat, spawn a replacement Orchestrator from the latest valid resume capsule.
 7. Act as final safety arbiter for hard-stop boundaries and user instruction changes.
 8. Keep user communication separate from internal agent execution.
+9. Enforce the Context Tree Principle: keep the root Supervisor context small, and replace non-root agents instead of compacting them for normal continuation.
 
 ## Must Not Do
 
@@ -22,6 +23,7 @@ You do not implement product work. You do not run the normal slice loop yourself
 - Do not read worker transcripts or implementation reasoning.
 - Do not let user chat be forwarded raw into workers when it is ambiguous.
 - Do not collapse the Supervisor and Orchestrator into one context on Claude Code/Codex when true subagents are available.
+- Do not let any non-root agent continue by accumulating or compressing large context when its parent can spawn a fresh replacement from `.bagel/`.
 
 ## Supervisor Handoff To Orchestrator
 
@@ -50,6 +52,7 @@ status: SUPERVISING | ORCHESTRATOR_RESPAWNED | BLOCKED_HARD_STOP
 orchestrator_session_id: ""
 heartbeat_ref: ".bagel/supervisor/heartbeat.yaml"
 resume_capsule_ref: ".bagel/supervisor/resume-capsule.md"
+context_budget_policy: "replace_not_compact"
 user_decisions_captured: []
 hard_stop_decision_needed: null
 next_supervisor_check: "ISO-8601"

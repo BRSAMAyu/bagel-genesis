@@ -8,6 +8,8 @@ The transcript is disposable. `.bagel/` is durable.
 
 For Claude Code/Codex long runs with true subagents, the Supervisor context is also disposable. The fastest safe re-entry point is `.bagel/supervisor/resume-capsule.md`, then STATUS/state/constitution. Do not depend on the old main conversation or the old Orchestrator context surviving compaction.
 
+Long-run continuity is not achieved by compressing every agent forever. It is achieved by a tree of replaceable contexts. The root Supervisor remains small; every non-root agent writes handoff and is replaced when context pressure rises.
+
 Persist only structured state needed for future decisions:
 
 - product constraints and constitution
@@ -250,6 +252,8 @@ Compact whenever:
 - a state transition completes,
 - context grows enough that attention to constitution or current files may degrade,
 - switching from orchestration to implementation or review.
+
+For non-root agents, prefer replacement over compaction. Compaction is allowed only to finish the current bounded handoff; the next bounded unit should run in a fresh child context.
 
 Before compaction:
 

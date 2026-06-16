@@ -231,6 +231,18 @@ def validate_supervisor(root: Path, state: dict[str, Any], errors: list[str], wa
             fail(errors, "supervisor.heartbeat_interval_minutes must be >=30 minutes")
         elif interval > 120:
             warn(warnings, "supervisor heartbeat interval exceeds 120 minutes; recovery may be slow")
+        budget = as_dict(merged.get("context_budget"))
+        if not budget:
+            fail(errors, "nested_supervisor requires context_budget with replace_not_compact policy")
+        else:
+            soft_max = budget.get("root_supervisor_soft_max_tokens")
+            if not isinstance(soft_max, int) or soft_max > 200000:
+                fail(errors, "context_budget.root_supervisor_soft_max_tokens must be an integer <=200000")
+            if budget.get("non_root_policy") != "replace_not_compact":
+                fail(errors, "context_budget.non_root_policy must be replace_not_compact")
+            threshold = budget.get("replacement_threshold_percent")
+            if not isinstance(threshold, int) or threshold < 50 or threshold > 85:
+                fail(errors, "context_budget.replacement_threshold_percent must be an integer between 50 and 85")
         if not as_list(merged.get("proof")):
             fail(errors, "nested_supervisor requires heartbeat proof")
         current = as_dict(merged.get("current_orchestrator"))

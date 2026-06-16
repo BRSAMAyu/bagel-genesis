@@ -22,6 +22,47 @@ This extra layer protects the most precious context:
 
 If true subagents are unavailable, the main agent may fall back to the older single-Orchestrator model, but it must record `supervisor.mode: collapsed_no_true_subagents`.
 
+## Context Tree Principle
+
+BAGEL is a tree, not a compressed monologue. The root Supervisor stays alive and small; every other agent is disposable and replaceable.
+
+```text
+Supervisor(root, protected context)
+  -> Orchestrator(child, replaceable)
+      -> specialist(child, replaceable)
+          -> nested helper(child, replaceable)
+```
+
+Rules:
+
+- The Supervisor must preserve a tiny context footprint. Target: stay well under 200k tokens even if the platform allows a larger window.
+- Non-root agents should not rely on context compaction to survive long tasks. If an Orchestrator or worker approaches its context budget, it writes a handoff/resume capsule and its parent spawns a fresh replacement.
+- Each parent owns liveness and replacement for its children. Supervisor replaces Orchestrator. Orchestrator replaces specialists. Specialists may replace nested helpers.
+- The tree is the safety mechanism: state lives in `.bagel/`, not in any one agent's transient context.
+- Compaction is a last-resort fallback for the root Supervisor only; routine continuation uses replacement, not compression.
+
+## Context Budget Policy
+
+Record the policy in `.bagel/supervisor/heartbeat.yaml`:
+
+```yaml
+context_budget:
+  root_supervisor_soft_max_tokens: 200000
+  root_current_estimate_tokens: null
+  non_root_policy: replace_not_compact
+  replacement_threshold_percent: 70
+  last_replacement_check_at: "ISO-8601"
+```
+
+When a non-root agent reaches the replacement threshold:
+
+1. It writes a structured handoff with status, evidence, open risks, and next action.
+2. It stops accepting new scope.
+3. Its parent validates the handoff and spawns a fresh replacement agent.
+4. The old child is marked `replaced_due_to_context_budget`.
+
+Do not compress Orchestrator or worker contexts as the normal continuation mechanism. Compression hides what was kept/lost; replacement makes the boundary explicit and auditable.
+
 ## Supervisor Duties
 
 Supervisor owns:
@@ -135,6 +176,7 @@ Supervisor respawns Orchestrator when any of these happen:
 
 - Orchestrator heartbeat is stale beyond `max_stale_minutes`,
 - Orchestrator reports context corruption or compaction failure,
+- Orchestrator approaches context budget threshold,
 - `.bagel/state.yaml` is corrupted but a valid snapshot exists,
 - Orchestrator performs implementation/debugging directly after being warned,
 - Orchestrator cannot continue after context compression,
@@ -148,6 +190,8 @@ Procedure:
 4. Spawn a new Orchestrator subagent/session with only the resume capsule, state pointers, and current next action.
 5. Mark old Orchestrator `replaced`.
 6. Continue the run unless the cause is a true hard-stop.
+
+Valid respawn causes include `stale_heartbeat`, `context_budget_threshold`, `context_corruption`, `compaction_failure`, `policy_violation`, `state_corruption`, and `user_contract_change`.
 
 ## User Proxy Rule
 

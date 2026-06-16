@@ -35,6 +35,7 @@ The run stops only when the user-set iteration/budget boundary is reached, the u
 | "Come back later" idle stops | Mandatory loop/timer binding, interval <= 25 minutes |
 | Context pollution | Main model supervises; internal Orchestrator dispatches implementation, runtime debugging, evaluation, review, and taste judgment |
 | Main/orchestrator context failure | Main model can run as Supervisor, respawning a fresh Orchestrator from `.bagel/supervisor/resume-capsule.md` |
+| Long contexts filling up | Context Tree: root Supervisor stays tiny; non-root agents are replaced, not routinely compacted |
 | Agent self-approval | Review independence is derived from agent/session registry, not self-claimed |
 | Weak taste and local optimization | Product Visionary, Brainstormers, and Judgment Council for direction-level decisions |
 | No clear quality bar | Evaluation Architect generates task-specific metrics, rubrics, completion rules, and anti-gaming notes |
@@ -159,12 +160,12 @@ bagel-genesis/
 ├── agents/          # 20 role prompts
 ├── references/      # 39 trigger-loaded protocols
 ├── scripts/         # 5 validators/helpers
-└── evals/           # 65 behavior evals
+└── evals/           # 68 behavior evals
 ```
 
 ## Status
 
-Current version: **v1.6**.
+Current version: **v1.7**.
 
 Validated locally:
 

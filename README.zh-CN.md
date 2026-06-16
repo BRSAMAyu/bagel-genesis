@@ -35,6 +35,7 @@
 | 中途等用户 | 强制绑定 loop/timer，间隔 <= 25 分钟 |
 | 主上下文污染 | 主模型做 Supervisor；内部 Orchestrator 派发实现、运行时诊断、评价设计、审查、品味判断 |
 | main/orchestrator 上下文失败 | 主模型可作为 Supervisor，从 `.bagel/supervisor/resume-capsule.md` 重新派生干净 Orchestrator |
+| 长上下文逐渐塞满 | Context Tree：根 Supervisor 始终极小；非根 agent 通过替换而不是常规压缩续命 |
 | 自己审自己 | 审查独立性从 agent/session registry 推导，不靠自报 |
 | 品味弱、只会局部优化 | Product Visionary、Brainstormer、Judgment Council 参与方向级决策 |
 | 没有清晰质量标准 | Evaluation Architect 为每轮生成指标、rubric、完成规则和防刷指标说明 |
@@ -159,12 +160,12 @@ bagel-genesis/
 ├── agents/          # 20 个角色提示词
 ├── references/      # 39 个按触发加载的协议
 ├── scripts/         # 5 个校验/辅助脚本
-└── evals/           # 65 条行为评测
+└── evals/           # 68 条行为评测
 ```
 
 ## 当前状态
 
-当前版本：**v1.6**。
+当前版本：**v1.7**。
 
 本地已验证：
 

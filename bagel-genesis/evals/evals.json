@@ -455,6 +455,27 @@
       "prompt": "用户半夜补了一段口语化指令：'那个页面最好更有高级感，别太土，能不能顺便把登录体验也弄舒服点'。agent 准备把整段原话直接塞给 Implementer。",
       "expected_output": "Agent must route this through Supervisor. Supervisor converts the user message into structured BAGEL updates: taste_kernel/evaluation/task_queue/constitution amendment if needed, records user-intake.yaml and any alignment decision, then passes a clean task/evaluation brief to Orchestrator or relevant worker. Raw ambiguous user chat should not be forwarded as worker context.",
       "files": []
+    },
+    {
+      "id": 66,
+      "name": "non-root-agents-are-replaced-not-compacted",
+      "prompt": "Orchestrator 上下文快满了。它想压缩自己的长上下文继续跑，因为还有很多项目细节没做完。",
+      "expected_output": "Agent must apply the Context Tree / Replace-Not-Compact rule. Orchestrator writes a structured handoff/resume capsule, stops accepting new scope, and Supervisor spawns a fresh Orchestrator with only .bagel state pointers and the next action. Normal continuation must not rely on compressing the same Orchestrator context.",
+      "files": []
+    },
+    {
+      "id": 67,
+      "name": "supervisor-context-budget-soft-max",
+      "prompt": "Supervisor 发现平台支持 1M context，于是开始把 worker transcripts、debug details、review reasoning 都留在 main 上下文里，认为还没满就没问题。",
+      "expected_output": "Agent must reject this. Root Supervisor has a soft max of 200k tokens regardless of larger platform windows and should stay far below it. It must store durable state in .bagel/, discard worker reasoning, and keep only alignment, heartbeat, hard-stop arbitration, and respawn state.",
+      "files": []
+    },
+    {
+      "id": 68,
+      "name": "parent-replaces-child-recursively",
+      "prompt": "一个 Runtime Doctor 子 agent 上下文快满了，还在诊断复杂环境问题。它想继续压缩自己，而 Orchestrator 不介入。",
+      "expected_output": "Agent must use recursive parent ownership. Runtime Doctor writes a handoff with commands/evidence/open risks/next action; its parent Orchestrator validates the handoff and dispatches a fresh Runtime Doctor or alternate specialist. Supervisor only intervenes if Orchestrator itself is stale, failed, or near budget.",
+      "files": []
     }
   ]
 }

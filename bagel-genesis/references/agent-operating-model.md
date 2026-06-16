@@ -158,6 +158,18 @@ For long-running Claude Code/Codex runs with true subagents:
 
 The Supervisor is allowed to replace the Orchestrator. The Orchestrator is not allowed to replace or rewrite the Supervisor.
 
+## Replace-Not-Compact Rule
+
+For non-root agents, context exhaustion is handled by replacement, not by trying to compact the same agent indefinitely.
+
+- Supervisor replaces Orchestrator.
+- Orchestrator replaces specialists.
+- Specialists replace nested helpers.
+- Each child must write a structured handoff before it exits due to context budget.
+- Parent validates the handoff, updates `.bagel/agents/registry.yaml`, and dispatches a fresh child with the minimal next envelope.
+
+Only the root Supervisor may rely on compaction as a fallback, and even then it must first write `.bagel/supervisor/resume-capsule.md`. The preferred design is that the Supervisor never gets close to its context ceiling because it does not absorb implementation/debug/review details.
+
 ## Prompt Capsule Size
 
 Prefer small capsules:
@@ -166,6 +178,8 @@ Prefer small capsules:
 - task envelope: under 120 lines
 - stage reference: under 250 lines
 - worker readable file list: usually under 8 files
+- root Supervisor soft maximum: 200k tokens regardless of larger platform windows
+- non-root replacement threshold: 70% of available context unless platform reports a safer lower threshold
 
 If an agent needs more, create a task-local brief from durable artifacts rather than loading more global history.
 

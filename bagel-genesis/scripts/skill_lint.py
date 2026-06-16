@@ -479,7 +479,7 @@ def check_v16_supervisor_resilience(root: Path) -> list[str]:
     for phrase in ("Orchestrator respawn", "resume-capsule.md", "heartbeat.yaml", "user-facing alignment"):
         if phrase not in supervisor:
             out.append(f"agents/supervisor.md missing v1.6 role term: {phrase}.")
-    for phrase in ("nested_supervisor", "Respawn Procedure", "User Proxy Rule", "Claude Code Nested Agent Guidance"):
+    for phrase in ("nested_supervisor", "Respawn Procedure", "User Proxy Rule", "Claude Code Nested Agent Guidance", "Context Tree Principle", "replace_not_compact"):
         if phrase not in sup_ref:
             out.append(f"supervisor-resilience.md missing required section/term: {phrase}.")
     for phrase in ("Nested Supervisor Pattern", "Supervisor heartbeat", "BAGEL Orchestrator subagent"):
@@ -488,15 +488,15 @@ def check_v16_supervisor_resilience(root: Path) -> list[str]:
     for phrase in ("resume-capsule.md", "Supervisor Resume Capsule", "respawn Orchestrator"):
         if phrase not in runtime:
             out.append(f"runtime-protocol.md missing Supervisor resume term: {phrase}.")
-    if "heartbeat_interval_minutes: 30" not in loop or "nested_supervisor" not in loop:
+    if "heartbeat_interval_minutes: 30" not in loop or "nested_supervisor" not in loop or "replace_not_compact" not in loop:
         out.append("loop-runtime.md must define nested_supervisor heartbeat interval shape.")
     for phrase in ("supervisor_heartbeat", "supervisor_resume_capsule", ".bagel/supervisor/"):
         if phrase not in governance:
             out.append(f"governance-data-model.md missing Supervisor canonical source/schema: {phrase}.")
-    for phrase in ("Supervisor-To-Orchestrator Flow", "supervisor_denied", "user-facing alignment"):
+    for phrase in ("Supervisor-To-Orchestrator Flow", "supervisor_denied", "user-facing alignment", "Replace-Not-Compact Rule"):
         if phrase not in aom:
             out.append(f"agent-operating-model.md missing Supervisor context hygiene rule: {phrase}.")
-    for phrase in ("validate_supervisor", "SUPERVISOR_MODES", "resume-capsule.md", "current_orchestrator"):
+    for phrase in ("validate_supervisor", "SUPERVISOR_MODES", "resume-capsule.md", "current_orchestrator", "replace_not_compact"):
         if phrase not in run_check:
             out.append(f"bagel_run_check.py missing Supervisor runtime audit: {phrase}.")
 

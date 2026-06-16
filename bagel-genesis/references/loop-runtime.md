@@ -68,6 +68,10 @@ Nested Supervisor mode also records:
 supervisor:
   mode: nested_supervisor | collapsed_no_true_subagents
   heartbeat_interval_minutes: 30
+  context_budget:
+    root_supervisor_soft_max_tokens: 200000
+    non_root_policy: replace_not_compact
+    replacement_threshold_percent: 70
   proof:
     - "scheduled task id, /loop proof, automation id, cron entry, or active session note"
   current_orchestrator:
