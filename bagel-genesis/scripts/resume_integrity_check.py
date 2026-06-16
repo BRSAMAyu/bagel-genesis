@@ -154,6 +154,34 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
 
     if state.get("supervisor", {}).get("mode") == "nested_supervisor" and not handoff_records:
         warnings.append("nested supervisor has no handoff records yet; replacement safety cannot be audited")
+
+    # S6: stale-state / "current-skill-outranks-stale" check.
+    # When a run records the SKILL.md content hash at spawn time (skill_content_hash),
+    # a resume that finds a DIFFERENT hash means the loaded skill instructions have
+    # changed since spawn — the run may obey stale .bagel topology that the current
+    # skill no longer declares. The agent must re-anchor, not blindly obey old state.
+    # This is the mechanical backstop for SKILL.md L78 "current skill instructions
+    # outrank stale .bagel/ artifacts".
+    spawn_hash = str((as_dict(state.get("supervisor"))).get("skill_content_hash") or state.get("skill_content_hash") or "")
+    if spawn_hash:
+        # Find the SKILL.md relative to the run root (control plane is sibling to skill)
+        skill_candidates = [
+            root / "SKILL.md",
+            root.parent / "SKILL.md",
+            root / ".bagel" / "skill_snapshot.md",
+        ]
+        current_hash = None
+        for cand in skill_candidates:
+            if cand.exists():
+                current_hash = hashlib.sha256(cand.read_bytes()).hexdigest()
+                break
+        if current_hash and current_hash != spawn_hash and not state.get("skill_reanchored"):
+            errors.append(
+                "stale_skill_state: skill_content_hash at spawn does not match current SKILL.md. "
+                "The loaded skill instructions have changed; the run must re-anchor (set state.skill_reanchored "
+                "after migrating to current instructions) rather than obey stale .bagel topology. "
+                "(SKILL.md: current skill instructions outrank stale .bagel/ artifacts)"
+            )
     return errors, warnings
 
 

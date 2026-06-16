@@ -47,10 +47,10 @@
     {
       "id": "S6",
       "name": "compaction-resume-mid-run",
-      "expected_gate": "handoff_validation_passed + action_idempotency_safe + current-skill-outranks-stale",
-      "verified_by": "design check: immediate loop binding + checkpointing.after triggers + resume_integrity_check.py validates handoff completeness; SKILL.md L78 current-instructions-outrank-stale-state",
+      "expected_gate": "handoff_validation_passed + action_idempotency_safe + stale_skill_state check",
+      "verified_by": "handoff + idempotency: resume_integrity_check.py (mechanical). current-skill-outranks-stale: resume_integrity_check.py now diffs supervisor.skill_content_hash (recorded at spawn) against current SKILL.md hash and fails if they differ and skill_reanchored is not set (mechanical backstop for SKILL.md L78). 'immediate loop binding' and 'checkpointing.after triggers' remain agent-attested (procedural).",
       "result": "PASS",
-      "enforcement_tier": "mechanically_enforced"
+      "enforcement_tier": "mixed (handoff/idempotency/stale-hash mechanical; loop-binding timing agent-attested)"
     },
     {
       "id": "S7",
@@ -71,10 +71,10 @@
     {
       "id": "S9",
       "name": "scope-creep-mid-run",
-      "expected_gate": "scope_delta_within_contract + alignment_freshness_current + Constitutional Court (identity change) → S1 HARD-STOP",
-      "verified_by": "design check: scope_check.py enforces write-path boundaries; alignment_freshness_check.py detects direction change; Constitutional Court required for identity/scope amendment; '你看着办' does not resolve identity change",
+      "expected_gate": "scope_delta_within_contract + alignment_freshness_current + Constitutional Court verdict accepted",
+      "verified_by": "scope_check.py: scope boundaries + product_identity_changed now requires constitutional_court_ref pointing at a Court record with verdict in {accept, accepted, approve, approved, amendment_accepted} — a rejected/stub ruling fails (closes the 'any existing file passes' bypass). alignment_freshness_check.py detects direction change mechanically.",
       "result": "PASS",
-      "enforcement_tier": "mechanically_enforced (scope_delta + alignment_freshness); agent-attested (Court judgment)"
+      "enforcement_tier": "mechanically_enforced (scope_delta + alignment_freshness + court-verdict-accepted); the Court's qualitative judgment itself is agent-attested but its verdict field is now mechanically verified"
     }
   ],
   "summary": {
