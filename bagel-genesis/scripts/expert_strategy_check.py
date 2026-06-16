@@ -368,6 +368,120 @@ def validate_breakthrough(root: Path, state: dict[str, Any], errors: list[str]) 
             errors.append(f"breakthrough candidate {i}: breakthrough_quality needs at least 2 true properties")
 
 
+def validate_premise_fidelity(root: Path, errors: list[str]) -> None:
+    """P0-8: premise fidelity / proxy-substitution defense.
+
+    When problem framing records a premise_fidelity block, verify the agent did not
+    silently substitute a proxy for the user's actual claim. An unfalsifiable premise
+    cannot be converted into a narrow proxy experiment and presented as answering the
+    original question.
+    """
+    framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
+    pf = as_dict(framing.get("premise_fidelity"))
+    if not pf:
+        return  # not all tasks need premise_fidelity; only research/theory typically
+    proxy_used = pf.get("proxy_used")
+    core_preserved = pf.get("core_claim_preserved")
+    user_auth = pf.get("user_authority_ref")
+    checkpoint = pf.get("checkpoint_required")
+    # proxy_used=true without explicit user authority -> the agent swapped the question
+    if proxy_used is True and not user_auth:
+        errors.append("problem-framing.premise_fidelity: proxy_used=true but no user_authority_ref (proxy substitution without consent)")
+    # core claim changed without a checkpoint -> silent rewrite of the user's premise
+    if core_preserved is False and checkpoint is not True:
+        errors.append("problem-framing.premise_fidelity: core_claim_preserved=false but checkpoint_required is not true (silent premise rewrite)")
+    # if chosen_framing is explicitly a proxy, the output must label it a sub-question, not an answer
+    chosen = str(pf.get("chosen_framing") or "")
+    if proxy_used is True and "sub-question" not in chosen.lower() and "proxy" not in chosen.lower():
+        errors.append("problem-framing.premise_fidelity: proxy framing must be labeled as a sub-question/proxy, not as answering the original premise")
+
+
+def validate_named_dependency_protocol(root: Path, errors: list[str]) -> None:
+    """P0-9: protocol substitution defense.
+
+    Detect the "started real Redis, but product code uses in-memory fallback" cheat.
+    Each named dependency must attest that product/test code uses the real endpoint,
+    not an in-process substitute.
+    """
+    SUSPICIOUS_FALLBACK_LABELS = (
+        "in_memory", "in-memory", "fake_redis", "mock_redis", "test_only_store",
+        "hashmap fallback", "hash_map fallback", "dict fallback", "memory_store",
+    )
+    reg_path = root / ".bagel/expert/named-dependency-protocol.yaml"
+    if not reg_path.exists():
+        return  # only present when the prompt named external dependencies
+    data = as_dict(load_yaml(reg_path, {}))
+    deps = as_list(data.get("named_dependencies") or data.get("dependencies"))
+    for dep in deps:
+        d = as_dict(dep)
+        name = str(d.get("dependency") or "<unknown>")
+        test_uses_real = d.get("test_uses_real_endpoint")
+        fallbacks = as_list(d.get("forbidden_fallbacks_detected"))
+        waiver = d.get("waiver_ref")
+        # test must use the real endpoint, not a fallback
+        if test_uses_real is False:
+            errors.append(f"named_dependency {name}: test_uses_real_endpoint=false (product/test code does not exercise real dependency)")
+        # suspicious fallback labels detected without waiver
+        if fallbacks and not waiver:
+            errors.append(f"named_dependency {name}: forbidden_fallbacks_detected={fallbacks} without waiver_ref (cannot count as real-protocol pass)")
+        # scan product/test path refs for suspicious labels in file content
+        for pref in as_list(d.get("product_code_path_refs")) + as_list(d.get("test_path_refs")):
+            if not isinstance(pref, str):
+                continue
+            fpath = root / pref
+            if fpath.exists():
+                try:
+                    content = fpath.read_text(encoding="utf-8", errors="ignore").lower()
+                except OSError:
+                    continue
+                for label in SUSPICIOUS_FALLBACK_LABELS:
+                    if label in content:
+                        errors.append(f"named_dependency {name}: suspicious fallback label {label!r} found in {pref}")
+                        break
+
+
+def validate_dataset_integrity(root: Path, errors: list[str]) -> None:
+    """P0-10: research dataset integrity defense.
+
+    Empirical dataset-based claims require split hashes, disjointness checks, and no
+    test-set tuning. This catches the "held-out trick" where the test set leaks.
+    """
+    di_path = root / ".bagel/expert/dataset-integrity.yaml"
+    if not di_path.exists():
+        # check if the run made empirical claims that require dataset_integrity
+        claims = as_dict(load_yaml(root / ".bagel/expert/claim-evidence.yaml", {}))
+        has_dataset_claim = any(
+            "dataset" in str(as_dict(c).get("evidence_type") or "").lower()
+            or "empirical" in str(as_dict(c).get("evidence_type") or "").lower()
+            for c in as_list(claims.get("claims"))
+        )
+        if has_dataset_claim:
+            errors.append("empirical dataset claim present but .bagel/expert/dataset-integrity.yaml missing")
+        return
+    di = as_dict(load_yaml(di_path, {}))
+    dataset_id = di.get("dataset_id")
+    if not dataset_id:
+        errors.append("dataset_integrity: dataset_id is required")
+    # split hashes required for dataset-based claims
+    split_hashes = {
+        "train": di.get("train_split_hash"),
+        "val": di.get("val_split_hash"),
+        "test": di.get("test_split_hash"),
+    }
+    missing = [k for k, v in split_hashes.items() if not v]
+    if missing:
+        errors.append(f"dataset_integrity: missing split hashes: {missing}")
+    # disjointness check required
+    if not di.get("split_disjointness_check_ref"):
+        errors.append("dataset_integrity: split_disjointness_check_ref is required (no proof train/val/test are disjoint)")
+    # test-set tuning = headline claim fail
+    if di.get("tuning_used_test_set") is True:
+        errors.append("dataset_integrity: tuning_used_test_set=true (headline claim invalidated — test set was used for tuning)")
+    # preprocessing fit on all data without justification = leakage
+    if di.get("preprocessing_fit_on") == "all_data" and not di.get("all_data_justification"):
+        errors.append("dataset_integrity: preprocessing_fit_on=all_data without justification (potential leakage)")
+
+
 def validate(root: Path) -> tuple[list[str], list[str]]:
     state = as_dict(load_yaml(root / ".bagel/state.yaml", {}))
     mode = expert_mode(state)
@@ -408,6 +522,10 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     for path, record in decisions:
         validate_expert_decision(root, path, record, dispatches, errors)
     validate_breakthrough(root, state, errors)
+    # P0-8/9/10: research integrity anti-cheat (applies to any research/theory run)
+    validate_premise_fidelity(root, errors)
+    validate_named_dependency_protocol(root, errors)
+    validate_dataset_integrity(root, errors)
     return errors, warnings
 
 

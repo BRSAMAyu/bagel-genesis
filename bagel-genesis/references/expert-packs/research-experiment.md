@@ -24,10 +24,46 @@ State one sentence of the form: **"If <mechanism>, then <intervention> will prod
 
 **Termination rule for unfalsifiable premises (do NOT skip this):** Some premises cannot be made falsifiable no matter how you reframe them — typically because the core term has no operational definition (e.g. "consciousness", "understanding", "true intelligence") or there is no experimental criterion that could ever disprove the claim (e.g. "X is computable by a classical Turing machine" with no bound on X). If after one reframe attempt the hypothesis *still* cannot fill the template with a concrete, measurable metric and a concrete falsifier, **stop.** Do not substitute a narrow proxy and pretend the original premise is answered. Treat the unfalsifiable premise as a research-identity hard-stop (see SKILL.md hard-stop boundaries): 🔴 CHECKPOINT · S1 HARD-STOP, surface to the user that the premise as stated is not experimentally testable, and propose either (a) redefining the target to an operationalizable sub-question, or (b) accepting that the question is philosophical, not empirical. "你看着办" does not authorize burning an overnight run on an untestable premise. The `premise_falsifiable` gate enforces this: it passes only when the hypothesis fills the template with a real metric AND a real falsifier.
 
+**Premise fidelity record (V3.4 — required when reframing or proxying):** Record in `.bagel/expert/problem-framing.yaml` under `premise_fidelity:`:
+
+```yaml
+premise_fidelity:
+  user_stated_problem: ""
+  chosen_framing: ""        # if a proxy/sub-question, label it explicitly as such
+  core_claim_preserved: true   # false = the original claim was changed
+  changed_terms: []            # [{original, replacement, reason}]
+  proxy_used: false            # true = a proxy operationalization was used
+  proxy_scope: ""              # what the proxy does and does not cover
+  user_authority_ref: ""       # required if proxy_used=true (proxy needs user consent)
+  checkpoint_required: false   # true if core_claim_preserved=false
+```
+
+Rules enforced by `expert_strategy_check.py`: proxy_used=true without user_authority_ref fails; core_claim_preserved=false without checkpoint_required=true fails; a proxy framing must be labeled as a sub-question, not as answering the original premise.
+
 ### 2. Controlled setup
 - **Baseline**: a fair, strong baseline, not a strawman. For ML: same data, same compute budget, same training recipe; isolate only the variable under test. For systems: same hardware, same workload, same warm-up.
 - **Controls**: list every variable held constant and every variable that differs. Data leakage check: train/val/test splits fixed and disjoint; no test data in tuning.
 - **Random seeds**: run at least **3 seeds** for any stochastic result (default 5 for headline claims). Record every seed. Single-seed wins are red-flagged by `evaluation_traps`.
+- **Dataset integrity record (V3.4 — required for empirical dataset-based claims):** Record in `.bagel/expert/dataset-integrity.yaml`:
+
+```yaml
+dataset_integrity:
+  dataset_id: ""
+  dataset_version_or_hash: ""
+  split_strategy: random | stratified | temporal
+  train_split_hash: ""
+  val_split_hash: ""
+  test_split_hash: ""
+  split_disjointness_check_ref: ""   # proof train/val/test are disjoint
+  tuning_used_test_set: false        # true invalidates headline claims
+  preprocessing_fit_on: train_only | train_val | all_data
+  all_data_justification: ""         # required if preprocessing_fit_on=all_data
+  leakage_checks: [duplicate_rows, target_leakage, temporal_leakage, identity_overlap]
+  holdout_policy: ""
+  rerun_commands: []
+```
+
+Rules enforced by `expert_strategy_check.py`: missing split hashes or disjointness check fails; tuning_used_test_set=true invalidates the headline claim; preprocessing_fit_on=all_data without justification fails.
 
 ### 3. Metrics with discrimination
 - **Primary metric**: pre-registered before running, one number that decides the hypothesis (e.g. val_bpb, FLOPs/token, p95 latency).

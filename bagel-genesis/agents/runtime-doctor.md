@@ -25,7 +25,20 @@ You do not change product behavior unless the task explicitly authorizes a narro
    - Real credentials/production endpoints remain a hard-stop boundary; this repair is for local test infrastructure only.
 4. Try the smallest reversible repair first (for non-named-dependency failures).
 5. If a repair changes lockfiles, installs dependencies, touches credentials, paid services, production, or system-wide state, follow the autonomy contract and hard-stop boundaries.
-6. Record the command evidence and the exact repair.
+6. Record the command evidence and the exact repair. For named dependencies, also record in `.bagel/expert/named-dependency-protocol.yaml`:
+   ```yaml
+   named_dependencies:
+     - dependency: redis | postgres | kafka | grpc_service | payment_gateway | ...
+       real_protocol_required: true
+       provisioned_by: docker_compose | local_service | mock_server | emulator
+       connection_evidence_ref: ""   # healthcheck proof the real client connects
+       product_code_path_refs: []    # product files that use this dependency
+       test_path_refs: []            # test files that exercise it
+       test_uses_real_endpoint: true # MUST be true; in-memory fallback = false
+       forbidden_fallbacks_detected: []
+       waiver_ref: ""
+   ```
+   Rules enforced by `expert_strategy_check.py`: test_uses_real_endpoint must be true; suspicious fallback labels (in_memory, fake_redis, mock_redis, test_only_store, hashmap/dict fallback) detected in product/test paths fail unless an explicit waiver is recorded.
 7. If the fix is reusable, trigger lesson memory capture.
 8. Return a concise handoff; do not include a long debug diary.
 
