@@ -45,6 +45,21 @@ If isolation itself would require a destructive or irreversible action (a true h
 
 Load only the prompt needed for the current stage and role.
 
+## Authoritative Boot Sequence
+
+0. Load `SKILL.md`.
+1. Detect runtime capabilities.
+2. Pre-boot initialize only minimal `.bagel/` directories, initial state, initial Supervisor heartbeat, and bootstrap role-guard marker.
+3. Bind loop/heartbeat immediately if autonomous work is requested. Before Stop Contract, the loop phase is `align_protection` and may only protect Align/Resume.
+4. Enter Align under loop protection.
+5. Capture Stop Contract as the first alignment artifact.
+6. Complete required alignment depth and artifact/run-mode choice.
+7. Calibrate expert layer according to `expert_layer_mode`: lite for quick autonomy, standard/full for measured or full expert runs.
+8. Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`.
+9. Spawn Orchestrator or continue Orchestrator according to Supervisor mode.
+
+Loop binding before Stop Contract is allowed only for Align/Resume protection. Build/Iterate before Stop Contract is forbidden.
+
 Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn. It immediately spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. The Orchestrator reads the minimum stage capsule, dispatches bounded subagents for all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and review work, verifies returned artifacts, then saves durable state under `.bagel/`. Neither Supervisor nor Orchestrator writes product code while subagents are available.
 
 Current skill instructions outrank stale `.bagel/` control-plane artifacts. If an old run says the main session was Orchestrator but the loaded skill says nested Supervisor is required, migrate the state and spawn a fresh Orchestrator. Do not obey stale topology because it is already written down.
@@ -96,6 +111,12 @@ There is no "small task" exception. Validation commands, environment setup, brow
 | Brainstormer | constitution + taste kernel, current artifact, progress-deltas, state.excellence | improvement ideas under ONE assigned lens | read other brainstormers' output, propose implementation, work outside assigned lens |
 | Product Visionary | constitution, taste kernel, artifact state, progress evidence | divergent concept candidates + falsifiable probes | implement, review, or mutate the constitution directly |
 | Judgment Councilor | one decision, one judgment dimension, constitution, proposal evidence | dimension verdict for Judgment Council | generate ideas, implement, or see other councilors' verdicts |
+| Domain Expert | domain excellence, framing, evaluation, option evidence | expert_council_verdict | implement or approve generic quality claims |
+| Systems Architect | architecture/project context, scope, risks, option evidence | expert_council_verdict | implement or authorize irreversible architecture without authority |
+| Evaluation Skeptic | evaluation spec, critic report, domain model, option evidence | expert_council_verdict | accept shallow proxy metrics |
+| Innovation Strategist | innovation contract, breakthrough search, leverage map, probes | expert_council_verdict | generate unlimited ideas or violate identity constraints |
+| User Proxy | constitution, Stop Contract, taste kernel, option evidence | expert_council_verdict | invent new user goals or hide uncertainty |
+| Risk Officer | autonomy contract, hard-stops, scope delta, risk profile | expert_council_verdict | authorize destructive/production changes |
 | Principal Expert | domain excellence model, problem framing, leverage map, evaluation critic, council verdicts, ROI state, evidence | binding expert_decision record | implement, bypass hard-stops, or make decisions without rejected alternatives/kill criteria |
 | User Alignment Curator | alignment artifacts, decision ledger, progress state | STATUS.md narrative sections + HTML dashboard + user_briefing/ | hide risks or unresolved decisions, write STATUS.md mechanical sections
 
@@ -120,6 +141,7 @@ A worker should not browse the `references/` directory freely. The orchestrator 
 | Brainstormer | none beyond its envelope (excellence-loop only if ranking ideas) | 0-1 |
 | Product Visionary | innovation-protocol | 1 |
 | Judgment Councilor | taste-judgment only | 1 |
+| Domain Expert / Systems Architect / Evaluation Skeptic / Innovation Strategist / User Proxy / Risk Officer | expert-strategy-council plus only the evidence refs in envelope | 1-2 |
 | Principal Expert | expert-autonomy, domain-excellence-model, problem-framing, leverage-map, evaluation-critic, roi-controller | 3-6 |
 | User Alignment Curator | user-briefing, alignment-protocol | 1-2 |
 
@@ -226,6 +248,8 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/expert-strategy-council.md` | selecting framing, route, iteration target, breakthrough probe, or final delivery | ordinary mechanical implementation | always |
 | `references/breakthrough-search.md` | innovation ambition is breakthrough; local optimization stalls; non-local route may dominate | execution-only preservation work | always |
 | `references/roi-controller.md` | choosing BAGEL mode; after every autonomous cycle; deciding continue vs switch strategy | no autonomous run is active | always |
+| `references/dispatch-envelope.md` | before any worker/reviewer/expert dispatch; diagnosing wrong-path or stale-context worker failures | no dispatch is being created or audited | always |
+| `references/emergency-stop.md` | user asks to stop, hard-stop requires halting, or recovery must preserve state before pausing | normal progress continues safely | always |
 | `references/telemetry-protocol.md` | recording cycle telemetry, governance budget, context pressure, or deliverable/control-plane delta | no autonomous cycle has started | always |
 | `references/evidence-protocol.md` | recording command, benchmark, screenshot, experiment, or metric evidence | no evidence claim is being made | always |
 | `references/handoff-integrity.md` | replacing Orchestrator/worker/helper, resuming from new conversation, or validating idempotency | no replacement/resume/action boundary exists | always |
@@ -235,6 +259,12 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/start-prompts.md` | user asks how to launch BAGEL or needs a copy-paste start prompt | an active run is already aligned and started | full |
 | `references/packaging-boundary.md` | packaging/releasing the skill or deciding whether README is runtime context | normal run execution | full |
 | `references/artifact-types.md` | choosing gates or QA for a new artifact type (software / research / writing / data) | artifact type already profiled and recorded | always |
+| `references/expert-packs/software-product.md` | artifact type is software product/app/site | other artifact type | always |
+| `references/expert-packs/research-experiment.md` | artifact type is research/experiment/theory/benchmark | other artifact type | always |
+| `references/expert-packs/writing-longform.md` | artifact type is longform writing/fiction/nonfiction | other artifact type | always |
+| `references/expert-packs/design-ui.md` | artifact type is UI/design/visual product | other artifact type | always |
+| `references/expert-packs/data-analysis.md` | artifact type is data analysis/report/modeling | other artifact type | always |
+| `references/expert-packs/ops-sre.md` | artifact type is ops/SRE/server maintenance | other artifact type | always |
 | `references/evaluation-framework.md` | generating or refreshing metrics/rubrics for an iteration, slice, research hypothesis, UI polish pass, strategy switch, or final delivery | a fresh active evaluation spec already covers the decision | always |
 | `references/project-understanding.md` | workspace is non-empty and you will modify existing behavior | blank-slate build | full |
 | `references/constitution-template.md` | drafting or amending the constitution | constitution exists and is stable | always |
@@ -465,6 +495,8 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `roi_controller_positive_or_switched`
 - `supervisor_boundary_respected`
 - `supervisor_role_guard_passed`
+- `dispatch_envelope_valid`
+- `emergency_stop_preserves_state`
 
 After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core identity changes, explicit forbidden boundaries, or genuine impossibility after useful alternatives are exhausted. Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 
@@ -480,7 +512,7 @@ For long autonomous work, run in cycles:
 6. Write a progress delta in `.bagel/evidence/progress-deltas.yaml`.
 7. Update `.bagel/STATUS.md` with: run status, current focus, timeline, budget allocation, latest delta assessment, recent autonomous decisions, blocked lanes, and next action. See `references/runtime-protocol.md` for the full template.
 8. Update loop telemetry: elapsed time, cycles, agents dispatched, compactions, recovery events, timer wakeups, tests, screenshots, token estimate when available.
-9. Run `python scripts/bagel_v2_check.py <project-root>` as the main validator. In V3 this unified suite calls operational, Supervisor-boundary, flywheel, memory, runtime-proof, telemetry, deliverable-delta, handoff, evidence replay, scope, evaluation-quality, expert-strategy, ROI, alignment freshness, and reference-load checks.
+9. Run `python scripts/bagel_v3_check.py <project-root>` as the main validator. In V3 this unified suite calls operational, Supervisor-boundary, flywheel, memory, runtime-proof, telemetry, deliverable-delta, handoff, evidence replay, scope, evaluation-quality, expert-strategy, ROI, alignment freshness, and reference-load checks.
 10. Treat any V2 check failure as a gate failure: repair evidence/state, rollback or isolate a bad change, dispatch the missing agent/reviewer/curator, validate a handoff, or switch strategy before continuing.
 11. Persist structured output.
 12. Replace non-root context when pressure rises: write handoff, validate it, dispatch a fresh child. Do not routine-compact Orchestrator/workers.

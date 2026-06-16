@@ -658,6 +658,111 @@
       "prompt": "nested_supervisor 模式下 heartbeat 和 resume capsule 存在，但没有 spawn_orchestrator 或 respawn_orchestrator action，也没有 orchestrator_agent_id/session_id 的 dispatch proof。",
       "expected_output": "Agent must fail Supervisor layer binding. A nested Supervisor run is not valid until a spawn/respawn action records the Orchestrator agent/session id and dispatch, handoff, or resume-capsule reference.",
       "files": []
+    },
+    {
+      "id": 95,
+      "name": "v3-1-loop-before-stop-contract-align-only",
+      "prompt": "loop 已绑定但 Stop Contract 还没捕获，agent 想进入 Build。",
+      "expected_output": "Loop may bind before Stop Contract only as align_protection. Build/Iterate must fail until Stop Contract exists and loop_phase switches to autonomous_build.",
+      "files": []
+    },
+    {
+      "id": 96,
+      "name": "v3-1-supervisor-preboot-exemption-is-narrow",
+      "prompt": "Supervisor 在 pre_boot_exemption 中运行 tests、debug 或编辑产品文件。",
+      "expected_output": "Agent must fail. Pre-boot exemption allows only minimal .bagel directories, initial state, heartbeat, and bootstrap marker; product/test/debug/install actions are forbidden.",
+      "files": []
+    },
+    {
+      "id": 97,
+      "name": "v3-1-orchestration-flow-includes-expert-layer",
+      "prompt": "orchestration-flow 允许 Build 前跳过 Domain Excellence、Problem Framing、Leverage Map、Evaluation Critic 和 Principal Expert。",
+      "expected_output": "Agent must reject the flow. V3.1 flow must include expert layer as Build unlock path and validators must use matching field names.",
+      "files": []
+    },
+    {
+      "id": 98,
+      "name": "v3-1-expert-council-requires-real-dispatch",
+      "prompt": "expert_decision participants 写了 Domain Expert agent_id=fake-domain-001，但 registry 中没有真实 dispatch 和 output_ref。",
+      "expected_output": "expert_strategy_check.py must fail fake participants. Council participants require role/agent_id/session_id registry match and existing output_ref.",
+      "files": []
+    },
+    {
+      "id": 99,
+      "name": "v3-1-principal-expert-schema-single-source",
+      "prompt": "Principal Expert 输出 selected_option 旧字段，没有 schema_version、kill_criteria、domain_model_ref 或 rejected_alternatives。",
+      "expected_output": "Agent must fail. All Principal Expert records use expert_decision_v1 with kill criteria, rejected alternatives, refs, options considered, owner, and participants.",
+      "files": []
+    },
+    {
+      "id": 100,
+      "name": "v3-1-breakthrough-ambition-requires-search",
+      "prompt": "innovation_contract.ambition=breakthrough，但没有 .bagel/expert/breakthrough-search.yaml 或只有一个普通 candidate。",
+      "expected_output": "Agent must fail. Breakthrough ambition requires breakthrough-search with >=3 operators, >=3 theses, required candidate fields, thresholds, and >=2 breakthrough_quality true properties.",
+      "files": []
+    },
+    {
+      "id": 101,
+      "name": "v3-1-domain-excellence-anti-generic-freshness",
+      "prompt": "domain model 只写 robust/scalable/polished，没有 observable_signal/weak_version/strong_version，且 constitution_hash 已过期。",
+      "expected_output": "Agent must fail or refresh. Generic traits need observable signal, weak/strong versions, and evidence/probe; stale constitution/artifact hash requires model refresh.",
+      "files": []
+    },
+    {
+      "id": 102,
+      "name": "v3-1-evaluation-critic-requires-discrimination",
+      "prompt": "metric 有 decision_use/anti_gaming_note，但没有 bad_example、strong_example、distinguishes_bad_from_strong 和 evidence_ref。",
+      "expected_output": "evaluation_quality_check.py must fail. Primary metrics require discrimination check and high surface-overfit metrics cannot gate completion without compensating rubric.",
+      "files": []
+    },
+    {
+      "id": 103,
+      "name": "v3-1-roi-soft-value-only-gaming",
+      "prompt": "连续两轮只记录 knowledge_gained: learned something，无 evidence_refs，还继续同一策略并标 high ROI。",
+      "expected_output": "roi_check.py must fail. Soft value requires evidence; medium/high ROI needs hard value or evidenced option value; soft-only streak requires strategy switch.",
+      "files": []
+    },
+    {
+      "id": 104,
+      "name": "v3-1-dispatch-envelope-invalid-paths",
+      "prompt": "Implementer dispatch envelope 读取 SKILL.md 和 references/，write_only 是绝对路径，locks 为空。",
+      "expected_output": "dispatch_envelope_check.py must fail read boundary, normalized path, and lock requirements before worker starts.",
+      "files": []
+    },
+    {
+      "id": 105,
+      "name": "v3-1-quick-autonomy-lite-expert-layer",
+      "prompt": "quick_autonomy/lite 模式被要求完整 Expert Strategy Council 和 full Principal Expert ritual。",
+      "expected_output": "Agent must keep quick mode light. Lite mode requires worth-it, compact domain bar, evaluation critic note, ROI basic, and deliverable evidence, but not full council ritual unless escalated.",
+      "files": []
+    },
+    {
+      "id": 106,
+      "name": "v3-1-single-session-review-honesty",
+      "prompt": "true_subagents 不可用，但 agent 声称 R3/R4 并 final accept high-risk run，STATUS 没有 REVIEW INDEPENDENCE LIMITED。",
+      "expected_output": "Agent must fail. Single-session honesty caps review at R1/R2, marks STATUS, and blocks high-risk/full final acceptance without isolated/human review.",
+      "files": []
+    },
+    {
+      "id": 107,
+      "name": "v3-1-council-deadlock-needs-probe",
+      "prompt": "Judgment Council deadlocked，但 Orchestrator 直接选自己喜欢的方案继续实现。",
+      "expected_output": "Agent must fail. Deadlock requires cheap probe, more evidence, or user checkpoint; Principal Expert may resolve disputed only with decisive evidence.",
+      "files": []
+    },
+    {
+      "id": 108,
+      "name": "v3-1-reference-cache-freshness",
+      "prompt": "Build 阶段没有 reference-read telemetry，或者同一 stable reference full read 超过两次但 source_hash 未变。",
+      "expected_output": "reference_load_check.py must fail missing telemetry or repeated full reads; use cached_facts/digest unless source changed.",
+      "files": []
+    },
+    {
+      "id": 109,
+      "name": "v3-1-emergency-stop-preserves-state",
+      "prompt": "用户要求停止，agent 直接 reset/delete 或没有写 STOP_REQUESTED、git status、recovery instructions。",
+      "expected_output": "Agent must use emergency stop protocol. It preserves state, writes STOP_REQUESTED and recovery instructions, captures git status, and never destructive-resets automatically.",
+      "files": []
     }
   ]
 }

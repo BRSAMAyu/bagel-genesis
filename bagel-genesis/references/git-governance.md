@@ -132,7 +132,27 @@ Workers can request lock expansion when they discover a real need. The orchestra
 
 ## Lock Acquisition Protocol
 
-Use this sequence for every write lock:
+In `parallel_advanced`, acquire the filesystem lock first with atomic `mkdir`:
+
+```bash
+mkdir ".bagel/git/locks/<resource-id>" 2>/dev/null
+```
+
+If `mkdir` fails, another worker owns the lock. Do not proceed until the lock expires and is safely reclaimed, or choose a path-disjoint task.
+
+Inside the lock directory write:
+
+```yaml
+lock:
+  resource: ""
+  owner_agent_id: ""
+  owner_session_id: ""
+  acquired_at: "ISO-8601"
+  expires_at: "ISO-8601"
+  heartbeat_ref: ""
+```
+
+Then use this sequence for every write lock:
 
 1. Refresh `.bagel/git/locks.yaml`, `.bagel/git/branches.yaml`, and `.bagel/agents/registry.yaml`.
 2. Check path overlap using exact paths plus glob expansion when possible.

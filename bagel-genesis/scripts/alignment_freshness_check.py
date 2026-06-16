@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+import hashlib
 
 
 def load_yaml(path: Path, default: Any) -> Any:
@@ -21,6 +22,12 @@ def load_yaml(path: Path, default: Any) -> Any:
 
 def as_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def file_hash(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def validate(root: Path) -> tuple[list[str], list[str]]:
@@ -50,6 +57,14 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         errors.append("alignment_freshness requires reviewer_ref; self-score is not enough")
     if not freshness.get("constitution_hash") or not freshness.get("taste_kernel_hash"):
         warnings.append("alignment_freshness missing constitution_hash or taste_kernel_hash")
+    domain = as_dict(load_yaml(bagel / "expert/domain-excellence.yaml", {}))
+    if domain:
+        current_constitution = file_hash(bagel / "constitution.yaml") or file_hash(bagel / "constitution.json")
+        if current_constitution and domain.get("constitution_hash") and domain.get("constitution_hash") != current_constitution:
+            errors.append("domain_excellence_model constitution_hash is stale; refresh domain model before continuing")
+        artifact_profile = file_hash(bagel / "artifact_profile.yaml")
+        if artifact_profile and domain.get("artifact_profile_hash") and domain.get("artifact_profile_hash") != artifact_profile:
+            errors.append("domain_excellence_model artifact_profile_hash is stale; refresh domain model before continuing")
     return errors, warnings
 
 

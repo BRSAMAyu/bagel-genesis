@@ -151,6 +151,10 @@ Record the actual level used; do not overstate it.
 
 If a matrix entry says "independent reviewer", satisfy it with R3 or R4. If the platform can only provide R1/R2, block that high-risk unattended merge, isolate the lane, continue safe autonomous work, and record the residual risk; do not create an autonomous waiver.
 
+## Single-Session Review Honesty
+
+When `review_honesty_mode: single_session_honesty`, review may still be useful, but it is not independent R3/R4 review. Same-session review is capped at R1/R2, STATUS must show `[REVIEW INDEPENDENCE LIMITED]`, and high-risk/full-expert final acceptance requires true isolated review or human review before claiming final acceptance.
+
 When platform routing allows model choice, prefer cross-model or cross-family review for Red-Team Oracle, Independent Reviewer, and final visual/product critique. Cross-model review is preferred, not required; do not stop useful work just because it is unavailable.
 
 ## Review Registry Gate

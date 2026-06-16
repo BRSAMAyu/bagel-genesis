@@ -18,8 +18,19 @@ ALLOWED_SUPERVISOR_ACTIONS = {
     "spawn_orchestrator",
     "respawn_orchestrator",
     "hard_stop_arbitration",
+    "wake_user_for_hard_stop",
     "status_proxy",
     "resume_capsule_update",
+    "create_minimal_bagel_directories",
+    "write_initial_state",
+    "write_initial_supervisor_heartbeat",
+    "write_bootstrap_role_guard_marker",
+}
+PREBOOT_ACTIONS = {
+    "create_minimal_bagel_directories",
+    "write_initial_state",
+    "write_initial_supervisor_heartbeat",
+    "write_bootstrap_role_guard_marker",
 }
 FORBIDDEN_TERMS = {
     "npm test",
@@ -70,6 +81,20 @@ def collect_actions(root: Path) -> list[tuple[Path, dict[str, Any]]]:
     return out
 
 
+def walk_strings(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        out: list[str] = []
+        for item in value.values():
+            out.extend(walk_strings(item))
+        return out
+    if isinstance(value, list):
+        out: list[str] = []
+        for item in value:
+            out.extend(walk_strings(item))
+        return out
+    return [str(value).lower()]
+
+
 def validate(root: Path) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -89,11 +114,18 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     has_spawn = False
     for path, action in actions:
         kind = str(action.get("action_type") or action.get("type") or "")
-        text = " ".join(str(v).lower() for v in action.values())
+        text = " ".join(walk_strings(action))
         if kind and kind not in ALLOWED_SUPERVISOR_ACTIONS:
             errors.append(f"{path}: Supervisor action_type {kind!r} is outside allowed boundary")
         guard = as_dict(action.get("role_guard"))
-        if mode == "nested_supervisor":
+        preboot = bool(action.get("pre_boot_exemption")) or kind in PREBOOT_ACTIONS
+        if preboot:
+            if kind not in PREBOOT_ACTIONS:
+                errors.append(f"{path}: pre_boot_exemption used for non-preboot action {kind!r}")
+            for forbidden in ("product_file_edit", "tests", "runtime_debug", "dependency_install", "project_file_read", "product_file_write"):
+                if action.get(forbidden) is True:
+                    errors.append(f"{path}: pre_boot_exemption forbids {forbidden}")
+        if mode == "nested_supervisor" and not preboot:
             if not guard:
                 errors.append(f"{path}: Supervisor action missing role_guard")
             elif guard.get("current_role") != "Supervisor":
@@ -116,6 +148,14 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         for term in FORBIDDEN_TERMS:
             if term in text:
                 errors.append(f"{path}: Supervisor action appears to perform forbidden worker/orchestrator work: {term}")
+    if mode == "nested_supervisor":
+        bootstrap_done = any(
+            as_dict(action).get("bootstrap_complete") is True
+            or as_dict(action).get("action_type") == "write_bootstrap_role_guard_marker"
+            for _, action in actions
+        )
+        if not bootstrap_done:
+            errors.append("nested_supervisor requires bootstrap_complete marker after pre-boot setup")
     if mode == "nested_supervisor" and not has_spawn:
         errors.append("nested_supervisor requires a recorded spawn_orchestrator or respawn_orchestrator action")
     return errors, warnings

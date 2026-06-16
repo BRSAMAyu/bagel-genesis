@@ -66,6 +66,8 @@ gates:
 | `roi_controller_positive_or_switched` | Per-cycle value accounting shows user-relevant value; low/negative ROI streaks trigger strategy switch, scope shrink, breakthrough search, or budget stop. |
 | `supervisor_boundary_respected` | Supervisor action logs contain only alignment, heartbeat, respawn, hard-stop, resume, or user-proxy actions; no implementation/debug/test/browser work. |
 | `supervisor_role_guard_passed` | Nested Supervisor action logs include `role_guard` on every action, affirm current skill overrides stale state, record no task-size exemption, and include spawn/respawn proof for the inner Orchestrator. |
+| `dispatch_envelope_valid` | Every dispatch envelope passes read/write path, context, lock, role-boundary, and branch/worktree preflight before the worker starts. |
+| `emergency_stop_preserves_state` | Emergency stop writes STOP_REQUESTED, captures git status, preserves changes, writes recovery instructions, and performs no destructive reset. |
 
 ## Enforcement Model (honest)
 
@@ -105,6 +107,8 @@ Not every predicate has a mechanical validator behind it. Predicates split into 
 | `roi_controller_positive_or_switched` | `roi_check.py` |
 | `supervisor_boundary_respected` | `supervisor_boundary_check.py` |
 | `supervisor_role_guard_passed` | `supervisor_boundary_check.py` |
+| `dispatch_envelope_valid` | `dispatch_envelope_check.py` |
+| `emergency_stop_preserves_state` | `emergency_stop_check.py` |
 
 **Agent-attested** (the agent records pass/fail based on evidence files, but no script independently re-verifies — these depend on the agent honestly inspecting the cited evidence):
 

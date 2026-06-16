@@ -224,6 +224,15 @@ def validate_runtime_capability_proofs(root: Path, state: dict[str, Any], errors
                 fail(errors, "R3/R4 review requires true_subagents.observed=true")
             elif not proof_exists(root, capability(rc, "true_subagents")):
                 fail(errors, "R3/R4 review requires true_subagents proof_ref file")
+    review_env = as_dict(state.get("review_environment"))
+    if not review_env:
+        review_env = as_dict(as_dict(rc.get("review_environment")))
+    if review_env.get("review_honesty_mode") == "single_session_honesty":
+        for record in collect_registry(root, state):
+            if record.get("claimed_level") in {"R3", "R4"} or record.get("derived_level") in {"R3", "R4"}:
+                fail(errors, "single_session_honesty cannot claim R3/R4 review")
+        if state.get("run_status") == "complete" and (state.get("risk_class") in {"high", "critical"} or state.get("expert_layer_mode") == "full"):
+            fail(errors, "single_session_honesty cannot final-accept high-risk/full expert run")
 
 
 def validate_loop(root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
@@ -241,6 +250,9 @@ def validate_loop(root: Path, state: dict[str, Any], errors: list[str], warnings
         fail(errors, f"loop trigger interval {interval} exceeds HARD MAX 25 minutes")
     if mode in {"scheduled_resume", "external_harness", "active_session_loop"} and not as_list(loop.get("proof")):
         fail(errors, f"loop_binding.mode={mode} requires proof (schedule id, loop config, harness command, etc.)")
+    loop_phase = loop.get("loop_phase")
+    if loop_phase and loop_phase not in {"align_protection", "autonomous_build"}:
+        fail(errors, "loop_binding.loop_phase must be align_protection|autonomous_build")
     if mode == "degraded_resume":
         attempts = as_list(loop.get("attempts"))
         attempted = {as_dict(item).get("tier") or as_dict(item).get("mechanism") for item in attempts}
@@ -350,10 +362,10 @@ def validate_stop_contract(root: Path, state: dict[str, Any], errors: list[str],
     run started) but the Stop Contract is missing, the agent began autonomous
     work without agreeing with the user on when it stops.
     """
-    loop = as_dict(state.get("loop_binding"))
     has_progress = (root / ".bagel" / "evidence" / "progress-deltas.yaml").exists()
-    run_started = bool(loop) or has_progress or as_list(state.get("task_queue"))
-    if not run_started:
+    phase = state.get("phase") or state.get("status") or state.get("run_status")
+    build_started = phase in {"Build", "Iterate", "Polish", "excellence_loop", "complete"} or has_progress or as_list(state.get("task_queue"))
+    if not build_started:
         return  # still in alignment; not yet enforceable
 
     bagel = root / ".bagel"
@@ -368,7 +380,7 @@ def validate_stop_contract(root: Path, state: dict[str, Any], errors: list[str],
         stop = as_dict(state.get("stop_contract"))
 
     if not stop:
-        fail(errors, "stop_contract is missing from constitution - the run started without agreeing with the user on when it ends (max_iterations, budget, hard_stops, deadline). This is the core overnight contract and must be captured before Build.")
+        fail(errors, "stop_contract is missing from constitution - Build/Iterate started without agreeing with the user on when it ends (max_iterations, budget, hard_stops, deadline). Loop binding may protect Align before Stop Contract, but Build may not start.")
         return
 
     max_iter = stop.get("max_iterations")
@@ -503,6 +515,8 @@ def validate_status_and_briefing(root: Path, state: dict[str, Any], errors: list
         validate_judgment_record(root, final_ref, "final_delivery", errors)
     if "degraded_resume" in str(as_dict(state.get("loop_binding")).get("mode")) and "[DEGRADED" not in status_text:
         fail(errors, "degraded_resume must be visibly marked in STATUS.md")
+    if as_dict(state.get("review_environment")).get("review_honesty_mode") == "single_session_honesty" and "[REVIEW INDEPENDENCE LIMITED]" not in status_text:
+        fail(errors, "single_session_honesty must be visibly marked in STATUS.md")
 
     briefing = as_dict(as_dict(state.get("briefing")).get("html_dashboard"))
     if briefing.get("enabled") is True:

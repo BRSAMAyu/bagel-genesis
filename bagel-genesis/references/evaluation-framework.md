@@ -39,7 +39,8 @@ Each metric must include:
 - `decision_use`.
 - `real_quality_link`: why this metric correlates with what the user/domain actually values.
 - `failure_mode_if_optimized`: how this metric can be gamed or overfit.
-- `metric_discrimination_check`: bad example it fails, strong example it passes, and expert-quality signal it detects.
+- `metric_discrimination_check`: bad example, strong example, whether it distinguishes them, and an evidence ref for the discrimination check.
+- `surface_overfit_risk`: `low|medium|high`; high-risk metrics cannot gate iteration completion without a compensating qualitative rubric.
 
 Each qualitative rubric item must include:
 

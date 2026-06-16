@@ -198,9 +198,9 @@ def check_v11_requirements(root: Path) -> list[str]:
     # 9. Runtime effectiveness auditor exists and is wired into the run loop.
     if not (root / "scripts" / "bagel_run_check.py").exists():
         out.append("scripts/bagel_run_check.py: v1.1 requires an operational run auditor.")
-    if "bagel_run_check.py" not in skill and "bagel_v2_check.py" not in skill:
+    if "bagel_run_check.py" not in skill and "bagel_v2_check.py" not in skill and "bagel_v3_check.py" not in skill:
         out.append("SKILL.md: long-run loop must call BAGEL runtime validators.")
-    if "bagel_run_check.py" not in runtime_proto and "bagel_v2_check.py" not in runtime_proto:
+    if "bagel_run_check.py" not in runtime_proto and "bagel_v2_check.py" not in runtime_proto and "bagel_v3_check.py" not in runtime_proto:
         out.append("runtime-protocol.md: runtime checks must include BAGEL runtime validators.")
 
     return out
@@ -287,13 +287,12 @@ def check_loading_matrix_files_exist(root: Path) -> list[str]:
     out: list[str] = []
     skill = (root / "SKILL.md").read_text(encoding="utf-8") if (root / "SKILL.md").exists() else ""
     # Extract all `references/<name>.md` from the Loading Matrix table rows
-    for m in re.finditer(r"\| `references/([^`|]+)` \|", skill):
+    for m in re.finditer(r"`references/([^`|]+)`", skill):
         ref_name = m.group(1).strip()
-        # Handle combined entries like "platform-claude-code.md / platform-codex.md"
-        for part in ref_name.split("/"):
-            part = part.strip()
-            if not part:
-                continue
+        parts = [ref_name]
+        if " / " in ref_name:
+            parts = [p.strip().replace("references/", "") for p in ref_name.split(" / ")]
+        for part in parts:
             if part.endswith(".md") or part.endswith(".yaml"):
                 full = root / "references" / part
                 if not full.exists():
@@ -322,7 +321,7 @@ def check_v13_innovation_memory(root: Path) -> list[str]:
 
     if "Product Visionary" not in skill or "innovation-protocol.md" not in skill:
         out.append("SKILL.md: must include Product Visionary and innovation-protocol in the Loading Matrix.")
-    if "lesson-memory.md" not in skill or ("bagel_memory_check.py" not in skill and "bagel_v2_check.py" not in skill):
+    if "lesson-memory.md" not in skill or ("bagel_memory_check.py" not in skill and "bagel_v2_check.py" not in skill and "bagel_v3_check.py" not in skill):
         out.append("SKILL.md: must include lesson-memory and run BAGEL memory validation.")
     if "Innovation Ambition" not in align or "innovation_contract" not in align:
         out.append("alignment-protocol.md: must capture Innovation Ambition and innovation_contract.")
@@ -518,7 +517,8 @@ def check_v20_measured_runtime(root: Path) -> list[str]:
     gate = read("references/gate-predicates.md")
     run_check = read("scripts/bagel_run_check.py")
     flywheel = read("scripts/flywheel_check.py")
-    v2_check = read("scripts/bagel_v2_check.py")
+    v3_check = read("scripts/bagel_v3_check.py")
+    v2_check = read("scripts/bagel_v2_check.py") + v3_check
 
     for rel in (
         "references/v2-measured-runtime.md",
@@ -563,9 +563,11 @@ def check_v20_measured_runtime(root: Path) -> list[str]:
     for phrase in ("delta_type", "ITERATION_VALUE_CLASSES", "blocking_concern"):
         if phrase not in flywheel:
             out.append(f"flywheel_check.py missing V2 flywheel audit: {phrase}.")
-    for phrase in ("bagel_v2_check.py", "delta_type", ".bagel/telemetry/cycles.yaml"):
+    for phrase in ("delta_type", ".bagel/telemetry/cycles.yaml"):
         if phrase not in runtime_proto:
             out.append(f"runtime-protocol.md missing V2 runtime term: {phrase}.")
+    if "bagel_v2_check.py" not in runtime_proto and "bagel_v3_check.py" not in runtime_proto:
+        out.append("runtime-protocol.md missing V2/V3 runtime validator command.")
     for gate_id in (
         "runtime_capability_observed_with_proof",
         "handoff_validation_passed",
@@ -599,7 +601,7 @@ def check_v30_expert_autonomy(root: Path) -> list[str]:
     orch = read("agents/orchestrator.md")
     supervisor = read("agents/supervisor.md")
     gate = read("references/gate-predicates.md")
-    v2_check = read("scripts/bagel_v2_check.py")
+    v2_check = read("scripts/bagel_v2_check.py") + read("scripts/bagel_v3_check.py")
 
     for rel in (
         "agents/principal-expert.md",
@@ -633,7 +635,7 @@ def check_v30_expert_autonomy(root: Path) -> list[str]:
     for phrase in ("task_size_exemption_used", "current_skill_overrides_stale_state", "spawn_orchestrator", "role_guard"):
         if phrase not in sup_check:
             out.append(f"supervisor_boundary_check.py missing anti-laziness validator term: {phrase}.")
-    for script in ("evaluation_quality_check.py", "expert_strategy_check.py", "roi_check.py", "supervisor_boundary_check.py", "runtime_proof_check.py", "deliverable_delta_check.py"):
+    for script in ("evaluation_quality_check.py", "expert_strategy_check.py", "roi_check.py", "supervisor_boundary_check.py", "runtime_proof_check.py", "deliverable_delta_check.py", "dispatch_envelope_check.py", "emergency_stop_check.py"):
         if script not in v2_check:
             out.append(f"bagel_v2_check.py must call V3 validator {script}.")
     for gate_id in (
@@ -645,10 +647,89 @@ def check_v30_expert_autonomy(root: Path) -> list[str]:
         "roi_controller_positive_or_switched",
         "supervisor_boundary_respected",
         "supervisor_role_guard_passed",
+        "dispatch_envelope_valid",
+        "emergency_stop_preserves_state",
     ):
         if gate_id not in gate:
             out.append(f"gate-predicates.md missing V3 gate: {gate_id}.")
 
+    out.extend(check_v31_executable_expert_runtime(root))
+
+    return out
+
+
+def check_v31_executable_expert_runtime(root: Path) -> list[str]:
+    """v3.1 executable expert runtime checks."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+
+    skill = read("SKILL.md")
+    flow = read("references/orchestration-flow.md")
+    expert = read("references/expert-autonomy.md")
+    principal = read("agents/principal-expert.md")
+    council = read("references/expert-strategy-council.md")
+    run_check = read("scripts/bagel_run_check.py")
+    expert_check = read("scripts/expert_strategy_check.py")
+    eval_check = read("scripts/evaluation_quality_check.py")
+    roi_check = read("scripts/roi_check.py")
+    dispatch_check = read("scripts/dispatch_envelope_check.py")
+
+    for phrase in ("Authoritative Boot Sequence", "align_protection", "autonomous_build", "Build/Iterate before Stop Contract is forbidden"):
+        if phrase not in skill:
+            out.append(f"SKILL.md missing V3.1 boot invariant: {phrase}.")
+    for phrase in ("RUN START", "ALIGN / CALIBRATE", "Expert Strategy Council", "Principal Expert locks initial strategy", "Build unlock gate"):
+        if phrase not in flow:
+            out.append(f"orchestration-flow.md missing V3.1 executable flow phrase: {phrase}.")
+    for rel in (
+        "agents/domain-expert.md",
+        "agents/systems-architect.md",
+        "agents/evaluation-skeptic.md",
+        "agents/innovation-strategist.md",
+        "agents/user-proxy.md",
+        "agents/risk-officer.md",
+        "references/dispatch-envelope.md",
+        "references/emergency-stop.md",
+        "scripts/bagel_v3_check.py",
+        "scripts/dispatch_envelope_check.py",
+        "scripts/emergency_stop.py",
+        "scripts/emergency_stop_check.py",
+    ):
+        if not (root / rel).exists():
+            out.append(f"{rel}: V3.1 requires this file.")
+    for phrase in ("schema_version: expert_decision_v1", "selected_option_id", "kill_criteria", "domain_model_ref"):
+        if phrase not in principal or phrase not in expert:
+            out.append(f"Principal Expert / expert-autonomy schema missing {phrase}.")
+    for phrase in ("real subagent dispatches", "output_ref", "deadlocked", "needs_probe"):
+        if phrase not in council:
+            out.append(f"expert-strategy-council.md missing V3.1 dispatch/quorum rule: {phrase}.")
+    for phrase in ("collect_dispatches", "schema_version", "breakthrough_quality", "GENERIC_TERMS"):
+        if phrase not in expert_check:
+            out.append(f"expert_strategy_check.py missing V3.1 enforcement term: {phrase}.")
+    for phrase in ("metric_discrimination_check", "bad_example", "surface_overfit_risk"):
+        if phrase not in eval_check:
+            out.append(f"evaluation_quality_check.py missing V3.1 discrimination term: {phrase}.")
+    for phrase in ("hard_value", "soft_value", "soft-value-only", "expert_layer_mode"):
+        if phrase not in roi_check:
+            out.append(f"roi_check.py missing V3.1 ROI term: {phrase}.")
+    for phrase in ("loop_phase", "single_session_honesty", "Stop Contract"):
+        if phrase not in run_check:
+            out.append(f"bagel_run_check.py missing V3.1 lifecycle/review term: {phrase}.")
+    for phrase in ("normalized relative", "locks", "context_ref"):
+        if phrase not in dispatch_check:
+            out.append(f"dispatch_envelope_check.py missing V3.1 preflight term: {phrase}.")
+    for rel in (
+        "references/expert-packs/software-product.md",
+        "references/expert-packs/research-experiment.md",
+        "references/expert-packs/writing-longform.md",
+        "references/expert-packs/design-ui.md",
+        "references/expert-packs/data-analysis.md",
+        "references/expert-packs/ops-sre.md",
+    ):
+        if not (root / rel).exists():
+            out.append(f"{rel}: V3.1 requires artifact expert pack.")
     return out
 
 

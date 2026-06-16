@@ -60,8 +60,13 @@ councilors:
     reasoning: ""
     evidence_cited: []
 merge_result:
-  status: passed | vetoed | disputed
+  status: passed | vetoed | disputed | deadlocked | needs_probe
   rule: "strong_no veto; strong_yes>=2 and no no/strong_no passes; otherwise disputed"
+  quorum:
+    aligned_count: 0
+    total: 0
+    threshold: 0
+  next_required_action: principal_expert_decision | gather_more_evidence | cheap_probe | user_checkpoint
   strong_yes_count: 1
   no_count: 0
   strong_no_count: 0
@@ -86,8 +91,12 @@ blocking_concern:
 
 - `strong_yes_count >= 2` and `no_count == 0` and `strong_no_count == 0` means `status: passed`.
 - All other outcomes are `status: disputed`.
+- `deadlocked` means no action can be chosen without more evidence or user checkpoint.
+- `needs_probe` means the next step is a cheap falsifiable probe, not implementation commitment.
 
 Disputed is not failure. Record the disagreement and either gather more evidence, run a cheap probe, or revisit in a later iteration. Do not let the Orchestrator override the council with free-form preference.
+
+Principal Expert may resolve `disputed` only with decisive evidence. Vetoed decisions cannot be overridden without new evidence or Constitutional Court.
 
 ## Taste-Adjusted EV
 

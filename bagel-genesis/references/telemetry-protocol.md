@@ -17,10 +17,19 @@ cycles:
       supervisor_estimated_tokens: 42000
       supervisor_soft_max_tokens: 200000
       orchestrator_estimated_tokens: 90000
+      token_estimate_is_advisory: true
       orchestrator_context_window_tokens: 128000
       worker_max_estimated_tokens: 48000
       replacement_threshold_percent: 70
+      cycles_since_orchestrator_spawn: 0
+      dispatches_since_spawn: 0
+      reference_full_reads_since_spawn: 0
+      handoff_size_bytes: 0
+      state_load_failures: 0
+      repeated_confusion_events: 0
+      stale_context_reports: 0
       replacement_due: true
+      replacement_due_reason: token_estimate | cycles_since_spawn | full_reads_exceeded | stale_context | failed_handoff_probe | state_load_failure | confusion_events
       handoff_ref: ".bagel/handoffs/orch-047.yaml"
     budget:
       estimated_tokens_used_this_cycle: 32000
@@ -39,6 +48,8 @@ cycles:
         evidence_refs: []
       evidence_refs: []
 ```
+
+Token estimates are advisory unless the platform provides actual counts. Behavioral pressure signals can trigger replacement even when token estimates look safe.
 
 Governance budget defaults:
 

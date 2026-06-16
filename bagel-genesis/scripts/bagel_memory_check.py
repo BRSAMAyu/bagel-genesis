@@ -149,6 +149,9 @@ def validate_innovation(root: Path, state: dict[str, Any], errors: list[str], wa
             fail(errors, f"innovation concept {cid} requires constitution change but was adopted directly")
 
     if ambition == "breakthrough":
+        breakthrough = as_dict(load_yaml(root / ".bagel/expert/breakthrough-search.yaml", {}))
+        if not breakthrough:
+            fail(errors, "breakthrough ambition requires .bagel/expert/breakthrough-search.yaml")
         lenses = {
             lens
             for concept in concepts

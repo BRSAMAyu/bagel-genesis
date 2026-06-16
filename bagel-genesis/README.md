@@ -1,8 +1,8 @@
 # BAGEL Genesis
 
-> V3 Expert Autonomy Layer: deep upfront alignment + expert-calibrated long-running autonomous iteration for Claude Code, Codex, and similar agentic coding systems.
+> V3.1 Executable Expert Runtime: deep upfront alignment + expert-calibrated long-running autonomous iteration for Claude Code, Codex, and similar agentic coding systems.
 
-BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. V3 adds an Expert Autonomy Layer: domain excellence calibration, problem framing, leverage mapping, Evaluation Critic, Principal Expert decisions, ROI control, runtime capability proof, replayable evidence, idempotent resume, and scope control.
+BAGEL Genesis is a skill-level operating protocol for turning a vague vision or a partially built project into a finished, high-quality deliverable. V3.1 makes the Expert Autonomy Layer executable: domain excellence calibration, problem framing, leverage mapping, Evaluation Critic, real Expert Strategy Council dispatch, Principal Expert decisions, ROI control, runtime capability proof, replayable evidence, idempotent resume, and scope control.
 
 It is not a single mega-prompt. It is a structured skill with:
 
@@ -89,9 +89,9 @@ V2 makes long-run autonomy harder to fake:
 - governance budget distinguishes `.bagel/` control-plane work from deliverable progress;
 - scope deltas catch outside-path edits, new dependencies, sensitive surfaces, and product identity changes.
 
-### V3 Expert Autonomy Layer
+### V3.1 Executable Expert Runtime
 
-V3 adds the high-level work top experts do before and during execution:
+V3.1 makes the high-level work top experts do before and during execution dispatchable and validated:
 
 - define what top-tier means for this domain and artifact;
 - reframe the user's stated problem into the real problem to solve;
@@ -166,7 +166,7 @@ bagel-genesis/
 │   └── ...
 ├── scripts/
 │   ├── detect_runtime_capabilities.py
-│   ├── bagel_v2_check.py
+│   ├── bagel_v3_check.py
 │   ├── bagel_run_check.py
 │   ├── bagel_memory_check.py
 │   ├── flywheel_check.py
@@ -316,10 +316,10 @@ python3 -m json.tool /path/to/bagel-genesis/evals/evals.json >/dev/null
 Validate a BAGEL V2 run:
 
 ```bash
-python /path/to/bagel-genesis/scripts/bagel_v2_check.py /path/to/project
+python /path/to/bagel-genesis/scripts/bagel_v3_check.py /path/to/project
 ```
 
-`bagel_v2_check.py` calls the operational, flywheel, memory, telemetry, handoff, evidence replay, scope, alignment freshness, and reference-load checks. Individual scripts remain useful for diagnosis.
+`bagel_v3_check.py` calls the operational, Supervisor-boundary, runtime-proof, dispatch-envelope, flywheel, memory, telemetry, deliverable-delta, handoff, evidence replay, scope, evaluation-quality, expert-strategy, ROI, alignment freshness, reference-load, and emergency-stop checks. Individual scripts remain useful for diagnosis.
 
 ## Safety Model
 
@@ -349,7 +349,7 @@ BAGEL Genesis v3.0 is documentation-complete and internally validated:
 - skill metadata validation passes
 - BAGEL consistency lint passes
 - evals JSON is valid and sequential
-- 94 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, Supervisor nesting/resume, Context Tree replace-not-compact policy, V3 expert autonomy, domain excellence, problem framing, Evaluation Critic, Principal Expert decisions, ROI control, Supervisor boundary and role guard enforcement, runtime proof, replayable evidence, handoff/idempotency, governance budget, scope control, taste freshness, artifact-specific lenses, innovation probes, lesson memory, iteration accounting, Runtime Doctor delegation, and control-plane separation
+- 109 behavior evals cover alignment depth floors, project takeover, mandatory loop/git/dispatch, Supervisor nesting/resume, Context Tree replace-not-compact policy, V3.1 executable expert autonomy, domain excellence, problem framing, Evaluation Critic, Principal Expert decisions, ROI control, Supervisor boundary and role guard enforcement, runtime proof, replayable evidence, handoff/idempotency, governance budget, scope control, taste freshness, artifact-specific lenses, innovation probes, lesson memory, iteration accounting, Runtime Doctor delegation, and control-plane separation
 - long-run benchmark scaffold exists under `evals/long-run/`
 
 The remaining proof is empirical: run it on real projects overnight and compare the results against ordinary agent use.

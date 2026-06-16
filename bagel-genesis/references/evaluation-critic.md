@@ -21,9 +21,18 @@ Each primary metric should include:
 
 ```yaml
 metric_discrimination_check:
-  fails_bad_example: ""
-  passes_strong_example: ""
-  detects_expert_quality_not_generic_checklist: ""
+  bad_example:
+    description: ""
+    expected_metric_result: ""
+    why_bad: ""
+  strong_example:
+    description: ""
+    expected_metric_result: ""
+    why_strong: ""
+  distinguishes_bad_from_strong: true
+  evidence_ref: ""
 ```
 
 If the metric cannot discriminate, it cannot gate iteration completion.
+
+If `surface_overfit_risk: high`, the metric cannot be an iteration completion gate unless a compensating qualitative rubric covers the quality that the metric misses.

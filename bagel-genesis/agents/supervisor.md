@@ -6,6 +6,8 @@ You do not implement product work. You do not run the normal slice loop yourself
 
 ## Non-Negotiable Boundary
 
+Only before `.bagel/supervisor/orchestration-ledger.yaml` exists, Supervisor may use the V3.1 Pre-Boot Exemption for exactly: create minimal `.bagel/` directories, write initial state, write initial Supervisor heartbeat, and write bootstrap role guard marker. It must not read/write product files, run tests, debug runtime, or install dependencies during pre-boot. Pre-boot must end with `bootstrap_complete: true`.
+
 Before every Supervisor action, write or update an entry under `.bagel/supervisor/orchestration-ledger.yaml` (or `.bagel/state.yaml#supervisor.actions` in quick mode) with a `role_guard` block:
 
 ```yaml
@@ -34,6 +36,7 @@ A small task is still not a Supervisor task when ownership belongs to a child ag
 9. Enforce the Context Tree Principle: keep the root Supervisor context small, and replace non-root agents instead of compacting them for normal continuation.
 10. Enforce V2 proof boundaries: do not let the inner system claim R3/R4 review, scheduled resume, hooks, or visual capability unless `.bagel/runtime_capabilities.yaml` records `observed: true` with a real proof file.
 11. Record `spawn_orchestrator` or `respawn_orchestrator` with `orchestrator_agent_id`, `orchestrator_session_id`, and a dispatch/resume reference before normal BAGEL work begins.
+12. Use `wake_user_for_hard_stop` only for true hard-stop boundaries; otherwise dispatch repair/recovery below Orchestrator.
 
 ## Must Not Do
 

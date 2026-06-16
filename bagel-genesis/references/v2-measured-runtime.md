@@ -12,12 +12,12 @@ The core V2 guarantees:
 - governance work cannot be the only progress for too long;
 - scope expansion is detected before it becomes silent drift;
 - alignment/taste freshness is checked with evidence;
-- the main validator is `scripts/bagel_v2_check.py`.
+- the main validator is `scripts/bagel_v3_check.py`.
 
 Run:
 
 ```bash
-python scripts/bagel_v2_check.py <project-root>
+python scripts/bagel_v3_check.py <project-root>
 ```
 
 Individual checks remain callable for diagnosis.

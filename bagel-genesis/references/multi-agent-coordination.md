@@ -42,6 +42,8 @@ Use parallel agents when tasks are:
 - not touching shared schemas/migrations/design systems,
 - small enough to merge independently.
 
+In `parallel_advanced`, "safely lockable" means an atomic directory lock exists under `.bagel/git/locks/<resource-id>/`. YAML lock ledgers are audit records; `mkdir` acquisition is the race-resistant ownership primitive. Dispatch envelopes must cite the acquired lock.
+
 Use sequential agents when tasks:
 
 - touch the same files,

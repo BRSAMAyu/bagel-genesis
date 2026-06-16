@@ -1,136 +1,127 @@
 # Orchestration Flow
 
-Use this as the authoritative end-to-end decision map for BAGEL. It answers: what decision is due, who is dispatched, how outputs are merged, where state is recorded, and which script verifies it.
+Authoritative V3.1 end-to-end execution map. It defines phase, required dispatches, durable records, merge rules, and validators.
 
-## RUN START (Run Start)
+## RUN START
 
-1. Detect runtime capabilities.
-   - Dispatch: none.
+1. **Runtime capability detection**
    - Record: `.bagel/runtime_capabilities.yaml` or `state.yaml.runtime_capabilities`.
+   - Verify: `runtime_proof_check.py`, `bagel_run_check.py`.
+2. **Pre-boot initialization**
+   - Allowed Supervisor actions only: create minimal `.bagel/` directories, write initial state, write initial heartbeat, write bootstrap role guard marker.
+   - Forbidden: product edits, tests, runtime debug, dependency install.
+   - Record: `.bagel/supervisor/orchestration-ledger.yaml` with `bootstrap_complete: true`.
+   - Verify: `supervisor_boundary_check.py`.
+3. **Supervisor binding**
+   - Dispatch: main context remains Supervisor; spawn a fresh Orchestrator when true subagents exist.
+   - Record: heartbeat, resume capsule, current Orchestrator id/session.
+   - Verify: `bagel_run_check.py`, `supervisor_boundary_check.py`.
+4. **Loop binding in `align_protection` mode**
+   - Loop may bind before Stop Contract only to protect Align/Resume.
+   - Build/Iterate remains forbidden until Stop Contract and build unlock gates pass.
    - Verify: `bagel_run_check.py`.
-2. Bind Supervisor layer when true subagents are available.
-   - Dispatch: Supervisor remains in main context; spawn inner Orchestrator as fresh subagent/session.
-   - Record: `.bagel/supervisor/heartbeat.yaml`, `.bagel/supervisor/resume-capsule.md`, `state.yaml.supervisor`.
-   - Merge rule: use `nested_supervisor` on Claude Code/Codex with true subagents; record `collapsed_no_true_subagents` only when unavailable.
-   - Verify: `bagel_run_check.py`.
-3. Bind loop before Align when autonomy is requested.
-   - Dispatch: none.
-   - Record: `state.yaml.loop_binding`.
-   - Merge rule: P1 native loop first, then P2 harness, only then degraded resume.
-   - Verify: `bagel_run_check.py`.
+5. **BAGEL worth-it check**
+   - Record: `.bagel/expert/bagel-worth-it.yaml`.
+   - Output: `recommended_mode` and `expert_layer_mode` (`off|lite|standard|full`).
+   - Verify: `roi_check.py`.
 
-## Align
+## ALIGN / CALIBRATE
 
-1. Capture Stop Contract as the first alignment artifact.
-   - Record: `constitution.yaml.stop_contract`.
+1. **Stop Contract first**
+   - Capture max iterations/budget, hard-stops, deadline, morning expectation.
+   - Build may not start without it.
    - Verify: `bagel_run_check.py`.
-2. Capture alignment depth, execution strategy, hard-stops, taste source, and innovation ambition.
-   - Record: `constitution.yaml`, `ledger.yaml.decisions`.
-   - Verify: alignment floor checks in `bagel_run_check.py`.
-3. Existing project takeover.
-   - Dispatch: Project Cartographer plus >=2 exploration lenses.
-   - Record: `.bagel/context.yaml`, `.bagel/evidence/baseline/manifest.yaml`.
-   - Merge rule: resolve explorer contradictions before writing context.
+2. **Alignment depth and run mode**
+   - Capture alignment depth, execution strategy, taste source, innovation ambition, review honesty mode.
+   - Verify: alignment floor in `bagel_run_check.py`.
+3. **Existing-project cartography if needed**
+   - Dispatch: Project Cartographer plus artifact-specific explorers.
+   - Record: `.bagel/context.yaml`, baseline evidence manifest.
    - Verify: `bagel_run_check.py`.
-4. Breakthrough or differentiated innovation.
-   - Dispatch: Product Visionary with required lenses.
-   - Record: `.bagel/innovation/ledger.yaml`.
-   - Merge rule: concept candidates are not adopted until Judgment Council evaluates them.
-   - Verify: `bagel_memory_check.py`.
-5. Innovation survivor selection.
-   - Dispatch: >=3 Judgment Councilors.
-   - Record: `.bagel/decisions/judgment-<id>.yaml`.
-   - Merge rule: strong_no veto; >=2 strong_yes and no no/strong_no passes; otherwise disputed.
-   - Verify: `bagel_memory_check.py` for ledger presence; `bagel_run_check.py` for final state where applicable.
-6. Lock constitution.
-   - Dispatch: Constitutional Court only if identity/scope/hard-stop changes are proposed.
-   - Record: `constitution.yaml`, `ledger.yaml`.
-   - Verify: gate predicates.
-7. Separate control plane from deliverable.
-   - Dispatch: none.
-   - Record: `state.yaml.task_queue` must contain user deliverable work only; BAGEL setup lives in control-plane lanes/ledger.
-   - Merge rule: `.bagel/` artifacts enable autonomy but are not the product.
-   - Verify: `bagel_run_check.py`.
-
-## Build
-
-1. Start or refresh the current iteration.
+4. **Domain Excellence Model**
+   - Dispatch: Domain Expert if full/standard; Orchestrator may create compact lite model only in quick/lite mode.
+   - Record: `.bagel/expert/domain-excellence.yaml`.
+   - Verify: `expert_strategy_check.py`, `alignment_freshness_check.py`.
+5. **Problem Framing**
+   - Record stated problem, inferred real problem, reframings, chosen framing, rejected framings.
+   - Verify: `expert_strategy_check.py`.
+6. **Leverage Map v0**
+   - Identify bottlenecks and top leverage action.
+   - Verify: `expert_strategy_check.py`.
+7. **Evaluation Architect**
    - Dispatch: Evaluation Architect.
-   - Record: `.bagel/iterations/ITER-NNN.yaml` or `state.yaml.iterations`; `state.yaml.evaluation`.
-   - Merge rule: no deliverable implementation begins until the target set has decision-useful metrics/rubrics.
-   - Verify: `bagel_run_check.py`, `flywheel_check.py`.
-2. Select next slice.
-   - Dispatch: none by default if the evaluation spec already exists; otherwise Evaluation Architect first.
-   - Merge rule: use EV ranking; if a candidate has `judgment_passed: true`, use taste-adjusted EV threshold.
-   - Record: `state.yaml.task_queue` with `lane_type: deliverable`.
-3. Implement.
-   - Dispatch: Implementer.
-   - Record: changed artifact files and worker handoff.
-   - Verify: project tests/checks.
-4. Runtime/tooling failure.
-   - Dispatch: Runtime Doctor after the first failed setup/build/test/verifier command or missing tool diagnosis.
-   - Merge rule: Runtime Doctor can repair reversible tooling but cannot lower gates or change product behavior broadly.
-   - Record: command evidence, repair handoff, reusable lesson candidate.
-   - Verify: rerun the failed command or record hard-stop boundary.
-5. Review.
-   - Dispatch: Spec Reviewer / Code Quality Reviewer / Independent Reviewer per risk.
-   - Merge rule: required review level must pass; same-session review cannot claim R3.
-   - Record: `.bagel/reviews/`.
-   - Verify: `flywheel_check.py`.
-6. Record progress.
-   - Record: `.bagel/evidence/progress-deltas.yaml`, `.bagel/STATUS.md`.
-   - Verify: `flywheel_check.py`.
-7. Recovery if a gate fails.
-   - Dispatch: Independent diagnosis as needed.
-   - Merge rule: recovery ladder; hard-stops only for true boundaries.
-   - Record: recovery log plus lesson memory if reusable.
-   - Verify: `bagel_memory_check.py`.
-
-## Polish And Excellence
-
-1. Current target set not green.
-   - Dispatch: bounded implement/review cycle.
-   - Record: progress deltas.
-   - Verify: `flywheel_check.py`.
-2. Current target set all-green.
-   - Dispatch: Evaluation Architect to draft the next iteration evaluation spec.
-   - Dispatch: >=2 Brainstormers with distinct lenses.
-   - Dispatch: >=3 Judgment Councilors for bar-raise direction.
-   - Merge rule: Judgment Council veto/pass/disputed.
-   - Record: completed iteration, `.bagel/evidence/bar-raises.yaml` with `brainstormer_dispatch_ids` and `judgment_ref` or `judgment_skipped_reason`.
-   - Verify: `flywheel_check.py`.
-3. Three lateral cycles.
-   - Dispatch: Red-Team Oracle for why stuck, Brainstormer for alternatives, Judgment Council for strategy switch.
-   - Merge rule: strong_no blocks a switch; passed switch updates strategy; disputed records more evidence needed.
-   - Record: `state.yaml.excellence`, `.bagel/decisions/`.
-   - Verify: `flywheel_check.py` and `bagel_memory_check.py` if recovery occurred.
-4. Breakthrough ambition plus plateau.
-   - Dispatch: Product Visionary again before declaring diminishing returns.
-   - Record: innovation ledger.
-   - Verify: `bagel_memory_check.py`.
-
-## Final Delivery
-
-1. Candidate final artifact.
-   - Dispatch: Spec Reviewer, Code Quality Reviewer, Red-Team Oracle.
-   - Merge rule: P0/P1 blocks; unresolved positive-EV P2 blocks final unless explicitly accepted.
-   - Record: reviews and final diff summary.
-2. Final Judgment Council.
-   - Dispatch: >=3 Judgment Councilors.
-   - Merge rule: any strong_no blocks delivery; >=2 strong_yes and no no/strong_no passes; otherwise disputed and not final.
-   - Record: `.bagel/decisions/judgment-final.yaml`.
+   - Record: active evaluation spec.
    - Verify: `bagel_run_check.py`.
-3. Curator briefing.
-   - Dispatch: User Alignment Curator.
-   - Record: `.bagel/STATUS.md`, optional HTML dashboard, final-diff summary links.
-4. Final validators.
-   - Run: `bagel_run_check.py`, `flywheel_check.py`, `bagel_memory_check.py`.
-   - Merge rule: all must pass or the run is not complete.
+8. **Evaluation Critic**
+   - Dispatch: Evaluation Skeptic or Evaluation Critic role.
+   - Require bad/strong metric discrimination and anti-gaming review.
+   - Verify: `evaluation_quality_check.py`.
+9. **Innovation / Breakthrough Search**
+   - If ambition is `breakthrough`, dispatch Product Visionary and Innovation Strategist.
+   - Require operators, competing theses, candidates, cheap probes.
+   - Verify: `expert_strategy_check.py`, `bagel_memory_check.py`.
+10. **Expert Strategy Council**
+   - Dispatch real council agents. Required: Domain Expert, Evaluation Skeptic, User Proxy. Add Systems Architect/Risk Officer/Innovation Strategist when architecture, high-risk, or breakthrough.
+   - Record each `expert_council_verdict` and dispatch ids.
+   - Verify: `expert_strategy_check.py`.
+11. **Principal Expert locks initial strategy**
+   - Dispatch: Principal Expert.
+   - Record: `expert_decision_v1` under `.bagel/expert/strategy-decisions/`.
+   - Verify: `expert_strategy_check.py`.
+12. **Build unlock gate**
+   - Requires Stop Contract, evaluation, Evaluation Critic, required expert artifacts for the selected `expert_layer_mode`, dispatch envelope validation, and loop phase switch to `autonomous_build`.
 
-## RUN END (Run End)
+## BUILD
 
-1. If complete: write final briefing, leave loop teardown note, and stop.
-2. If budget/token exhausted: write resume checkpoint and set `waiting_for_capacity`.
-3. If hard-stop: set `blocked_hard_stop`, record decision needed, and continue only safe independent lanes if available.
+1. **Dispatch envelope validation**
+   - Record: `.bagel/agents/dispatches/*.yaml`.
+   - Dispatch records use `lane_type: deliverable` for user artifact work and `control_plane` for governance/tooling work.
+   - Verify: `dispatch_envelope_check.py`.
+2. **Implementer / Runtime Doctor / Reviewer**
+   - Implementer writes bounded deliverable work.
+   - Runtime Doctor handles setup/tool/verifier failures.
+   - Reviewers verify according to risk and review honesty mode.
+3. **Evidence protocol**
+   - Commands, screenshots, benchmarks, reviews, and probes cite replayable evidence or constrained non-replayable reasons.
+   - Verify: `evidence_replay_check.py`.
+4. **Deliverable delta**
+   - User artifact changes must be non-control-plane and evidence-backed.
+   - Verify: `deliverable_delta_check.py`.
+5. **Scope delta**
+   - Derive touched paths from git diff/untracked files, not self-report.
+   - Verify: `scope_check.py`.
+6. **Progress delta**
+   - Record forward/lateral/backward delta with independent assessment.
+   - Verify: `flywheel_check.py`.
+7. **ROI value accounting**
+   - Split hard value and soft value. Soft-only streaks force strategy change.
+   - Verify: `roi_check.py`.
+8. **V3.1 check**
+   - Run `scripts/bagel_v3_check.py`.
+
+## ITERATE
+
+1. Refresh leverage map when bottleneck changes or cycles go lateral.
+2. Refresh evaluation when target set, artifact type, or quality definition changes.
+3. Evaluation Critic re-checks changed metrics.
+4. Expert Strategy Council runs for high-impact target/strategy changes.
+5. Principal Expert selects next target set with `expert_decision_v1`.
+6. Execute bounded cycle through dispatch envelopes.
+7. Record iteration value, evidence, ROI, and lessons.
+8. Bar-raise, strategy switch, breakthrough probe, or continue based on evidence.
+
+## FINAL / PAUSE
+
+This is the **Final Delivery** and pause path.
+
+1. Final evidence replay.
+2. Expert final decision by Principal Expert.
+3. Judgment Council if taste-sensitive.
+4. Curator briefing and optional HTML dashboard.
+5. Emergency stop, hard-stop, complete, or resume state.
 
 There is no other run-end path.
+
+## RUN END
+
+Run End is complete, waiting for capacity, emergency stopped, or blocked hard-stop. No other terminal state is valid.

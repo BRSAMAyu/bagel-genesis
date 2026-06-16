@@ -1,6 +1,6 @@
 # BAGEL Genesis
 
-> 面向 Claude Code 和 Codex 的 V3 专家自治层：先深度对齐，校准专家级标准，重构问题，识别最高杠杆路线，证明 runtime 能力，复放证据、控制范围，并持续迭代到约定边界。
+> 面向 Claude Code 和 Codex 的 V3.1 可执行专家运行时：先深度对齐，校准专家级标准，重构问题，识别最高杠杆路线，证明 runtime 能力，复放证据、控制范围，并持续迭代到约定边界。
 
 [English](README.md) | **简体中文**
 
@@ -17,7 +17,7 @@
 - 把“用户最初列的功能做完”当成最终完成，而不是第一轮迭代完成；
 - 第二天汇报很多，但进展是否真实很难验证。
 
-**BAGEL Genesis V3 把这些变成一个可测量的专家自治运行时。** 它先把用户的目标、品味、硬停边界、预算、运行模式、专家标准、问题框架、杠杆地图、评价体系对齐清楚，然后持续推进实现、审查、恢复、提标和下一轮迭代，并用脚本验证进展是否真实。
+**BAGEL Genesis V3.1 把这些变成一个可执行、可测量的专家自治运行时。** 它先把用户的目标、品味、硬停边界、预算、运行模式、专家标准、问题框架、杠杆地图、评价体系对齐清楚，然后持续推进实现、审查、恢复、提标和下一轮迭代，并用脚本验证进展是否真实。
 
 核心循环很简单：
 
@@ -139,7 +139,7 @@ BAGEL 应该在对齐阶段持久化这些决策：
 在包含 `.bagel/` 的项目根目录运行：
 
 ```bash
-python bagel-genesis/scripts/bagel_v2_check.py /path/to/project
+python bagel-genesis/scripts/bagel_v3_check.py /path/to/project
 python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```
 
@@ -163,15 +163,15 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 20 个角色提示词
-├── references/      # 56 个按触发加载的协议
-├── scripts/         # 19 个校验/辅助脚本
-└── evals/           # 94 条行为评测 + long-run scaffold
+├── agents/          # 26 个角色提示词
+├── references/      # 58 个按触发加载的协议 + 6 个 expert packs
+├── scripts/         # 23 个校验/辅助脚本
+└── evals/           # 109 条行为评测 + long-run scaffold
 ```
 
 ## 当前状态
 
-当前版本：**v3.0 — Expert Autonomy Layer**。
+当前版本：**v3.1 — Executable Expert Runtime**。
 
 本地已验证：
 

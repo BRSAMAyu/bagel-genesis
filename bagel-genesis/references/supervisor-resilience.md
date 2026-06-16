@@ -120,6 +120,29 @@ Supervisor must not own:
 
 ## Role Guard
 
+Before the ledger exists, the only V3.1 Pre-Boot Exemption actions are:
+
+```yaml
+pre_boot_exemption:
+  allowed_actions:
+    - create_minimal_bagel_directories
+    - write_initial_state
+    - write_initial_supervisor_heartbeat
+    - write_bootstrap_role_guard_marker
+  forbidden_actions:
+    - product_code_write
+    - tests
+    - runtime_debug
+    - dependency_install
+    - project_file_edit
+    - project_file_read
+  must_end_with:
+    - ".bagel/supervisor/orchestration-ledger.yaml"
+    - "bootstrap_complete: true"
+```
+
+After bootstrap, every Supervisor action requires role guard. Pre-boot is not a way to run validation, inspect implementation files, or fix the environment.
+
 Every Supervisor action must be preceded by a machine-readable role guard in `.bagel/supervisor/orchestration-ledger.yaml` or `.bagel/state.yaml#supervisor.actions`:
 
 ```yaml

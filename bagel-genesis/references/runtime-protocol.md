@@ -194,10 +194,10 @@ If three consecutive deltas are `lateral`, update `STATUS.md` with the strategy 
 After updating `STATUS.md`, run the V2 validator when `.bagel/state.yaml` exists:
 
 ```bash
-python scripts/bagel_v2_check.py <project-root>
+python scripts/bagel_v3_check.py <project-root>
 ```
 
-`bagel_v2_check.py` validates the operational substrate, flywheel integrity, lesson/innovation memory, telemetry/context pressure, handoff integrity, evidence replay, scope control, alignment freshness, and reference-loading discipline. If it fails, set Run Status to `recovering`, list the failed gate under Current Focus, and make the Next Action the repair/rollback/isolation/strategy-switch needed to restore integrity.
+`bagel_v3_check.py` validates the operational substrate, flywheel integrity, lesson/innovation memory, telemetry/context pressure, handoff integrity, evidence replay, scope control, alignment freshness, and reference-loading discipline. If it fails, set Run Status to `recovering`, list the failed gate under Current Focus, and make the Next Action the repair/rollback/isolation/strategy-switch needed to restore integrity.
 
 ## Snapshot Protocol
 

@@ -128,11 +128,24 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         if isinstance(orch, int) and isinstance(max_tokens, int) and isinstance(threshold, int):
             percent = (orch / max_tokens) * 100 if max_tokens else 0
             if percent >= threshold and replacement_due is not True:
-                fail(errors, f"cycle {idx}: Orchestrator context crossed threshold but replacement_due is not true")
-            if percent >= threshold and not handoff_ref:
-                fail(errors, f"cycle {idx}: Orchestrator context crossed threshold without handoff_ref")
-            elif percent >= threshold and handoff_ref and not (root / str(handoff_ref)).exists():
-                fail(errors, f"cycle {idx}: handoff_ref does not exist: {handoff_ref}")
+                warn(warnings, f"cycle {idx}: advisory token estimate crossed replacement threshold")
+
+        behavioral_pressure = any(
+            pressure.get(key)
+            for key in ("state_load_failures", "repeated_confusion_events", "stale_context_reports")
+        )
+        if pressure.get("cycles_since_orchestrator_spawn", 0) and pressure.get("cycles_since_orchestrator_spawn", 0) >= pressure.get("max_cycles_since_spawn", 999999):
+            behavioral_pressure = True
+        if pressure.get("reference_full_reads_since_spawn", 0) and pressure.get("reference_full_reads_since_spawn", 0) >= pressure.get("max_full_reads_since_spawn", 999999):
+            behavioral_pressure = True
+        if behavioral_pressure and replacement_due is not True:
+            fail(errors, f"cycle {idx}: behavioral context pressure requires replacement_due=true")
+        if replacement_due is True and not pressure.get("replacement_due_reason"):
+            fail(errors, f"cycle {idx}: replacement_due requires replacement_due_reason")
+        if replacement_due is True and not handoff_ref:
+            fail(errors, f"cycle {idx}: replacement_due without handoff_ref")
+        elif replacement_due is True and handoff_ref and not (root / str(handoff_ref)).exists():
+            fail(errors, f"cycle {idx}: handoff_ref does not exist: {handoff_ref}")
 
         supervisor_tokens = pressure.get("supervisor_estimated_tokens")
         supervisor_soft = pressure.get("supervisor_soft_max_tokens") or 200000

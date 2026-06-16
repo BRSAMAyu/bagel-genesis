@@ -25,6 +25,8 @@ In `quick_autonomy`, the canonical sources are consolidated:
 | Alignment freshness | `.bagel/alignment/freshness.yaml` or `.bagel/state.yaml#alignment_freshness` | Evidence-backed reanchor/taste drift state |
 | Reference digests | `.bagel/agent_context/reference-digests/*` | Stable summaries and read telemetry for progressive disclosure |
 | Expert autonomy | `.bagel/expert/*` | Domain excellence, problem framing, leverage map, expert decisions, ROI controller |
+| Dispatch envelopes | `.bagel/agents/dispatches/*.yaml` | Worker preflight, path ownership, locks, role read/write boundaries |
+| Emergency stop | `.bagel/STOP_REQUESTED`, `.bagel/emergency/*` | Safe stop request, git status checkpoint, recovery instructions |
 | Innovation candidates | `.bagel/innovation/ledger.yaml` | Novel concepts, probes, and adopt/park/reject decisions |
 | Lesson memory | `.bagel/ledger.yaml#lessons` or `.bagel/lessons/*` | Reusable gotchas, recovery lessons, and playbooks |
 | Loop binding and telemetry | `.bagel/state.yaml.loop_binding`, `.bagel/state.yaml.telemetry`, `.bagel/telemetry/*` | Timer/scheduler proof and runtime counters |
@@ -201,6 +203,8 @@ Expert autonomy:
 └── strategy-decisions/
     └── EXP-001.yaml
 ```
+
+Expert packs are static references under `references/expert-packs/` and are selected by `artifact_profile.primary_type`; they are not copied into `.bagel/` unless a run needs a digest/cache entry.
 
 `.bagel/STATUS.md` is the single entry point for humans after a long run. It summarizes phase, last verified progress, autonomy safety, current blockers, next action, and links to deeper files. In quick mode it is generated from `state.yaml`, `constitution.yaml`, `context.yaml`, `ledger.yaml`, and `evidence/progress-deltas.yaml`. In full mode it may also draw from `state.json`, `progress.json`, `gates/status.yaml`, `task_queue.json`, `human-decisions.yaml`, and `user_briefing/*`. If canonical files disagree, `STATUS.md` must say "state conflict" and link to the conflict report instead of choosing silently.
 

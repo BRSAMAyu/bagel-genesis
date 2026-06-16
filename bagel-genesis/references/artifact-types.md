@@ -61,6 +61,25 @@ lens_packs:
 
 `scripts/bagel_run_check.py` validates the recorded lenses against the active artifact profile.
 
+## Expert Packs
+
+Use the matching expert pack when building the Domain Excellence Model and Evaluation Framework:
+
+| Artifact Type | Expert Pack |
+|---|---|
+| `software_product`, `existing_software` | `references/expert-packs/software-product.md` |
+| `research` | `references/expert-packs/research-experiment.md` |
+| `writing` | `references/expert-packs/writing-longform.md` |
+| `document_deck`, visual/interface-heavy work | `references/expert-packs/design-ui.md` |
+| `data_analysis` | `references/expert-packs/data-analysis.md` |
+| ops/SRE/server maintenance | `references/expert-packs/ops-sre.md` |
+
+Research work must record `research_grounding` with literature basis, baseline methods, claim-evidence matrix, and reproducibility plan. If external literature is unavailable, record `grounding_limit.external_literature_unavailable: true` and limit claims accordingly.
+
+Writing work must record `writing_production_pressure`: first prose delta by cycle 2, no more than two outline-only cycles, and scene/voice/continuity review.
+
+Ops/SRE work must record `ops_autonomy_profile`: environment, observe/staging/production mode, runbook refs, rollback plan, canary policy, alert thresholds, and escalation policy. Production mutation requires explicit approval.
+
 ## Applicability Rules
 
 - Visual/design-token gates apply only to visual artifacts or when visual presentation affects quality.

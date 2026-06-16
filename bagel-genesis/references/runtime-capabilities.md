@@ -87,6 +87,17 @@ For known agentic platforms, uncertainty means "check the adapter," not "assume 
 1. Detect platform and load the matching adapter reference when available.
 2. Map native scheduling/loop capability to `scheduled_resume` or `external_harness` - attempt every native mechanism first; `degraded_resume` is only for after all are proven unavailable. `scheduled_resume` requires `timers_or_wakeup.observed: true` and a proof file.
 3. Map native subagents/background agents to R3 review capability only when `true_subagents.observed: true` and the proof shows isolated context. Adapter claims alone are R1/R2 at most.
+
+## Review Honesty Mode
+
+```yaml
+review_environment:
+  true_subagents_observed: true | false
+  session_isolation: true | false
+  review_honesty_mode: isolated_review | single_session_honesty
+```
+
+If `single_session_honesty`, same-session review is capped at R1/R2 by platform proof. Do not claim R3/R4, do not final-accept high-risk or full expert runs without external/true-subagent review, and mark STATUS with `[REVIEW INDEPENDENCE LIMITED]`.
 4. Map native hooks/non-interactive mode/cloud tasks to gate enforcement, resume, and automation options. Hooks cannot be marked enabled unless `hooks.observed: true`.
 5. Record unsupported features explicitly only after checking the adapter and current environment.
 6. Choose run mode from `references/quality-assurance.md`.

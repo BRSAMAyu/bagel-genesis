@@ -51,12 +51,19 @@ participants:
     agent_id: ""
     lens_or_dimension: user_impact
 merge_rule: "taste_judgment_veto"
-result: passed | vetoed | disputed | selected_path
+result: passed | vetoed | disputed | deadlocked | needs_probe | selected_path
+quorum:
+  aligned_count: 0
+  total: 0
+  threshold: 0
+next_required_action: principal_expert_decision | gather_more_evidence | cheap_probe | user_checkpoint
 evidence:
   - ".bagel/decisions/judgment-J-001.yaml"
 ```
 
 If a high-impact decision was made without a collective record, the run must explain why it was below the collective-decision threshold.
+
+Deadlock is a valid outcome, not a reason for Orchestrator preference. Deadlock requires cheap probe, more evidence, or user checkpoint. Veto requires new evidence or Constitutional Court before override.
 
 ## Adaptive Bar-Raise Policy
 

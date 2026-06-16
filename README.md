@@ -1,6 +1,6 @@
 # BAGEL Genesis
 
-> V3 Expert Autonomy Layer for Claude Code and Codex: align deeply, calibrate what expert-level means, choose high-leverage strategy, bind a proven loop, replay evidence, control scope, and keep improving until the agreed iteration/budget boundary.
+> V3.1 Executable Expert Runtime for Claude Code and Codex: align deeply, calibrate what expert-level means, choose high-leverage strategy, bind a proven loop, replay evidence, control scope, and keep improving until the agreed iteration/budget boundary.
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -17,7 +17,7 @@ Normal agent usage is already powerful, but it often fails in exactly the places
 - it treats "all requested features are done" as final completion instead of the first iteration;
 - it reports progress that is hard to verify the next morning.
 
-**BAGEL Genesis V3 turns that into a measured expert-autonomy runtime.** It makes the agent first clarify the user's real goal, taste, hard-stops, budget, runtime mode, expert standard, problem framing, leverage map, and evaluation criteria; then it keeps running through implementation, review, recovery, bar-raising, and the next iteration while mechanically checking that progress is real.
+**BAGEL Genesis V3.1 turns that into a measured expert-autonomy runtime.** It makes the agent first clarify the user's real goal, taste, hard-stops, budget, runtime mode, expert standard, problem framing, leverage map, and evaluation criteria; then it keeps running through implementation, review, recovery, bar-raising, and the next iteration while mechanically checking that progress is real.
 
 The key idea is simple:
 
@@ -139,7 +139,7 @@ At alignment, the agent should persist these choices:
 Run these from the repository root that contains `.bagel/`:
 
 ```bash
-python bagel-genesis/scripts/bagel_v2_check.py /path/to/project
+python bagel-genesis/scripts/bagel_v3_check.py /path/to/project
 python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```
 
@@ -163,15 +163,15 @@ What they catch:
 ```text
 bagel-genesis/
 ├── SKILL.md
-├── agents/          # 20 role prompts
-├── references/      # 56 trigger-loaded protocols
-├── scripts/         # 19 validators/helpers
-└── evals/           # 94 behavior evals + long-run scaffold
+├── agents/          # 26 role prompts
+├── references/      # 58 trigger-loaded protocols + 6 expert packs
+├── scripts/         # 23 validators/helpers
+└── evals/           # 109 behavior evals + long-run scaffold
 ```
 
 ## Status
 
-Current version: **v3.0 — Expert Autonomy Layer**.
+Current version: **v3.1 — Executable Expert Runtime**.
 
 Validated locally:
 

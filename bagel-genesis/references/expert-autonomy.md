@@ -36,6 +36,52 @@ expert_autonomy_gate:
   required_record: ".bagel/expert/strategy-decisions/<id>.yaml"
 ```
 
+The required record uses the single `expert_decision_v1` schema:
+
+```yaml
+expert_decision:
+  schema_version: expert_decision_v1
+  decision_id: ""
+  decision_type: framing | iteration_target | major_route | breakthrough_probe | strategy_switch | bar_raise | final_delivery | identity_or_scope_change
+  decision_owner: {role: Principal Expert, agent_id: "", session_id: ""}
+  options_considered:
+    - option_id: ""
+      option: ""
+      expected_value: ""
+      risk: ""
+      uncertainty: ""
+      evidence_refs: []
+      council_refs: []
+  selected_option_id: ""
+  selected_direction: ""
+  expert_thesis: ""
+  why_this_now: ""
+  rejected_alternatives:
+    - option_id: ""
+      why_rejected: ""
+      decisive_evidence_or_assumption: ""
+  participants:
+    - role: ""
+      agent_id: ""
+      session_id: ""
+      output_ref: ""
+  domain_model_ref: ".bagel/expert/domain-excellence.yaml"
+  problem_framing_ref: ".bagel/expert/problem-framing.yaml"
+  leverage_map_ref: ".bagel/expert/leverage-map.yaml"
+  evaluation_critic_ref: ""
+  roi_ref: ".bagel/expert/roi-controller.yaml"
+  confidence: low | medium | high
+  reversibility: reversible | costly | irreversible
+  decisive_evidence: []
+  biggest_uncertainty: ""
+  kill_criteria:
+    - criterion: ""
+      check_method: ""
+      action_if_triggered: ""
+  next_probe_or_action: ""
+  hard_stop_triggered: false
+```
+
 Invalid if:
 
 - no named Principal Expert decision owner,

@@ -39,8 +39,15 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         data = load_yaml(path, {})
         reads.extend(as_dict(item) for item in as_list(data.get("reference_reads") if isinstance(data, dict) else data))
     full_by_ref: dict[str, int] = {}
+    state = as_dict(load_yaml(root / ".bagel/state.yaml", {}))
+    phase = state.get("phase") or state.get("status") or state.get("run_status")
+    build_started = phase in {"Build", "Iterate", "Polish", "excellence_loop", "complete"} or bool(state.get("task_queue"))
+    cached = as_dict(state.get("cached_facts")) or as_dict(load_yaml(root / ".bagel/agent_context/cached-facts.yaml", {}))
+    expert_mode = str(state.get("expert_layer_mode") or as_dict(state.get("bagel_worth_it_check")).get("expert_layer_mode") or "standard")
     for item in reads:
         ref = str(item.get("reference") or "")
+        if not item.get("source_hash") and item.get("read_mode") in {"full", "digest", "cached_fact"}:
+            errors.append(f"{ref or '<unknown>'}: reference read missing source_hash")
         if not item.get("trigger"):
             warnings.append(f"{ref or '<unknown>'}: reference read missing trigger")
         if item.get("read_mode") == "full":
@@ -49,7 +56,14 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
             warnings.append(f"{ref}: large reference read token_estimate={item['token_estimate']}")
     for ref, count in full_by_ref.items():
         if ref and count > 2:
-            warnings.append(f"{ref}: repeated full reads ({count}); use digest cache unless stale")
+            errors.append(f"{ref}: repeated full reads ({count}); use cached_facts/digest unless source_hash changed")
+    if build_started and not reads and not (expert_mode == "lite" and state.get("reference_telemetry_waiver") == "lite_minimal"):
+        errors.append("Build/Iterate requires reference-read telemetry or explicit lite-mode waiver")
+    for name, row in cached.items():
+        fact = as_dict(row)
+        for field in ("source_ref", "source_hash", "cached_at", "run_id", "facts"):
+            if not fact.get(field):
+                errors.append(f"cached_facts.{name}: missing {field}")
     return errors, warnings
 
 
