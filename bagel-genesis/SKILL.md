@@ -81,11 +81,11 @@ Current skill instructions outrank stale `.bagel/` control-plane artifacts. If a
 
 Before any long run or file modification, choose the lightest control plane that can keep the run safe and observable:
 
-- `quick_autonomy`: default for existing projects, bounded modules, clear optimization/research goals, or user requests under roughly 500 words. Create only `.bagel/state.yaml`, `.bagel/constitution.yaml`, `.bagel/context.yaml` when needed, `.bagel/ledger.yaml`, and `.bagel/STATUS.md`; expand lazily only when the current task needs more structure.
+- `quick_autonomy`: default for existing projects, bounded modules, clear optimization/research goals, or user requests under 500 words. Create only `.bagel/state.yaml`, `.bagel/constitution.yaml`, `.bagel/context.yaml` when needed, `.bagel/ledger.yaml`, and `.bagel/STATUS.md`; expand lazily only when the current task needs more structure.
 - `full_genesis`: use for blank-slate products, multi-day autonomous builds, high-risk scope, broad project takeover, or when the user explicitly wants full governance. Create the detailed artifacts listed below as needed by each stage.
 - `parallel_advanced`: enable locks, merge queue, agent registry, and git governance only when parallel write agents or multiple worktrees are actually active.
 
-Run capability detection first. Prefer `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
+Run capability detection first. Use `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
 
 V2 capability rule: platform adapter claims are not proof. R3/R4 review, scheduled resume, hooks, and visual claims require `runtime_capabilities.capabilities.<name>.observed: true` plus a real `proof_ref` under `.bagel/evidence/runtime/`. If the proof is missing, keep working but downgrade the claim and repair the runtime substrate.
 
@@ -321,7 +321,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 - In `quick_autonomy`, the `full` rows are skipped unless a hard gate fails or the run escalates to `full_genesis`.
 - If a worker needs content from a file not in its dispatch envelope, it must request a smaller derived brief, not the whole file (see Dispatch Envelope).
 
-**Token-budget awareness:** governance overhead must stay proportionate to the task. For a quick_autonomy task touching one module, the orchestrator should spend well under 30% of the cycle on governance reads/writes; the rest goes to the product artifact. If governance consumes most of a simple task's budget, you are over-reading — cache more, read fewer rows.
+**Token-budget awareness:** governance overhead is bounded, not proportional. For a quick_autonomy task touching one module, the orchestrator spends at most 25% of the cycle on governance reads/writes; the remaining ≥75% goes to the product artifact. For full_genesis the ceiling is 40%. If governance exceeds the ceiling, you are over-reading — cache more, read fewer rows. Record `governance_budget_ratio` per cycle in `.bagel/telemetry/cycles.yaml`; the `governance_budget_respected` gate fails above the ceiling.
 
 ## Blank Project vs Existing Project
 
@@ -330,7 +330,7 @@ If the workspace is not empty, do not treat it as a blank slate. First choose ta
 - `limited_takeover`: one module, artifact, feature, or optimization target; create only the context needed for that scope.
 - `full_takeover`: project-wide autonomous build/optimization; create the full context package below.
 
-Record target root, excluded directories, allowed `.bagel/` location, discovery budget, and user/user-delegated approval. In `quick_autonomy`, store this in the `takeover_scope:` section of `.bagel/context.yaml`. In `full_genesis`, store it in `.bagel/project_inventory/takeover-scope.yaml`. Before changing behavior, create evidence-backed project understanding proportional to the takeover scope.
+Record target root, excluded directories, allowed `.bagel/` location, discovery budget, and user/user-delegated approval. In `quick_autonomy`, store this in the `takeover_scope:` section of `.bagel/context.yaml`. In `full_genesis`, store it in `.bagel/project_inventory/takeover-scope.yaml`. Before changing behavior, create evidence-backed project understanding scaled to the takeover scope: `limited_takeover` needs project-facts for the touched module only; `full_takeover` needs the full module-map + feature-inventory.
 
 For existing projects, do not ask the user to explain facts the repository can reveal. Run project discovery first, draft protected vs. replaceable surfaces from evidence, then ask the user only to veto or correct intent-sensitive classifications.
 
@@ -353,7 +353,7 @@ These are agent-facing control documents. They must be short, factual, and conti
 
 ## Alignment Before Autonomy
 
-Do materially more upfront alignment than native plan modes - this is enforced by depth floors in `references/alignment-protocol.md`: standard requires all 8 choice cards + >= 3 open questions; deep requires >= 2 rounds, >= 8 total questions, all 8 cards + >= 5 open questions. The constitution is not locked (and Build must not start) until the floor for the selected depth is met. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
+Do more upfront alignment than native plan modes — at minimum 2× the question depth of a default plan mode — this is enforced by depth floors in `references/alignment-protocol.md`: standard requires all 8 choice cards + >= 3 open questions; deep requires >= 2 rounds, >= 8 total questions, all 8 cards + >= 5 open questions. The constitution is not locked (and Build must not start) until the floor for the selected depth is met. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
 
 - `.bagel/alignment/vision-canon.md` (full) **or** the `vision:`/`taste:`/`non_goals:`/`assumptions:` sections of `.bagel/constitution.yaml` (quick): user intent, taste, success definition, non-goals, hidden assumptions.
 - `.bagel/agent_context/project-facts.yaml` (full, existing projects) **or** the `project_facts:` section of `.bagel/context.yaml` (quick): the current true project state.
