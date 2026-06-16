@@ -135,6 +135,19 @@ There is no "small task" exception. Validation commands, environment setup, brow
 
 Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
 
+### Runtime Doctor repair primitives (when the local environment is missing a declared dependency)
+
+When the user's prompt names a dependency the local environment lacks (e.g. "no Redis cluster", "no payment gateway test env", "no GPU"), this is autonomy-solvable friction, NOT a hard-stop. The Runtime Doctor must provision the real declared dependency locally before any stub is allowed. Concrete repair primitives, in priority order:
+
+| Missing dependency | Repair primitive (do this first) | Forbidden shortcut |
+|---|---|---|
+| Database / cache (Redis, Postgres, Mongo) | `docker-compose` / `docker run` to stand up the real service on a bound port; wire the real client against it | Replacing a named external service with an in-process `HashMap`/dict that does not exercise the real client, network path, or persistence semantics |
+| External API / gateway (payment, auth, 3rd-party) | Stand up a local mock server (e.g. a small HTTP/gRPC stub on a bound port) implementing the documented contract; record it in the stub/mock registry | Silently skipping the integration leg or hardcoding fake responses inline in the product code |
+| Binary / runtime (node, rust toolchain, ffmpeg) | Install via the platform package manager; if version-pinned, use a version manager (nvm/rustup) | Pretending the dependency is optional and branching around it |
+| Cloud resource (S3, queue) | Local emulator (localstack, azurite) or a local stand-in implementing the same API surface | Deleting the feature that needs it |
+
+**Hard rule:** if the user explicitly named a dependency ("经过 Redis 集群做幂等去重"), the local runnable chain must exercise that dependency's real client and protocol — a mock that swaps the protocol (e.g. in-process calls instead of RESP-over-TCP) does not satisfy "完整跑通整个链路". The Runtime Doctor records the repair in `.bagel/evidence/` with the command used and the healthcheck that proved it runs. Real credentials/production endpoints remain a hard-stop boundary; the repair is for local test infrastructure only.
+
 ### Per-role reference budget
 
 A worker never browses the `references/` directory freely. The orchestrator puts only the triggered references (per the Loading Matrix) into the dispatch envelope. Default per-role ceilings:
