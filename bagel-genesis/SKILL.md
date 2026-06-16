@@ -11,7 +11,7 @@ BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. V2 i
 
 ## Core Philosophy
 
-BAGEL exists to turn user trust, time, and tokens into exceptional finished work through deep alignment followed by sustained autonomous execution. The workflow should expand the agent system's useful autonomy, not make it timid.
+BAGEL exists to turn user trust, time, and tokens into exceptional finished work through deep alignment followed by sustained autonomous execution. The workflow expands the agent system's useful autonomy; it never makes it timid.
 
 After the user explicitly delegates long-running autonomy, the default answer to friction is **continue**:
 
@@ -24,7 +24,20 @@ After the user explicitly delegates long-running autonomy, the default answer to
 - improve setup, tests, UX, docs, experiments, or briefing,
 - rollback the agent's own bad change and retry.
 
-Do not idle, wait for routine approval, or stop early while useful work remains. A pre-final pause is allowed only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core product/research identity changes, or an explicit user-forbidden boundary. Everything else is an autonomy problem for the agent system to solve.
+Do not idle, wait for routine approval, or stop early while useful work remains. A pre-final pause is allowed only for the hard-stop boundaries enumerated in the Anti-Patterns chapter below (irreversible destructive action, security/privacy/legal/financial/production-data risk, credentials/paid resources, core identity changes, explicit forbidden boundaries, or genuine impossibility). Everything else is an autonomy problem for the agent system to solve.
+
+### Checkpoints vs routine approval (do not confuse these)
+
+"Continue by default" does **not** mean "no checkpoints." There are exactly four decision gates where the run MUST pause and never self-bypass. These are marked throughout with 🔴 CHECKPOINT (user confirms, then run resumes) or 🔴 STOP (run halts until user wakes). Routine mid-task questions are NOT checkpoints and must be self-resolved via the tie-breaker.
+
+| Marker | Meaning | Where it fires |
+|---|---|---|
+| 🔴 CHECKPOINT · STOP CONTRACT | Build is locked until the Stop Contract is captured and the user has seen it | end of Align, before Build unlock |
+| 🔴 CHECKPOINT · S1 HARD-STOP | An unresolved hard-stop boundary requires explicit user decision | whenever a hard-stop is detected during the run |
+| 🔴 CHECKPOINT · BUILD UNLOCK | The align_protection → autonomous_build transition is confirmed (gates passed) | Boot Sequence step 8 |
+| 🔴 CHECKPOINT · FINAL DELIVERY | The final deliverable and residual risks are presented for user acceptance | excellence horizon reached |
+
+Any pause NOT marked 🔴 is an autonomy problem, not a checkpoint — solve it, do not escalate it.
 
 ### Non-Overridable Tie-Breaker
 
@@ -55,12 +68,12 @@ Load only the prompt needed for the current stage and role.
 5. Capture Stop Contract as the first alignment artifact.
 6. Complete required alignment depth and artifact/run-mode choice.
 7. Calibrate expert layer according to `expert_layer_mode`: lite for quick autonomy, standard/full for measured or full expert runs.
-8. Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`.
+8. 🔴 CHECKPOINT · BUILD UNLOCK: Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`. This checkpoint is logged but does not require a user pause unless a gate fails 3×.
 9. Spawn Orchestrator or continue Orchestrator according to Supervisor mode.
 
-Loop binding before Stop Contract is allowed only for Align/Resume protection. Build/Iterate before Stop Contract is forbidden.
+Loop binding before Stop Contract is allowed only for Align/Resume protection (see Loop Binding rule below). Build/Iterate before Stop Contract is forbidden.
 
-Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn. It immediately spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. The Orchestrator reads the minimum stage capsule, dispatches bounded subagents for all product code, tests, skeleton, runtime/tooling diagnosis, evaluation design, and review work, verifies returned artifacts, then saves durable state under `.bagel/`. Neither Supervisor nor Orchestrator writes product code while subagents are available.
+Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn, then spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. Product code/tests/skeleton/diagnosis/evaluation/review are dispatched below the Orchestrator (see Roles — neither Supervisor nor Orchestrator writes product code while subagents are available).
 
 Current skill instructions outrank stale `.bagel/` control-plane artifacts. If an old run says the main session was Orchestrator but the loaded skill says nested Supervisor is required, migrate the state and spawn a fresh Orchestrator. Do not obey stale topology because it is already written down.
 
@@ -68,11 +81,11 @@ Current skill instructions outrank stale `.bagel/` control-plane artifacts. If a
 
 Before any long run or file modification, choose the lightest control plane that can keep the run safe and observable:
 
-- `quick_autonomy`: default for existing projects, bounded modules, clear optimization/research goals, or user requests under roughly 500 words. Create only `.bagel/state.yaml`, `.bagel/constitution.yaml`, `.bagel/context.yaml` when needed, `.bagel/ledger.yaml`, and `.bagel/STATUS.md`; expand lazily only when the current task needs more structure.
-- `full_genesis`: use for blank-slate products, multi-day autonomous builds, high-risk scope, broad project takeover, or when the user explicitly wants full governance. Create the detailed artifacts listed below as needed by each stage.
+- `quick_autonomy`: default for existing projects, bounded modules, clear optimization/research goals, or user requests under 500 words. Create only `.bagel/state.yaml`, `.bagel/constitution.yaml`, `.bagel/context.yaml` when needed, `.bagel/ledger.yaml`, and `.bagel/STATUS.md`; expand lazily only when the current task needs more structure.
+- `full_genesis`: use for blank-slate products, multi-day autonomous builds, high-risk scope, broad project takeover, or when the user explicitly wants full governance. Create the detailed artifacts listed below stage by stage (create an artifact when its stage begins, not preemptively).
 - `parallel_advanced`: enable locks, merge queue, agent registry, and git governance only when parallel write agents or multiple worktrees are actually active.
 
-Run capability detection first. Prefer `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
+Run capability detection first. Use `scripts/detect_runtime_capabilities.py` when available, then read `references/runtime-capabilities.md` and the matching platform adapter only for gaps.
 
 V2 capability rule: platform adapter claims are not proof. R3/R4 review, scheduled resume, hooks, and visual claims require `runtime_capabilities.capabilities.<name>.observed: true` plus a real `proof_ref` under `.bagel/evidence/runtime/`. If the proof is missing, keep working but downgrade the claim and repair the runtime substrate.
 
@@ -82,9 +95,9 @@ V2 capability rule: platform adapter claims are not proof. R3/R4 review, schedul
 
 Before any file modification in an autonomous run, guarantee the working folder is a git repository (`git rev-parse --is-inside-work-tree`). If it is not, initialize one (see `references/git-governance.md` Step 0) or refuse to start autonomous write work. Version control is the precondition for rollback and branch isolation; without it every overnight change is irreversible. The `project_under_version_control` hard gate enforces this.
 
-If a platform cannot support timers, true subagents, or automatic resume after exhausting every native mechanism named in the platform adapter, record `degraded_resume` and mark `.bagel/STATUS.md`. Continue useful work in the current session and write a durable resume plan instead of stopping early. `degraded_resume` is a marked downgrade, never an equal mode - never present it as successful autonomous iteration.
+If a platform cannot support timers, true subagents, or automatic resume after exhausting every native mechanism named in the platform adapter, record `degraded_resume`, mark `.bagel/STATUS.md [DEGRADED]`, and write a durable resume plan. This is a downgrade — see Anti-Patterns #8: never present it as successful autonomous iteration.
 
-Autonomy is the default reason this skill exists. On Claude Code or Codex, first try to bind BAGEL to the platform-native loop, scheduling, subagent, hook, worktree, browser, computer-use, cloud, and non-interactive capabilities described in `references/platform-claude-code.md` or `references/platform-codex.md`. Treat missing local verifiers, screenshots, test scripts, environment setup, or experiment harnesses as work for the agent system to create inside the autonomy contract, not as a reason to stop.
+On Claude Code or Codex, bind BAGEL to the platform-native loop, scheduling, subagent, hook, worktree, browser, computer-use, cloud, and non-interactive capabilities described in `references/platform-claude-code.md` or `references/platform-codex.md`. Treat missing local verifiers, screenshots, test scripts, environment setup, or experiment harnesses as work for the agent system to create inside the autonomy contract, not as a reason to stop.
 
 ## Roles
 
@@ -124,7 +137,7 @@ Role prompts live in `agents/`. Give an agent one role prompt plus one task enve
 
 ### Per-role reference budget
 
-A worker should not browse the `references/` directory freely. The orchestrator puts only the triggered references (per the Loading Matrix) into the dispatch envelope. Default per-role ceilings:
+A worker never browses the `references/` directory freely. The orchestrator puts only the triggered references (per the Loading Matrix) into the dispatch envelope. Default per-role ceilings:
 
 | Role | May read from references/ | Ceiling |
 |---|---|---|
@@ -308,7 +321,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 - In `quick_autonomy`, the `full` rows are skipped unless a hard gate fails or the run escalates to `full_genesis`.
 - If a worker needs content from a file not in its dispatch envelope, it must request a smaller derived brief, not the whole file (see Dispatch Envelope).
 
-**Token-budget awareness:** governance overhead must stay proportionate to the task. For a quick_autonomy task touching one module, the orchestrator should spend well under 30% of the cycle on governance reads/writes; the rest goes to the product artifact. If governance consumes most of a simple task's budget, you are over-reading — cache more, read fewer rows.
+**Token-budget awareness:** governance overhead is bounded, not proportional. For a quick_autonomy task touching one module, the orchestrator spends at most 25% of the cycle on governance reads/writes; the remaining ≥75% goes to the product artifact. For full_genesis the ceiling is 40%. If governance exceeds the ceiling, you are over-reading — cache more, read fewer rows. Record `governance_budget_ratio` per cycle in `.bagel/telemetry/cycles.yaml`; the `governance_budget_respected` gate fails above the ceiling.
 
 ## Blank Project vs Existing Project
 
@@ -317,7 +330,7 @@ If the workspace is not empty, do not treat it as a blank slate. First choose ta
 - `limited_takeover`: one module, artifact, feature, or optimization target; create only the context needed for that scope.
 - `full_takeover`: project-wide autonomous build/optimization; create the full context package below.
 
-Record target root, excluded directories, allowed `.bagel/` location, discovery budget, and user/user-delegated approval. In `quick_autonomy`, store this in the `takeover_scope:` section of `.bagel/context.yaml`. In `full_genesis`, store it in `.bagel/project_inventory/takeover-scope.yaml`. Before changing behavior, create evidence-backed project understanding proportional to the takeover scope.
+Record target root, excluded directories, allowed `.bagel/` location, discovery budget, and user/user-delegated approval. In `quick_autonomy`, store this in the `takeover_scope:` section of `.bagel/context.yaml`. In `full_genesis`, store it in `.bagel/project_inventory/takeover-scope.yaml`. Before changing behavior, create evidence-backed project understanding scaled to the takeover scope: `limited_takeover` needs project-facts for the touched module only; `full_takeover` needs the full module-map + feature-inventory.
 
 For existing projects, do not ask the user to explain facts the repository can reveal. Run project discovery first, draft protected vs. replaceable surfaces from evidence, then ask the user only to veto or correct intent-sensitive classifications.
 
@@ -340,7 +353,7 @@ These are agent-facing control documents. They must be short, factual, and conti
 
 ## Alignment Before Autonomy
 
-Do materially more upfront alignment than native plan modes - this is enforced by depth floors in `references/alignment-protocol.md`: standard requires all 8 choice cards + >= 3 open questions; deep requires >= 2 rounds, >= 8 total questions, all 8 cards + >= 5 open questions. The constitution is not locked (and Build must not start) until the floor for the selected depth is met. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
+Do more upfront alignment than native plan modes — at minimum 2× the question depth of a default plan mode — this is enforced by depth floors in `references/alignment-protocol.md`: standard requires all 8 choice cards + >= 3 open questions; deep requires >= 2 rounds, >= 8 total questions, all 8 cards + >= 5 open questions. The constitution is not locked (and Build must not start) until the floor for the selected depth is met. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
 
 - `.bagel/alignment/vision-canon.md` (full) **or** the `vision:`/`taste:`/`non_goals:`/`assumptions:` sections of `.bagel/constitution.yaml` (quick): user intent, taste, success definition, non-goals, hidden assumptions.
 - `.bagel/agent_context/project-facts.yaml` (full, existing projects) **or** the `project_facts:` section of `.bagel/context.yaml` (quick): the current true project state.
@@ -374,12 +387,12 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
 - Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`. Once chosen, the run must reach that depth's floor (see `references/alignment-protocol.md` Run-Mode Depth) before entering Build; the `constitution_approved` gate enforces this.
 - Innovation ambition: whether the system should optimize the supplied concept, differentiate it, or spend explicit budget on breakthrough-level concept probes.
-- **Stop Contract (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** persist as `stop_contract` with max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml`. This is the single most important alignment artifact — it defines when the overnight run ends.
+- **🔴 CHECKPOINT · STOP CONTRACT (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** persist as `stop_contract` with max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml` and shown to the user. This is the single most important alignment artifact — it defines when the overnight run ends. A vague delegation like "你看着办" does NOT satisfy this checkpoint; the agent must still propose explicit fields and have the user confirm or amend them.
 - Briefing format: Markdown only or optional HTML dashboard, plus update frequency.
 
 Use `references/alignment-protocol.md` for the question tree and choice cards. When the platform supports structured user choices, use them for autonomy level, run budget, takeover aggressiveness, taste source, research verification, and hard-stop boundaries. For open questions, include why the question matters, neutral examples, and the default if skipped.
 
-Write `.bagel/vision_summary.md`, then `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full), and `.bagel/completion_horizon.yaml`. If the user has granted long-run delegation, bind loop/timer capability before implementation and continue without stopping; record the canon in `.bagel/alignment/human-decisions.yaml` and surface it in the user briefing for later review. Only pause for S1 confirmation when a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction).
+Write `.bagel/vision_summary.md`, then `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full), and `.bagel/completion_horizon.yaml`. If the user has granted long-run delegation, bind loop/timer capability before implementation and continue without stopping; record the canon in `.bagel/alignment/human-decisions.yaml` and surface it in the user briefing for later review. 🔴 CHECKPOINT · S1 HARD-STOP: only pause for S1 confirmation when a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction). If no hard-stop is in play, do not pause here — keep building.
 
 ## Context Policy
 
@@ -410,7 +423,7 @@ context_policy:
     worker_may_merge: false
 ```
 
-Hard rule: context that is not needed for the next decision should become an artifact or be dropped.
+Hard rule: context that is not needed for the next decision becomes an artifact or is dropped.
 
 ## Dispatch Envelope
 
@@ -455,6 +468,28 @@ For existing projects, every dispatch must include the relevant agent-facing pro
 
 Every dispatch should cite the context capsule versions used. If a worker discovers mismatched or stale context, it must report proposed context updates instead of silently working around it.
 
+## Anti-Patterns & Red Lights (consolidated blacklist)
+
+The failure modes below are enumerated across this skill; they are gathered here as one reference so they are not missed. **Each is a red light: hitting it requires the stated corrective action, never silent continuation.** The canonical detail lives at the cited locations; this table is the index.
+
+| # | Red light | Why it fails | Corrective action | See |
+|---|---|---|---|---|
+| 1 | Supervisor/Orchestrator writes product code while true subagents are available | The #1 failure smell — destroys the Separation Principle and independent review | Downgrade to R1 max review, record `collapsed_no_true_subagents` only if subagents truly absent; otherwise dispatch the work below the Orchestrator | L91, `references/agent-operating-model.md` |
+| 2 | Treat `.bagel/` governance artifacts (constitution, STATUS, checks) as the user deliverable | Governance is the control plane, not the product; user gets app/research/doc | Keep governance only in state/ledger/dispatch; never put "fill constitution / run BAGEL checks" in the product task queue | L67, L226 |
+| 3 | Obey stale `.bagel/` topology because it is already written down | Old run may say main=Orchestrator when loaded skill requires nested Supervisor | Migrate state to current skill instructions, spawn fresh Orchestrator; current skill outranks stale artifacts | L65 |
+| 4 | Build/Iterate before Stop Contract is captured | Loop binding before Stop Contract is for Align/Resume protection only | Keep loop phase `align_protection`; 🔴 CHECKPOINT · STOP CONTRACT must pass first | L61, L390 |
+| 5 | Pause for routine approval or idle "just in case" | Autonomy is the default reason this skill exists | Apply the tie-breaker: continue, isolate, or switch strategy; only 🔴 STOP for hard-stop boundaries | L27, L31 |
+| 6 | Self-approve or self-review work as independent (R3) | No independent verification = no R3 claim | Dispatch an independent reviewer below the Orchestrator; downgrade and record as non-independent (R1 max) if impossible | L91, `references/quality-assurance.md` |
+| 7 | Silent skip on git/tsv/gate anomaly | Breaks the ratchet and audit trail | Surface the anomaly to the user first, then apply the recovery menu | L501, `references/recovery-protocol.md` |
+| 8 | Present `degraded_resume` as successful autonomous iteration | It is a marked downgrade, never an equal mode | Mark `.bagel/STATUS.md [DEGRADED]`; continue useful work + write durable resume plan, do not claim full autonomy | L85 |
+| 9 | Wake the user for anything other than a hard-stop boundary | Burns user trust on autonomy-solvable friction | Only wake for the boundaries in the canonical "Hard-stop boundaries" line below this table — never for autonomy-solvable friction | L27, L382, L501 |
+| 10 | Force-push, reset, or delete user changes when isolating a lane | Destroys user work | Move to its own branch/worktree only; record as `isolated` in `.bagel/state.yaml` | L37 |
+| 11 | Free-browse `references/` from a worker | Workers over-read, dilute attention, blow token budget | Orchestrator puts only triggered references (per Loading Matrix) in the dispatch envelope; worker requests a smaller brief if more is needed | L127, L309 |
+| 12 | Lower a gate to keep moving | Gates are the safety contract | Enter autonomous recovery (shrink task, isolate, diagnose, switch strategy) instead; never lower the gate itself | L501, `references/gate-predicates.md` |
+| 13 | Stop at baseline running | Baseline is the start of the excellence loop, not the end | Continue positive optimization until budget/user/hard-stop/Stop Criteria | L547 |
+
+**Hard-stop boundaries (the ONLY things that wake the user):** irreversible or non-recoverable destructive action · serious security/privacy/legal/financial/production-data risk · credentials or paid external resources · core product/research identity changes · explicit user-forbidden boundaries · genuine impossibility after useful alternatives are exhausted.
+
 ## Hard Gates
 
 Block progress when any predicate in `references/gate-predicates.md` fails. Record results in `.bagel/gates/status.yaml` (full) or in the `gates:` section of `.bagel/state.yaml` (quick). Core predicates:
@@ -498,7 +533,7 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 - `dispatch_envelope_valid`
 - `emergency_stop_preserves_state`
 
-After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core identity changes, explicit forbidden boundaries, or genuine impossibility after useful alternatives are exhausted. Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
+After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for the hard-stop boundaries (see the Anti-Patterns chapter). Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 
 ## Long-Run Loop
 
@@ -518,7 +553,7 @@ For long autonomous work, run in cycles:
 12. Replace non-root context when pressure rises: write handoff, validate it, dispatch a fresh child. Do not routine-compact Orchestrator/workers.
 13. Continue, switch strategy, or wake later depending on platform support.
 
-If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run should keep converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
+If the current task cannot progress, use the tie-breaker. Select the next best autonomous action: repair, diagnose, provision tools, create a verifier, reduce scope, rollback agent-owned changes, explore alternatives, or advance another high-value independent task. The run keeps converting time and tokens into verified value until final completion, budget exhaustion, user stop, or a hard-stop boundary.
 
 On Codex, Claude Code, or another platform, use only capabilities detected in `.bagel/runtime_capabilities.yaml`, but do not under-detect platform-native autonomy. On Codex and Claude Code, attempt every native loop mechanism in the platform adapter (in priority order) before falling back to `degraded_resume`; only record `degraded_resume` after all native mechanisms are proven unavailable, and mark STATUS.md `[DEGRADED]`. When no timer exists, end each cycle with a durable checkpoint and a single next command/action so another agent can resume without the transcript. If true multi-agent isolation is unavailable, downgrade independent review claims according to `references/quality-assurance.md`.
 
@@ -544,4 +579,4 @@ Final delivery requires the excellence horizon too:
 - user-facing briefing explains the project at quick, standard, and deep levels,
 - final report includes what was built, how to verify it, decisions made autonomously, residual risks, and suggested future directions.
 
-Do not stop merely because the baseline runs — that is the start of the excellence loop, not the end. In delegated long-run mode the run continues through continuous positive optimization (generating and raising standards, see `references/excellence-loop.md`) until: budget/token capacity is exhausted with a resume checkpoint (the normal, expected end state), the user stops it, a hard-stop boundary requires a pause, or the stringent anti-laziness Stop Criteria bar is met (genuine optimization exhaustion independently confirmed). Stopping early while measurable improvement remains possible is a failure.
+🔴 CHECKPOINT · FINAL DELIVERY: When the excellence horizon is met, present the deliverable + residual risks + autonomous decisions to the user for acceptance. Baseline running is NOT completion — it is the start of the excellence loop. In delegated long-run mode the run continues through continuous positive optimization (see `references/excellence-loop.md`) until: budget/token capacity is exhausted with a resume checkpoint (the normal expected end state), the user stops it, a hard-stop boundary requires a pause, or the anti-laziness Stop Criteria bar is met (genuine optimization exhaustion independently confirmed). Stopping early while measurable improvement remains possible is a failure.
