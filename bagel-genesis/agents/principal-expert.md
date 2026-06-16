@@ -64,6 +64,13 @@ expert_decision:
   roi_ref: ".bagel/expert/roi-controller.yaml"
   confidence: low | medium | high
   reversibility: reversible | costly | irreversible
+  risk_level: low | medium | high | critical
+  risk_basis:
+    affected_surfaces: []  # auth | privacy | payment | production_data | architecture | dependencies | user_identity | legal | financial
+    scope_delta_ref: ""
+    hard_stop_check_ref: ""
+    reversibility_reason: ""
+  authority_ref: ""  # required when reversibility is costly/irreversible
   decisive_evidence: []
   biggest_uncertainty: ""
   kill_criteria:
