@@ -26,6 +26,19 @@ After the user explicitly delegates long-running autonomy, the default answer to
 
 Do not idle, wait for routine approval, or stop early while useful work remains. A pre-final pause is allowed only for hard-stop boundaries: irreversible or non-recoverable destructive action, serious security/privacy/legal/financial/production-data risk, credentials or paid external resources, core product/research identity changes, or an explicit user-forbidden boundary. Everything else is an autonomy problem for the agent system to solve.
 
+### Checkpoints vs routine approval (do not confuse these)
+
+"Continue by default" does **not** mean "no checkpoints." There are exactly four decision gates where the run MUST pause and never self-bypass. These are marked throughout with 🔴 CHECKPOINT (user confirms, then run resumes) or 🔴 STOP (run halts until user wakes). Routine mid-task questions are NOT checkpoints and must be self-resolved via the tie-breaker.
+
+| Marker | Meaning | Where it fires |
+|---|---|---|
+| 🔴 CHECKPOINT · STOP CONTRACT | Build is locked until the Stop Contract is captured and the user has seen it | end of Align, before Build unlock |
+| 🔴 CHECKPOINT · S1 HARD-STOP | An unresolved hard-stop boundary requires explicit user decision | whenever a hard-stop is detected during the run |
+| 🔴 CHECKPOINT · BUILD UNLOCK | The align_protection → autonomous_build transition is confirmed (gates passed) | Boot Sequence step 8 |
+| 🔴 CHECKPOINT · FINAL DELIVERY | The final deliverable and residual risks are presented for user acceptance | excellence horizon reached |
+
+Any pause NOT marked 🔴 is an autonomy problem, not a checkpoint — solve it, do not escalate it.
+
 ### Non-Overridable Tie-Breaker
 
 When any rule, gate, review, uncertainty, missing tool, failed attempt, or platform limitation makes the agent inclined to stop and ask the user, continue instead unless the situation hits a hard-stop boundary above. If a lane cannot safely merge, isolate it and advance another positive-EV lane. If three cycles show no net progress, switch strategy rather than stopping.
@@ -55,7 +68,7 @@ Load only the prompt needed for the current stage and role.
 5. Capture Stop Contract as the first alignment artifact.
 6. Complete required alignment depth and artifact/run-mode choice.
 7. Calibrate expert layer according to `expert_layer_mode`: lite for quick autonomy, standard/full for measured or full expert runs.
-8. Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`.
+8. 🔴 CHECKPOINT · BUILD UNLOCK: Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`. This checkpoint is logged but does not require a user pause unless a gate fails 3×.
 9. Spawn Orchestrator or continue Orchestrator according to Supervisor mode.
 
 Loop binding before Stop Contract is allowed only for Align/Resume protection. Build/Iterate before Stop Contract is forbidden.
@@ -374,12 +387,12 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
 - Alignment depth: `snap_alignment`, `standard_alignment`, or `deep_alignment`. Once chosen, the run must reach that depth's floor (see `references/alignment-protocol.md` Run-Mode Depth) before entering Build; the `constitution_approved` gate enforces this.
 - Innovation ambition: whether the system should optimize the supplied concept, differentiate it, or spend explicit budget on breakthrough-level concept probes.
-- **Stop Contract (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** persist as `stop_contract` with max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml`. This is the single most important alignment artifact — it defines when the overnight run ends.
+- **🔴 CHECKPOINT · STOP CONTRACT (MANDATORY — see `references/alignment-protocol.md` Stop Contract):** persist as `stop_contract` with max_iterations (hard ceiling), budget_limit (available_night / strict_cap / baseline_first), hard_stops (what wakes the user), within_autonomy (what does NOT stop the run), morning_return (what the user wants to see), deadline (wall-clock or none). The run must not bind the loop or enter Build until the Stop Contract is captured in `.bagel/constitution.yaml` and shown to the user. This is the single most important alignment artifact — it defines when the overnight run ends. A vague delegation like "你看着办" does NOT satisfy this checkpoint; the agent must still propose explicit fields and have the user confirm or amend them.
 - Briefing format: Markdown only or optional HTML dashboard, plus update frequency.
 
 Use `references/alignment-protocol.md` for the question tree and choice cards. When the platform supports structured user choices, use them for autonomy level, run budget, takeover aggressiveness, taste source, research verification, and hard-stop boundaries. For open questions, include why the question matters, neutral examples, and the default if skipped.
 
-Write `.bagel/vision_summary.md`, then `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full), and `.bagel/completion_horizon.yaml`. If the user has granted long-run delegation, bind loop/timer capability before implementation and continue without stopping; record the canon in `.bagel/alignment/human-decisions.yaml` and surface it in the user briefing for later review. Only pause for S1 confirmation when a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction).
+Write `.bagel/vision_summary.md`, then `.bagel/constitution.yaml` (quick) or `.bagel/constitution.json` (full), and `.bagel/completion_horizon.yaml`. If the user has granted long-run delegation, bind loop/timer capability before implementation and continue without stopping; record the canon in `.bagel/alignment/human-decisions.yaml` and surface it in the user briefing for later review. 🔴 CHECKPOINT · S1 HARD-STOP: only pause for S1 confirmation when a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction). If no hard-stop is in play, do not pause here — keep building.
 
 ## Context Policy
 
@@ -544,4 +557,4 @@ Final delivery requires the excellence horizon too:
 - user-facing briefing explains the project at quick, standard, and deep levels,
 - final report includes what was built, how to verify it, decisions made autonomously, residual risks, and suggested future directions.
 
-Do not stop merely because the baseline runs — that is the start of the excellence loop, not the end. In delegated long-run mode the run continues through continuous positive optimization (generating and raising standards, see `references/excellence-loop.md`) until: budget/token capacity is exhausted with a resume checkpoint (the normal, expected end state), the user stops it, a hard-stop boundary requires a pause, or the stringent anti-laziness Stop Criteria bar is met (genuine optimization exhaustion independently confirmed). Stopping early while measurable improvement remains possible is a failure.
+🔴 CHECKPOINT · FINAL DELIVERY: When the excellence horizon is met, present the deliverable + residual risks + autonomous decisions to the user for acceptance. Baseline running is NOT completion — it is the start of the excellence loop. In delegated long-run mode the run continues through continuous positive optimization (see `references/excellence-loop.md`) until: budget/token capacity is exhausted with a resume checkpoint (the normal expected end state), the user stops it, a hard-stop boundary requires a pause, or the anti-laziness Stop Criteria bar is met (genuine optimization exhaustion independently confirmed). Stopping early while measurable improvement remains possible is a failure.
