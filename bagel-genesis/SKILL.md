@@ -545,7 +545,9 @@ The failure modes below are enumerated across this skill; they are gathered here
 | 13 | Stop at baseline running | Baseline is the start of the excellence loop, not the end | Continue positive optimization until budget/user/hard-stop/Stop Criteria | L547 |
 | 14 | Silently accept mutually-exclusive requirements and build | Builds a doomed architecture; the contradiction surfaces as irrecoverable failure after sunk cost | Run the Requirement Coherence Check before Build; on contradiction, 🔴 CHECKPOINT S1 hard-stop with tradeoff options — never silently pick one requirement | Requirement Coherence Check |
 
-**Hard-stop boundaries (the ONLY things that wake the user):** irreversible or non-recoverable destructive action · serious security/privacy/legal/financial/production-data risk · credentials or paid external resources · core product/research identity changes · explicit user-forbidden boundaries · genuine impossibility after useful alternatives are exhausted.
+**Hard-stop boundaries (the ONLY things that wake the user):** irreversible or non-recoverable destructive action · serious security/privacy/legal/financial/production-data risk · credentials or paid external resources · core product/research identity changes · **external non-rollbackable world effects (send email, publish/post, mutate a third-party API, trigger a deploy, charge a card, exfiltrate source/secrets to an external endpoint)** · explicit user-forbidden boundaries · genuine impossibility after useful alternatives are exhausted.
+
+**Canonical hard-stop list:** this enumeration is the single authoritative source. `references/recovery-protocol.md` and `references/runtime-protocol.md` MUST defer to this list — if they rephrase or conditionally reopen a boundary ("only when not pre-authorized"), that condition is void unless the pre-authorization is a Stop Contract field the user filled interactively (not an agent-asserted `pre_authorized` boolean with no validator).
 
 ### V3.4 Semantic Integrity Checks (enforced by expert_strategy_check.py)
 
