@@ -9,9 +9,9 @@ A skill-level operating protocol that makes an autonomous agent do *real expert 
 `Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.7-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v3.8-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
-[![Darwin](https://img.shields.io/badge/Darwin-5%20judges-blueviolet)](#changelog)
+[![Darwin](https://img.shields.io/badge/Darwin-83.8-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 </div>
@@ -270,6 +270,27 @@ Dispatched 5 independent agents from completely different perspectives (architec
 - **C6 (v2_check + compact):** orchestrator.md v2_check→v3_check, "Context Compaction" → "Context Hygiene (handoff-and-replace)" — aligns with replace-not-compact policy
 
 Remaining (C7 a11y/perf/i18n ungated, C8 evidence existence-only for non-dataset claims) are disclosed as known limits — they require domain-specific tooling integration (axe-core, Lighthouse) beyond skill-scope validators.
+
+### v3.8 — Maximize 5-judge findings (73.2→83.8, +10.6)
+
+Systematically exploited ALL findings from the 5 independent judges — not just the C1-C6 fixes, but every high-value suggestion across architecture, usability, research-integrity, and completeness:
+
+**New mechanical gates:**
+- **C7** `non_functional_quality_checked` — UI/software artifacts must declare accessibility (contrast ≥4.5:1, keyboard nav, screen-reader labels), responsive (breakpoints), and performance (latency/throughput) baselines; >10% regression fails the cycle. These dimensions were mentioned 15+ times across files but never gated.
+- **C8** `evidence_has_minimum_content` — cited evidence files must be ≥50 bytes (was: size>0, allowing 1-byte stub placeholders)
+
+**Expanded methodology (Judge S5):**
+- `data-analysis.md`: expanded from 16-line stub to full §1-§8 (provenance, leakage detection, schema validation, transformation log, outlier/missingness audit, chart truthfulness, interpretation humility, sensitivity analysis)
+- `design-ui.md`: expanded with accessibility as a HARD GATE (WCAG thresholds), responsive testing at 320/768/1280px, interaction states, error/empty states, motion restraint
+- `agents/security-engineer.md`: new OWASP-aligned specialist role (authz, injection, XSS, secrets, supply-chain, data protection, DoS) replacing the 4-item checklist stub in Code Quality Reviewer
+
+**Usability fixes (Judge S3):**
+- Three-tier loading discipline: boot (≤6 files, read-once-cache) / quick-cycle (≤8 per-cycle) / full-only — so quick_autonomy has a bounded reference ceiling, not 47 always-rows
+- Linear 11-step build-unlock checklist (no branching) — eliminates the 15-gate branching paralysis at step 8
+
+**Statistical-rigor hardening (Judge V2):**
+- Stats-rigor + claim-evidence now fire for data_analysis artifacts (was: research/theory only)
+- `pre_registered_threshold` is REQUIRED for headline claims (omitting it to skip significance check is caught as evasion)
 
 ### v3.6 — Deep gap closure (Darwin ratchet, 88.6→91.1)
 

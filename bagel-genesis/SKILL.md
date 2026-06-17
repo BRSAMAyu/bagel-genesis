@@ -69,6 +69,21 @@ Load only the prompt needed for the current stage and role.
 6. Complete required alignment depth and artifact/run-mode choice.
 7. Calibrate expert layer according to `expert_layer_mode`: lite for quick autonomy, standard/full for measured or full expert runs.
 8. 🔴 CHECKPOINT · BUILD UNLOCK: Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`. This checkpoint is logged but does not require a user pause unless a gate fails 3×.
+
+**Build-unlock checklist (linear — satisfy in this order, no branching):**
+1. Stop Contract captured in constitution + shown to user ✓
+2. Constitution approved (alignment depth floor met) ✓
+3. Requirement coherence checked (no unresolved contradictions) ✓
+4. Premise falsifiable (research/theory artifacts only) ✓
+5. Domain excellence model present + problem framing locked + leverage map current ✓
+6. Active evaluation spec present (metrics + rubric + completion rule) ✓
+7. Evaluation critic passed (metric not gameable, paired metrics if needed) ✓
+8. Expert strategy council dispatched (≥3 councilors) + Principal Expert decision recorded ✓
+9. ROI controller positive or switched ✓
+10. Project under version control ✓
+11. Run `python scripts/bagel_v3_check.py <root>` — all mechanically-enforced gates pass ✓
+
+If any step fails, enter recovery (shrink/isolate/diagnose/repair) for THAT step only — do not re-branch. When all 11 pass, loop phase becomes `autonomous_build`.
 9. Spawn Orchestrator or continue Orchestrator according to Supervisor mode.
 
 Loop binding before Stop Contract is allowed only for Align/Resume protection (see Loop Binding rule below). Build/Iterate before Stop Contract is forbidden.
@@ -117,6 +132,7 @@ There is no "small task" exception. Validation commands, environment setup, brow
 | Implementer | assigned slice spec, relevant contracts, local code files | code and tests for one slice | read full skill/history, change product scope |
 | Spec Reviewer | slice spec, changed files, contracts | review report | propose new product ideas |
 | Code Quality Reviewer | changed files, local patterns, test output | review report | reinterpret vision |
+| Security Engineer | changed files, artifact profile, dependency manifest | security review report (OWASP-aligned) | propose features, re-review spec compliance, or run iterative debugging |
 | Independent Reviewer | task spec, diff, tests, risk profile | merge-blocking review | rely on implementer explanation |
 | Integration Manager | merge queue, branches, locks, reviews, verification | integrated changes, conflict reports | implement features broadly |
 | Constitutional Court | constitution, proposed amendment, evidence | accept/reject amendment | consider implementation difficulty as justification |
@@ -335,6 +351,13 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 - If a worker needs content from a file not in its dispatch envelope, it must request a smaller derived brief, not the whole file (see Dispatch Envelope).
 
 **Token-budget awareness:** governance overhead is bounded, not proportional. For a quick_autonomy task touching one module, the orchestrator spends at most 25% of the cycle on governance reads/writes; the remaining ≥75% goes to the product artifact. For full_genesis the ceiling is 40%. If governance exceeds the ceiling, you are over-reading — cache more, read fewer rows. Record `governance_budget_ratio` per cycle in `.bagel/telemetry/cycles.yaml`; the `governance_budget_respected` gate fails above the ceiling.
+
+**Three-tier loading discipline (read-cost management):** the `quick?` column has three practical tiers to keep cold-start and per-cycle reference costs bounded:
+- **boot (read once at run start, then cache):** runtime-capabilities, platform adapter, artifact-types, constitution-template, agent-operating-model, git-governance — these establish stable facts. Read at boot, record into state, do not re-read.
+- **quick-cycle (read when triggered, even in quick_autonomy):** alignment-protocol, supervisor-resilience, v2-measured-runtime, expert-autonomy, quality-assurance, gate-predicates, dispatch-envelope, evidence-protocol, scope-control, alignment-freshness, recovery-protocol, iteration-contract, orchestration-flow, roi-controller, telemetry-protocol — decision rules due per-cycle.
+- **full-only (skip in quick unless a hard gate fails):** state-machine, loop-runtime, runtime-protocol, coherence-rules, missing-belief-discovery, upmg-schema, ghost-ship-gate, clearing-policy, rework-sandbox, simulations, governance-data-model, multi-agent-coordination, reference-loading, start-prompts, packaging-boundary, project-understanding, alignment-information-architecture, crystals, evolution-ledger.
+
+In quick_autonomy: read ≤6 boot files once + ≤8 quick-cycle files per cycle (only when triggered). If a cycle's reference reads exceed this, you are over-reading — the Loading Matrix fires per-trigger, not per-cycle-proactively. In full_genesis: boot + quick-cycle + full-only as triggered.
 
 ## Blank Project vs Existing Project
 
