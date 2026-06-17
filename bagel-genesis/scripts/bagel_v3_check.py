@@ -68,6 +68,18 @@ def main() -> int:
     build_started = phase in {"Build", "Iterate", "Polish", "excellence_loop", "complete"} or bool(state.get("task_queue")) or has_actions or has_telemetry or has_build_evidence(project_root)
 
     failures: list[str] = []
+
+    # T1.1 fix: emergency stop circuit breaker. If STOP_REQUESTED exists or run_status
+    # is emergency_stopped, the suite short-circuits with a single clear message — it does
+    # NOT run the other 18 checks (which would produce repairable "failures" the agent is
+    # pressured to fix, undoing the user's stop). This is the kill switch.
+    stop_requested = (project_root / ".bagel/STOP_REQUESTED").exists()
+    run_status = str(state.get("run_status") or "")
+    if stop_requested or run_status == "emergency_stopped":
+        print("HALT: emergency stop is active (.bagel/STOP_REQUESTED exists or run_status=emergency_stopped).")
+        print("      The run is stopped. Do NOT 'repair' this — clear STOP_REQUESTED only when the user explicitly resumes.")
+        return 1
+
     for script in CHECKS:
         if script == "flywheel_check.py" and not (project_root / ".bagel/evidence/progress-deltas.yaml").exists():
             if args.allow_no_deltas_before_build and not build_started:

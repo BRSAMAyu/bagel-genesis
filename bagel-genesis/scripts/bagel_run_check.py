@@ -19,7 +19,7 @@ import yaml
 
 
 VALID_LOOP_MODES = {"scheduled_resume", "external_harness", "active_session_loop", "degraded_resume"}
-VALID_STOP = {"progressing", "recovering", "excellence_loop", "waiting_for_capacity", "blocked_hard_stop", "complete"}
+VALID_STOP = {"progressing", "recovering", "excellence_loop", "waiting_for_capacity", "blocked_hard_stop", "emergency_stopped", "complete"}
 SUPERVISOR_MODES = {"nested_supervisor", "collapsed_no_true_subagents"}
 IMPLEMENTER_ROLES = {"Implementer", "Skeleton Builder"}
 REVIEWER_ROLES = {"Spec Reviewer", "Code Quality Reviewer", "Independent Reviewer", "Red-Team Oracle"}
