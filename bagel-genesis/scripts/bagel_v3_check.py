@@ -92,6 +92,10 @@ def main() -> int:
         command = [sys.executable, str(script_dir / script), str(project_root)]
         if args.strict_warnings and script != "flywheel_check.py":
             command.append("--strict-warnings")
+        # T1.2 fix: evidence_replay_check must run with --replay by default so cited
+        # commands are actually re-executed (was: bare call, allowing fabrication).
+        if script == "evidence_replay_check.py":
+            command.append("--replay")
         result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         print(f"== {script} ==")
         print(result.stdout, end="")

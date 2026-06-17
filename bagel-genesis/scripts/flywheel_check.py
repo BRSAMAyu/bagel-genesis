@@ -235,6 +235,35 @@ def validate_green_floors(root, state, errors, warnings):
             if direction != "lower_is_better" and current < floor:
                 fail(errors, f"metric {metric_name} regressed below green floor from iteration {iteration}: {current} < {floor}")
 
+    # T2.1 fix: green floor provenance. A fabricated floor (never actually achieved)
+    # inverts the regression gate — the liar succeeds and the truth-teller is blocked.
+    # Each floor value must trace to a forward delta in progress-deltas.yaml that
+    # recorded that metric at >= floor value. Unprovenanced floors are rejected.
+    deltas = load_yaml(root / ".bagel/evidence/progress-deltas.yaml", [])
+    if not isinstance(deltas, list):
+        deltas = []
+    achieved_values: dict[str, float] = {}  # metric_name -> best achieved value seen in deltas
+    for delta in deltas:
+        d = as_dict(delta)
+        for ev_metric in as_list(d.get("metrics")):
+            em = as_dict(ev_metric)
+            mname = em.get("metric")
+            mval = numeric(em.get("value") or em.get("current_value"))
+            if mname and mval is not None:
+                prev = achieved_values.get(mname)
+                if prev is None or mval > prev:
+                    achieved_values[mname] = mval
+    for iteration, metrics in floors.items():
+        for metric_name, floor_value in as_dict(metrics).items():
+            floor = numeric(floor_value)
+            if floor is None:
+                continue
+            achieved = achieved_values.get(metric_name)
+            if achieved is None:
+                fail(errors, f"green floor for '{metric_name}' (iteration {iteration}, value {floor}) has no provenance — no progress-delta recorded this metric. A floor without provenance inverts the regression gate (fabricated floor blocks honest later cycles).")
+            elif achieved < floor:
+                fail(errors, f"green floor for '{metric_name}' (iteration {iteration}, floor {floor}) exceeds the best achieved value {achieved} in progress-deltas. The floor was never actually achieved — it cannot lock regression protection.")
+
 
 def validate_iteration_budget(root, state, errors, warnings):
     excel = get_excellence_state(state)
