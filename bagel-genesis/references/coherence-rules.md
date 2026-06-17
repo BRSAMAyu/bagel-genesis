@@ -1,5 +1,7 @@
 # Coherence Rules Reference
 
+> **Scope note:** This file defines a **parallel, artifact-specific** gate taxonomy (HG-*/SG-*/ADV-* IDs for UI/API/data coherence rules like color tokens, component conventions, domain density). It is NOT the authoritative hard-gate system — that is `references/gate-predicates.md` with its snake_case predicate IDs and mechanical validators. The HG-*/SG-* rules here are qualitative taste/style gates defined per-project in the constitution's `taste_kernel`; they are enforced by reviewer judgment, not by a script. Do not confuse the two taxonomies.
+
 Definitions and examples for Hard Gates, Soft Gates, and Advisory rules.
 
 ## Rule Classification

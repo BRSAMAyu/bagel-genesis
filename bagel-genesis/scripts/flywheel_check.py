@@ -235,6 +235,55 @@ def validate_green_floors(root, state, errors, warnings):
             if direction != "lower_is_better" and current < floor:
                 fail(errors, f"metric {metric_name} regressed below green floor from iteration {iteration}: {current} < {floor}")
 
+    # T2.1 fix: green floor provenance. A fabricated floor (never actually achieved)
+    # inverts the regression gate — the liar succeeds and the truth-teller is blocked.
+    # Each floor value must trace to a forward delta in progress-deltas.yaml that
+    # recorded that metric at >= floor value. Unprovenanced floors are rejected.
+    deltas = load_yaml(root / ".bagel/evidence/progress-deltas.yaml", [])
+    if not isinstance(deltas, list):
+        deltas = []
+    achieved_values: dict[str, float] = {}  # metric_name -> best achieved value seen in deltas
+    achieved_directions: dict[str, str] = {}  # metric_name -> direction
+    for delta in deltas:
+        d = as_dict(delta)
+        for ev_metric in as_list(d.get("metrics")):
+            em = as_dict(ev_metric)
+            mname = em.get("metric")
+            mval = numeric(em.get("value") or em.get("current_value"))
+            mdirection = str(em.get("direction") or "").lower()
+            if mname and mval is not None:
+                if mdirection:
+                    achieved_directions[mname] = mdirection
+                prev = achieved_values.get(mname)
+                # W2 fix: for lower_is_better metrics (latency, error rate), the "best"
+                # achieved value is the MINIMUM, not the maximum. The original code took
+                # max for all metrics, which meant a latency spike to 5000ms could become
+                # the floor and mask all future regressions.
+                direction = mdirection or achieved_directions.get(mname, "higher_is_better")
+                if prev is None:
+                    achieved_values[mname] = mval
+                elif direction == "lower_is_better":
+                    if mval < prev:
+                        achieved_values[mname] = mval
+                else:
+                    if mval > prev:
+                        achieved_values[mname] = mval
+    for iteration, metrics in floors.items():
+        for metric_name, floor_value in as_dict(metrics).items():
+            floor = numeric(floor_value)
+            if floor is None:
+                continue
+            achieved = achieved_values.get(metric_name)
+            # determine direction from current metric set or achieved directions
+            curr_metric = current_by_name.get(metric_name, {})
+            direction = str(curr_metric.get("direction") or achieved_directions.get(metric_name) or "higher_is_better")
+            if achieved is None:
+                fail(errors, f"green floor for '{metric_name}' (iteration {iteration}, value {floor}) has no provenance — no progress-delta recorded this metric. A floor without provenance inverts the regression gate (fabricated floor blocks honest later cycles).")
+            elif direction == "lower_is_better" and floor < achieved:
+                fail(errors, f"green floor for '{metric_name}' (iteration {iteration}, floor {floor}) is below the best achieved value {achieved} in progress-deltas (lower_is_better). The floor was never actually achieved — it cannot lock regression protection.")
+            elif direction != "lower_is_better" and achieved < floor:
+                fail(errors, f"green floor for '{metric_name}' (iteration {iteration}, floor {floor}) exceeds the best achieved value {achieved} in progress-deltas. The floor was never actually achieved — it cannot lock regression protection.")
+
 
 def validate_iteration_budget(root, state, errors, warnings):
     excel = get_excellence_state(state)

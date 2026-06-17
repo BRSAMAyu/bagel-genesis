@@ -33,7 +33,15 @@ git rev-parse --is-inside-work-tree
 If it succeeds, continue to Step 1. If it fails (not a repo):
 
 1. Ask the user once: "This folder is not a git repo. BAGEL needs one for safe rollback and branch isolation during the autonomous run. Initialize one now? (recommended: yes)"
-2. On **yes** or default: `git init` -> add a baseline `.gitignore` if none exists -> `git add -A` -> `git commit -m "BAGEL baseline before autonomous run"`. Record the commit SHA as the rollback floor in `.bagel/state.yaml`.
+2. On **yes** or default: `git init` -> **add `.bagel/` to the user's `.gitignore` before any commit** (see warning below) -> add a baseline `.gitignore` if none exists -> `git add -A` -> `git commit -m "BAGEL baseline before autonomous run"`. Record the commit SHA as the rollback floor in `.bagel/state.yaml`.
+
+**🔴 T1.3 Privacy protection (MANDATORY):** Before `git add -A`, ensure `.bagel/` is in the user's project `.gitignore`. The `.bagel/` control plane contains user goals, decisions, captured screenshots/evidence, error logs, and potentially PII or secrets from runtime captures. Committing it to the user's repo is an irreversible privacy leak. Run:
+```bash
+# Add .bagel/ to user .gitignore if not already present
+grep -qxF '.bagel/' .gitignore 2>/dev/null || echo '.bagel/' >> .gitignore
+grep -qxF '*.bagel-worktrees/' .gitignore 2>/dev/null || echo '*.bagel-worktrees/' >> .gitignore
+```
+If the user explicitly wants `.bagel/` tracked (rare), they must opt in explicitly — the default is to ignore it.
 3. On **explicit no**: set the `project_under_version_control` hard gate to `fail`. Do not start autonomous write work. Explain that without version control every change is irreversible and rollback is impossible - this is a true precondition, not a negotiable preference.
 
 Never modify project files in a non-git folder during an autonomous run. Git init is the single cheapest insurance against an overnight run producing damage you cannot undo.

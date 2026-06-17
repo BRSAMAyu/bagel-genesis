@@ -9,9 +9,9 @@ A skill-level operating protocol that makes an autonomous agent do *real expert 
 `Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.8-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v3.9-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
-[![Darwin](https://img.shields.io/badge/Darwin-83.8-blueviolet)](#changelog)
+[![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 </div>
@@ -257,6 +257,24 @@ Each check exits non-zero on failure, making the gate mechanically enforced.
 ---
 
 ## <a id="changelog"></a>Changelog
+
+### v3.9 — External 9-agent audit (critical safety + integrity defects fixed)
+
+A 9-agent, 3-round independent external review (architecture/red-team/realism/completeness) found critical defects that all prior internal judges had missed. Each claim was independently verified by 3 agents before fixing — 10 of 10 confirmed or partially confirmed, 0 refuted. 5 Darwin rounds fixed the highest-severity findings:
+
+**Tier 1 (critical safety/integrity):**
+- **T1.1** Emergency stop was not a circuit breaker — `emergency_stopped` was absent from `VALID_STOP`, so a user's stop became a gate *failure* the agent was pressured to "repair" away (resume). Fix: added to `VALID_STOP` + step-0 `stop_gate` in `bagel_v3_check.py` that HALTs (short-circuits, does NOT produce repairable failures)
+- **T1.2** `--replay` was never wired into the default suite — an agent could fabricate "tests pass" with zero commands run. Fix: `bagel_v3_check.py` now passes `--replay` to `evidence_replay_check.py` by default
+- **T1.3** `.bagel/` was committed to the user's git history (privacy/PII/secret leak). Fix: `git-governance.md` Step 0 now MANDATES adding `.bagel/` to user `.gitignore` before any commit
+- **T1.4** No outbound/exfiltration hard-stop — the kill list was git/repo-shaped, blind to send-email/publish/external-API/deploy/exfiltration. Fix: added "external non-rollbackable world effects" to the hard-stop list
+
+**Tier 2 (high):**
+- **T2.1** Fabricated green floor inverted the regression gate (liar succeeds, truth-teller blocked). Fix: green floors now require provenance — each must trace to a forward delta that achieved it
+- **T2.8** Non-atomic YAML writes → crash-corruption. Fix: `atomic_write` (tempfile+os.replace) + `YAMLError` catch + git timeout
+- **T1.5** Three divergent hard-stop lists (6/12/5 items). Fix: SKILL.md declared canonical; recovery-protocol defers
+- **T3.6** coherence-rules.md parallel taxonomy confusion. Fix: scope note added
+
+**Honesty:** the "unifying residual" (agent-authored YAML validated by agent-invoked script) is now openly stated in the Enforcement honesty section — full closure requires platform-level provenance.
 
 ### v3.7 — Five-judge full-skill audit (5 independent perspectives, 6 consensus weaknesses fixed)
 
