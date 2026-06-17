@@ -1,192 +1,155 @@
-# BAGEL Genesis
+<div align="center">
 
-> V3.1 Executable Expert Runtime for Claude Code and Codex: align deeply, calibrate what expert-level means, choose high-leverage strategy, bind a proven loop, replay evidence, control scope, and keep improving until the agreed iteration/budget boundary.
+# 🥯 BAGEL Genesis
+
+**Turn a vague vision into a finished, high-quality deliverable — while you sleep.**
+
+A skill-level operating protocol for autonomous multi-agent project delivery on Claude Code and Codex.
 
 **English** | [简体中文](README.zh-CN.md)
 
+</div>
+
 ---
 
-## Why This Exists
+[![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
+[![Version](https://img.shields.io/badge/version-v3.9-green)](#changelog)
+[![Evals](https://img.shields.io/badge/evals-120-orange)](bagel-genesis/evals/evals.json)
+[![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-Normal agent usage is already powerful, but it often fails in exactly the places that matter for overnight work:
+## What is this?
 
-- it asks a few shallow planning questions, then starts with an under-specified goal;
-- it stops at routine friction instead of solving it;
-- the main context gets polluted by implementation/debug details;
-- the same agent implements, judges, and declares victory;
-- it treats "all requested features are done" as final completion instead of the first iteration;
-- it reports progress that is hard to verify the next morning.
+BAGEL Genesis is a **skill** — a markdown protocol that an AI coding agent loads and follows. It governs long-running, autonomous, multi-agent work: the kind where you delegate a build overnight and expect coherent, verified progress by morning.
 
-**BAGEL Genesis V3.1 turns that into a measured expert-autonomy runtime.** It makes the agent first clarify the user's real goal, taste, hard-stops, budget, runtime mode, expert standard, problem framing, leverage map, and evaluation criteria; then it keeps running through implementation, review, recovery, bar-raising, and the next iteration while mechanically checking that progress is real.
-
-The key idea is simple:
+The core loop is simple:
 
 ```text
-Deep Align -> Calibrate Expertise -> Frame Problem -> Map Leverage -> Prove Runtime -> Build -> Replay Evidence -> Iterate Again
+Align (deeply) → Build (with evidence) → Iterate (raise the bar) → Polish (to excellence)
 ```
 
-The run stops only when the user-set iteration/budget boundary is reached, the user stops it, token/runtime capacity is exhausted with a checkpoint, or a true hard-stop is hit.
+The run stops only at the user-set iteration/budget boundary, a user stop, capacity exhaustion with checkpoint, or a true hard-stop.
 
-## What Makes It Different
+## Why it exists
+
+Normal agent usage fails in exactly the places that matter for unattended work:
+
+- shallow planning questions → under-specified goal
+- stops at routine friction instead of solving it
+- context polluted by debug details
+- same agent implements, reviews, and declares victory
+- "all features done" treated as final completion
+- progress that's hard to verify the next morning
+
+**BAGEL turns this into a measured expert-autonomy runtime** with mechanical checks that progress is real.
+
+## Key features
 
 | Problem | BAGEL's answer |
 |---|---|
-| Shallow upfront planning | Depth-floored alignment: snap / standard / deep, with persisted decisions |
-| "Come back later" idle stops | Mandatory loop/timer binding, interval <= 25 minutes |
-| Context pollution | Main model supervises; internal Orchestrator dispatches implementation, runtime debugging, evaluation, review, and taste judgment |
-| Main/orchestrator context failure | Main model can run as Supervisor, respawning a fresh Orchestrator from `.bagel/supervisor/resume-capsule.md` |
-| Long contexts filling up | Context Tree: root Supervisor stays tiny; non-root agents are replaced, not routinely compacted |
-| Agent self-approval | Review independence is derived from agent/session registry, not self-claimed |
-| Weak taste and local optimization | Product Visionary, Brainstormers, and Judgment Council for direction-level decisions |
-| No clear quality bar | Evaluation Architect generates task-specific metrics, rubrics, completion rules, and anti-gaming notes |
-| "Initial goals done" = final | Iteration Contract: initial goals complete one iteration; next target set must be raised if budget remains |
-| Repeating the same failure | Lesson memory promotes recovery into reusable gotchas and playbooks |
-| Fake progress | `bagel_run_check.py`, `flywheel_check.py`, and `bagel_memory_check.py` mechanically validate the run state |
-| Platform capability assumptions | V2 proof model: adapter claims are not proof; R3/scheduled resume/hooks require observed proof files |
-| `.bagel/` self-consistent fiction | Evidence replay validates command metadata, stdout/stderr hashes, and replay policy |
-| Governance work crowding out product work | Telemetry tracks control-plane vs deliverable deltas and fails control-plane-only Build cycles |
-| Silent scope creep | Scope deltas track allowed/touched paths, dependencies, sensitive surfaces, and approvals |
-| Shallow high-level decisions | Domain excellence model, problem framing, leverage map, Evaluation Critic, Principal Expert, and ROI Controller |
-| Supervisor doing worker work | Supervisor boundary check rejects implementation/debug/test work by the root agent |
+| Shallow upfront planning | Depth-floored alignment (snap/standard/deep) with persisted decisions |
+| "Come back later" idle stops | Mandatory loop/timer binding, ≤25 min interval |
+| Context pollution | Supervisor/Orchestrator/worker separation; replace-not-compact |
+| Agent self-approval | Review independence from agent/session registry |
+| Weak taste / local optimization | Brainstormers + Judgment Council for direction-level decisions |
+| No clear quality bar | Evaluation Architect generates metrics, rubrics, anti-gaming notes |
+| Fake progress | 19 mechanical validators replay evidence, check hashes, enforce regression floors |
+| Silent scope creep | Scope deltas track allowed/touched paths with git-diff-derived coverage |
+| Unverifiable claims | Statistical-rigor gate (n_seeds, p_value < threshold, effect size, correction) |
+| Fabricated evidence | `--replay` re-executes cited commands by default |
+| Hardcoded secrets in output | `no_hardcoded_secrets` gate fails unconditionally |
+| Emergency stop ignored | Circuit-breaker `stop_gate` HALTs the suite (not a repairable failure) |
 
-## When To Use It
+## Architecture
 
-Use BAGEL when you want Claude Code or Codex to:
+```text
+User intent
+    ↓
+Supervisor (root model) — arbitrate hard-stops, heartbeat, respawn
+    ↓
+Orchestrator (internal) — dispatch bounded work, manage state
+    ↓
+Workers — Implementer, Runtime Doctor, Reviewers, Evaluation Architect,
+          Security Engineer, Product Visionary, Red-Team Oracle, ...
+```
 
-- build or significantly improve an app, website, tool, game, research artifact, writing project, or data analysis;
-- take over an existing project without drifting from its real architecture and behavior;
-- run unattended for hours while continuing to make useful progress;
-- generate stronger goals after completing the obvious ones;
-- create missing tests, verifiers, screenshots, benchmarks, setup scripts, or experiment harnesses;
-- return a morning briefing with concrete before/after evidence.
+**Control plane** (`.bagel/`) vs **deliverable plane** (the actual artifact) are strictly separated. The control plane exists so the agent can run for hours without losing alignment or corrupting context.
 
-Do not use it for tiny scripts, narrow bug fixes, or one-shot answers.
+## Quick start
 
-## Mental Model
-
-BAGEL separates the work into a control plane and a deliverable plane.
-
-- **Control plane:** `.bagel/` state, constitution, alignment decisions, task queue, evidence, reviews, lessons, STATUS.
-- **Deliverable plane:** the actual app, experiment, paper, site, or artifact the user asked for.
-
-`.bagel/` is not the deliverable. It exists so the agent can run for a long time without losing alignment or corrupting context.
-
-On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**. It translates user intent, keeps a heartbeat, arbitrates hard-stops, and respawns a fresh internal **Orchestrator** when needed. The Orchestrator dispatches specialized agents:
-
-- **Project Cartographer:** verifies the existing project from real files and commands.
-- **Evaluation Architect:** creates the evaluation system for each iteration.
-- **Implementer / Skeleton Builder:** performs bounded code or artifact work.
-- **Runtime Doctor:** fixes environment, dependency, build/test, browser, screenshot, or verifier failures.
-- **Reviewers / Red-Team:** inspect changes independently.
-- **Product Visionary / Brainstormers:** generate higher-value and more novel directions.
-- **Judgment Council:** selects tasteful, coherent directions and can veto polished-but-wrong ideas.
-- **User Alignment Curator:** maintains the human briefing and optional HTML dashboard.
-
-## Quick Start
-
-Install or copy the skill folder so Claude Code/Codex can load:
+Install the skill folder so Claude Code/Codex can load it:
 
 ```text
 bagel-genesis/
-├── SKILL.md
-├── agents/
-├── references/
-├── scripts/
-└── evals/
+├── SKILL.md          # the core protocol
+├── agents/           # 27 role prompts
+├── references/       # 65 trigger-loaded protocols + 6 expert packs
+├── scripts/          # 26 mechanical validators
+└── evals/            # 120 behavior evals + dry-run results
 ```
 
-Then ask your agent to use BAGEL for a long-running task:
+Then ask your agent:
 
 ```text
 Use BAGEL Genesis. I want to align deeply first, then run autonomous iteration.
-Bind a loop/timer no longer than 25 minutes, initialize git if needed, and keep going
-until the agreed iteration budget is reached or a true hard-stop occurs.
+Bind a loop/timer no longer than 25 minutes, initialize git if needed,
+and keep going until the agreed iteration budget is reached or a true hard-stop occurs.
 ```
 
-For an existing project:
+## Mechanical validators (the anti-cheat layer)
 
-```text
-Use BAGEL Genesis to take over this project. First verify the repo reality from files
-and commands, draft protected vs replaceable surfaces, ask me only for intent/taste/
-hard-stop decisions, then run autonomous iterations.
-```
+BAGEL ships 26 Python validators that the agent runs each cycle. Key ones:
 
-For research or experiments:
-
-```text
-Use BAGEL Genesis for an autonomous research run. Align on the hypothesis, evaluation
-method, budget, and hard-stops; build or repair the benchmark harness; run experiments;
-record lessons; and iterate on better hypotheses when results stall.
-```
-
-## Configuration Decisions BAGEL Should Capture
-
-At alignment, the agent should persist these choices:
-
-- `alignment_depth`: `snap_alignment` / `standard_alignment` / `deep_alignment`
-- `execution_strategy`: `stable_long_run` / `balanced_parallel` / `fast_parallel`
-- `stop_contract`: max iterations, target iterations, time/token budget, hard-stops
-- `autonomy_contract`: what the agent may decide alone
-- `taste_kernel`: exemplars, style, product identity, quality expectations
-- `innovation_contract`: execution excellence / differentiated / breakthrough
-- `evaluation`: metrics, rubrics, completion rule, anti-gaming notes
-- `loop_binding`: actual timer/scheduler proof, interval <= 25 minutes
-- `git`: baseline commit and rollback strategy
-- `supervisor`: heartbeat, resume capsule, current Orchestrator session, respawn policy
-
-## Runtime Checks
-
-Run these from the repository root that contains `.bagel/`:
+- **`bagel_v3_check.py`** — unified suite runner (19 checks + emergency-stop circuit breaker)
+- **`expert_strategy_check.py`** — requirement coherence, premise falsifiability, statistical rigor, claim-evidence matrix, council output validation, named-dependency protocol, dataset integrity
+- **`flywheel_check.py`** — regression floors (with provenance), evidence content (≥50 bytes), iteration/cycle/budget caps
+- **`scope_check.py`** — git-diff-derived scope coverage (omission = fail), Constitutional Court verdict verification
+- **`production_surface_check.py`** — inline-secret scan (unconditional fail), production-connection detection
+- **`evaluation_quality_check.py`** — gameable-metric pairing (metric_role mandatory + role↔name cross-check)
+- **`bagel_telemetry_check.py`** — mode-aware governance budget (quick ≤25%, full ≤40%) with token_log-derived share
 
 ```bash
 python bagel-genesis/scripts/bagel_v3_check.py /path/to/project
 python bagel-genesis/scripts/skill_lint.py bagel-genesis
 ```
 
-What they catch:
+## Enforcement honesty
 
-- unproved runtime capabilities behind R3/scheduled resume/hooks claims;
-- missing git rollback or loop/timer proof;
-- missing agent dispatch records;
-- control-plane work mistaken as product work;
-- Build/iteration without an evaluation spec;
-- fake or missing evidence files;
-- false independent review claims;
-- regressions below prior green floors;
-- bar raises without brainstormers or Judgment Council;
-- complete status before `iterations_completed >= max_iterations`;
-- recovery-heavy runs that learned no reusable lessons.
-- evidence hash mismatches, unsafe resume/idempotency, scope creep, stale taste alignment, and governance-only progress.
+BAGEL is unusually candid about what its validators can and cannot guarantee. Every validator is a Python checker the agent runs, reading `.bagel/` YAML the agent authored. The checkers verify **shape** (fields exist, enums valid, hashes match) — they raise the bar against lazy/careless cheating, but a determined adversarial agent that populates the full schema with fabricated data can still pass. Full closure requires **platform-level provenance** (externally-triggered gates, append-only signed state, real token accounting) — this is openly stated in the skill's Enforcement Honesty section.
 
-## Current Contents
+## Changelog
 
-```text
-bagel-genesis/
-├── SKILL.md
-├── agents/          # 26 role prompts
-├── references/      # 58 trigger-loaded protocols + 6 expert packs
-├── scripts/         # 23 validators/helpers
-└── evals/           # 109 behavior evals + long-run scaffold
-```
+### v3.9 — External 9-agent audit (critical safety + integrity defects fixed)
 
-## Status
+A 9-agent, 3-round independent external review found critical defects all prior internal judges missed. Each claim was independently verified before fixing — 10/10 confirmed. Key fixes:
 
-Current version: **v3.1 — Executable Expert Runtime**.
+- **Emergency stop circuit breaker** — was a gate *failure* the agent was pressured to "repair" away; now HALTs unconditionally
+- **`--replay` wired by default** — evidence was fully fabricable (zero commands run); now cited commands are re-executed
+- **`.bagel/` privacy protection** — was silently committed to the user's git history; now gitignored before any commit
+- **Outbound/exfiltration hard-stop** — the kill list was blind to send-email/publish/external-API/deploy; now included
+- **Green-floor provenance** — a fabricated floor inverted the regression gate; now requires traced-to-delta provenance
+- **Atomic writes + YAMLError guard** — half-written state crashed validators; now temp+replace + caught
 
-Validated locally:
+### v3.7–v3.8 — Five-judge full-skill audit (73.2→83.8)
 
-- skill metadata validation passes;
-- BAGEL consistency lint passes;
-- evals JSON is valid and sequential;
-- targeted runtime checks catch real-world failures around unproved platform claims, control-plane confusion, missing expert strategy, shallow evaluation specs, premature completion, Orchestrator/Supervisor boundary pollution, missing Supervisor/resume protection, evidence replay mismatch, handoff loss, idempotency risk, scope creep, low ROI, and stale taste alignment.
+5 independent agents from different perspectives found 8 consensus weaknesses. All addressed: omission-as-pass closed, statistical-rigor + claim-evidence validators, output-side secret gate, NFR quality gates (a11y/performance), expert packs expanded, Security Engineer role, loading-matrix tiers, build-unlock checklist.
 
-## Honest Boundaries
+### v3.4–v3.6 — Semantic Integrity Runtime + deep gap closure
+
+Mechanical anti-cheat validators: structured-declaration requirement axes (paraphrase-proof), token_log-derived governance share, credential scanner, court-verdict-accepted check, stale-skill-state detector.
+
+### v3.1–v3.3 — Expert autonomy runtime + fault-path hardening
+
+Executable expert runtime, measured autonomous loop, supervisor resilience, context-tree replacement policy.
+
+## Honest boundaries
 
 BAGEL improves the odds of high-quality autonomous work; it does not make model limits disappear.
 
-- It can run computational experiments, benchmarks, app builds, UI polish, writing, and project optimization.
-- It cannot verify physical-world claims without an authorized evidence pipeline.
-- It should stop for irreversible destructive actions, production data/infrastructure, credentials, paid resources, serious security/privacy/legal/financial risk, or core identity changes.
+- It excels at **true unattended overnight continuity** on large, cooperative, well-scoped builds.
+- Control-plane tax is real (~25-40% governance overhead); it amortizes on genuinely long work.
+- The enforcement substrate is **voluntary** (the agent runs its own auditor) — full closure needs platform hooks.
+- It has not been A/B tested end-to-end vs direct prompting on a real messy codebase (this is the next step).
 
 ## License
 
