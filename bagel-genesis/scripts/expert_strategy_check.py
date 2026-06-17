@@ -933,8 +933,8 @@ def validate_claim_evidence_matrix(root: Path, state: dict[str, Any], errors: li
         or as_dict(load_yaml(root / ".bagel/constitution.yaml", {})).get("artifact_type")
         or ""
     ).lower()
-    if not any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study")):
-        return  # claim-evidence matrix only applies to empirical/research artifacts
+    if not any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study", "data_analysis", "data-analysis", "analysis")):
+        return  # claim-evidence matrix applies to empirical/research/data-analysis artifacts
     ce_path = root / ".bagel/expert/claim-evidence.yaml"
     if not ce_path.exists():
         # check whether the run made headline claims that require a matrix
@@ -987,7 +987,7 @@ def validate_statistical_rigor(root: Path, state: dict[str, Any], errors: list[s
         or as_dict(load_yaml(root / ".bagel/constitution.yaml", {})).get("artifact_type")
         or ""
     ).lower()
-    if not any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study")):
+    if not any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study", "data_analysis", "data-analysis", "analysis")):
         return
     # Only enforce when a statistical-results record exists OR headline claims exist
     sr_path = root / ".bagel/expert/statistical-rigor.yaml"
@@ -1033,6 +1033,13 @@ def validate_statistical_rigor(root: Path, state: dict[str, Any], errors: list[s
         # pre-registered threshold for a headline "win" claim — presence-only is theater.
         p_value = test.get("p_value")
         threshold = sr.get("pre_registered_threshold")
+        # Judge V2 fix: a headline claim MUST declare a pre_registered_threshold (omitting it
+        # to skip the significance check is an evasion). And p_value must be < threshold.
+        if has_headline and not isinstance(threshold, (int, float)):
+            errors.append(
+                "statistical_rigor: headline claim requires a numeric pre_registered_threshold "
+                "in statistical-rigor.yaml — omitting it to skip the significance check is not valid."
+            )
         if has_headline and isinstance(p_value, (int, float)) and isinstance(threshold, (int, float)):
             if p_value >= threshold:
                 errors.append(
