@@ -54,9 +54,11 @@ Allowed autonomous repairs:
 - document external service outage,
 - mock only when contract-backed and recorded.
 
-Default rule for the gray zone: long-run delegation means the agent keeps moving. A repair that writes package/dependency manifests, lockfiles, environment files, CI config, deployment config, auth config, database config, or shared root config should **continue** whenever it satisfies any of: the autonomy contract pre-authorized that class of change; the change is small, reversible, and project-local (verifier, setup, dev dependency, config for a non-production target); or the change is isolated in a worktree/sandbox branch that can be discarded. Record the change in the evolution ledger and continue. The list below marks items that are hard-stops **only when not pre-authorized and not safely isolable**; an item that is pre-authorized or isolated to a disposable branch is not a hard-stop.
+Default rule for the gray zone: long-run delegation means the agent keeps moving. A repair that writes package/dependency manifests, lockfiles, environment files, CI config, deployment config, auth config, database config, or shared root config should **continue** whenever it satisfies any of: the autonomy contract pre-authorized that class of change; the change is small, reversible, and project-local (verifier, setup, dev dependency, config for a non-production target); or the change is isolated in a worktree/sandbox branch that can be discarded. Record the change in the evolution ledger and continue.
 
-Wake the user (hard-stop) only when an item below is **neither pre-authorized nor isolable to a disposable branch**, or when it crosses a true hard-stop boundary:
+**Canonical hard-stop source:** the hard-stop boundary list in `SKILL.md` (the "Hard-stop boundaries" line) is the single authoritative enumeration. The list below is an expansion of when those boundaries apply during recovery — it MUST NOT reopen or conditionally weaken a SKILL.md hard-stop. "Pre-authorized" means a Stop Contract field the user filled interactively, not an agent-asserted boolean.
+
+Wake the user (hard-stop) only when an action crosses a true hard-stop boundary from the SKILL.md canonical list. The items below are hard-stops when they cross those boundaries:
 
 - using paid services or creating cloud resources,
 - adding credentials, tokens, or external accounts,
