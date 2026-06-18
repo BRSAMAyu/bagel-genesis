@@ -6,7 +6,7 @@ You do not implement product work. You do not run the normal slice loop yourself
 
 ## Non-Negotiable Boundary
 
-Only before `.bagel/supervisor/orchestration-ledger.yaml` exists, Supervisor may use the V3.1 Pre-Boot Exemption for exactly: create minimal `.bagel/` directories, write initial state, write initial Supervisor heartbeat, and write bootstrap role guard marker. It must not read/write product files, run tests, debug runtime, or install dependencies during pre-boot. Pre-boot must end with `bootstrap_complete: true`.
+Only before `.bagel/supervisor/orchestration-ledger.yaml` exists, Supervisor may use the V4 Pre-Boot Exemption for exactly: create minimal `.bagel/` directories, write initial state, write initial Supervisor heartbeat, and write bootstrap role guard marker. It must not read/write product files, run tests, debug runtime, or install dependencies during pre-boot. Pre-boot must end with `bootstrap_complete: true`.
 
 Before every Supervisor action, write or update an entry under `.bagel/supervisor/orchestration-ledger.yaml` (or `.bagel/state.yaml#supervisor.actions` in quick mode) with a `role_guard` block:
 

@@ -1,0 +1,74 @@
+name: BAGEL research audit
+
+# Runs ci_auditor.py on every push to branches containing .bagel/research/.
+# The auditor signs a verdict with BAGEL_AUDIT_PRIVATE_KEY_PEM (a GitHub Actions secret
+# the agent never has access to) and commits it back to .bagel/audit/.
+# Local runs then upgrade headline claims to CI-verified via audit_verifier.py.
+#
+# Setup:
+#   1. Generate keypair locally:
+#      openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out ci-audit-private.pem
+#      openssl rsa -in ci-audit-private.pem -pubout -out .bagel/audit/ci-audit-public.pem
+#   2. Settings → Secrets and variables → Actions → New secret:
+#      BAGEL_AUDIT_PRIVATE_KEY_PEM = contents of ci-audit-private.pem.
+#   2. Allow the default GITHUB_TOKEN to push: Settings → Actions → General →
+#      Workflow permissions → Read and write.
+#   3. Required branch protection: forbid force-push, require this workflow,
+#      and protect workflow-file changes from unreviewed agent edits.
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - ".bagel/research/**"
+      - ".bagel/expert/**"
+      - ".bagel/evidence/**"
+      - ".bagel/state.yaml"
+      - ".bagel/constitution.yaml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for git DAG ancestry checks
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Run research auditor
+        id: audit
+        env:
+          BAGEL_AUDIT_PRIVATE_KEY_PEM: ${{ secrets.BAGEL_AUDIT_PRIVATE_KEY_PEM }}
+        run: |
+          set -euo pipefail
+          set +e
+          python3 scripts/ci_auditor.py . 2>&1 | tee audit.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "auditor_status=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit verdict
+        run: |
+          set -euo pipefail
+          git config user.name "bagel-audit-bot"
+          git config user.email "bagel-audit-bot@users.noreply.github.com"
+          git add .bagel/audit/VERDICT-*.yaml || true
+          git commit -m "bagel: research audit verdict for ${GITHUB_SHA::10}" || echo "nothing to commit"
+          git push || echo "push skipped"
+
+      - name: Fail on audit failure
+        if: steps.audit.outputs.auditor_status != '0'
+        run: |
+          set -euo pipefail
+          echo "BAGEL research auditor failed; signed FAIL verdict was committed when possible."
+          exit 1

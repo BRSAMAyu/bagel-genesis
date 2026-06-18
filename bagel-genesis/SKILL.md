@@ -1,13 +1,14 @@
 ---
 name: bagel-genesis
-description: "Use when Codex, Claude Code, or another agent must turn a vague high-level vision or an existing partially built project into an excellent finished deliverable through deep upfront alignment and long-running autonomous iteration. Use for: blank-slate builds, existing project takeover, autonomous optimization and iteration, research projects, writing projects, complex artifacts, multi-day autonomous work, project understanding synthesis, user-aligned decision discovery, architecture/narrative/argument drift prevention, quality gatekeeping, loop runtime design, and multi-agent orchestration. Do NOT use for: trivial scripts, quick fixes, narrowly specified tickets, or tasks where the user only wants a small code change."
+version: 4.3.0
+description: "Use when Codex, Claude Code, or another agent must turn a vague high-level vision or an existing partially built project into an excellent finished deliverable through deep upfront alignment and long-running autonomous iteration. Use for: autonomous research / 自主科研, experiment automation / 实验自动化, top-tier reproducibility / 顶刊级复现严谨性, data analysis, blank-slate builds, existing project takeover, autonomous optimization and iteration, research projects, writing projects, complex artifacts, multi-day autonomous work, project understanding synthesis, user-aligned decision discovery, architecture/narrative/argument drift prevention, quality gatekeeping, loop runtime design, and multi-agent orchestration. Do NOT use for: trivial scripts, quick fixes, narrowly specified tickets, or tasks where the user only wants a small code change."
 ---
 
 # BAGEL Genesis
 
 Turn a vague vision or an existing partially built project into an excellent finished deliverable by running a constraint-first, context-sparse, multi-agent build loop.
 
-BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. V2 is the **Measured Autonomous Runtime**; V3 adds the **Expert Autonomy Layer** on top: it first performs deeper-than-native planning alignment, calibrates domain excellence, reframes the problem, maps leverage, critiques the evaluation system, then runs an autonomous external loop that keeps improving the deliverable through continuous positive optimization while proving capabilities, replaying evidence, measuring context pressure, validating handoffs, controlling scope, and preventing governance-only progress. Persist only the smallest state needed to keep the run moving.
+BAGEL Genesis is a skill-level operating protocol, not a monolithic prompt. V2 is the **Measured Autonomous Runtime**; V3 adds the **Expert Autonomy Layer**; V4 adds the **Research Governance Layer**; V4.1 hardens that layer with ledger-bound research authority, preregistered plan hashes, metric recompute evidence, amendment review, and liveness checks; V4.3 closes the mode-2 amendment dead path, recursive lab-command bypasses, reviewer rubber-stamping, and key eval coverage gaps. It first performs deeper-than-native planning alignment, calibrates domain excellence, reframes the problem, maps leverage, critiques the evaluation system, then runs an autonomous external loop that keeps improving the deliverable through continuous positive optimization while proving capabilities, replaying evidence, measuring context pressure, validating handoffs, controlling scope, preserving experiment provenance, and preventing governance-only progress. Persist only the smallest state needed to keep the run moving.
 
 ## Core Philosophy
 
@@ -41,7 +42,12 @@ Any pause NOT marked 🔴 is an autonomy problem, not a checkpoint — solve it,
 
 ### Non-Overridable Tie-Breaker
 
-When any rule, gate, review, uncertainty, missing tool, failed attempt, or platform limitation makes the agent inclined to stop and ask the user, continue instead unless the situation hits a hard-stop boundary above. If a lane cannot safely merge, isolate it and advance another positive-EV lane. If three cycles show no net progress, switch strategy rather than stopping.
+When any rule, gate, review, uncertainty, missing tool, failed attempt, or platform limitation makes the agent inclined to stop and ask the user, continue instead unless the situation hits a hard-stop boundary above. If a lane cannot safely merge, isolate it and advance another positive-EV lane. If the run shows no net progress, switch strategy rather than stopping. Two distinct "no progress" triggers apply at different scopes (both defined concretely, do not conflate them):
+
+- **flat_climbing (per excellence-loop, 2-iteration rule):** `trajectory_slope.flat_climbing` becomes true when the last 2 completed iterations each delivered <ε real metric movement AND no P0/P1 was closed in either AND the bar was raised (see `references/excellence-loop.md` flat_climbing definition — this is what the `flywheel_integrity_passed` gate reads). On flat_climbing, switch strategy or raise the bar.
+- **repeated same-kind failure (per recovery-protocol, 3-attempt rule):** after three failures of the same kind on the same approach, do not retry the same prompt — reduce the task, diagnose independently, attempt one alternative route (see `references/recovery-protocol.md` Repeated Failure Policy).
+
+A "strategy switch" must change at least one of: approach, core assumption, artifact structure, or evidence source (see `references/recovery-protocol.md` What counts as a strategy switch); a parameter-only tweak is the same strategy and keeps counting toward the three.
 
 ### How to isolate a lane (works in all modes, no reference needed)
 
@@ -67,26 +73,29 @@ Load only the prompt needed for the current stage and role.
 4. Enter Align under loop protection.
 5. Capture Stop Contract as the first alignment artifact.
 6. Complete required alignment depth and artifact/run-mode choice.
-7. Calibrate expert layer according to `expert_layer_mode`: lite for quick autonomy, standard/full for measured or full expert runs.
-8. 🔴 CHECKPOINT · BUILD UNLOCK: Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, and required expert strategy gates pass. At that point loop phase becomes `autonomous_build`. This checkpoint is logged but does not require a user pause unless a gate fails 3×.
+7. Calibrate expert layer according to `expert_layer_mode`: lite for quick autonomy, standard/full for measured or full expert runs. For research/experiment/benchmark/data-analysis-with-claims, also choose `research_autonomy.mode` (`protocol_execution` or `autonomous_researcher`) and load `references/research-governance.md`.
+8. 🔴 CHECKPOINT · BUILD UNLOCK: Build may start only after Stop Contract, evaluation, Evaluation Critic, dispatch envelope, ROI, required expert strategy gates, and required research governance gates pass. At that point `run_phase` transitions `align → build` and `loop_phase` becomes `autonomous_build`. **Pause semantics (unambiguous):** this checkpoint is *logged, not user-pausing* when all 12 build-unlock steps pass on their own — the run continues into Build without waiting. It becomes a *user hard-pause* only when a single build-unlock gate fails 3 consecutive times (see `references/recovery-protocol.md` Repeated Failure Policy for what counts as a distinct failure vs a parameter tweak). The 3× threshold cannot be reset by retrying the same approach; it triggers the 🔴 CHECKPOINT · S1 HARD-STOP path with the failing gate named.
 
 **Build-unlock checklist (linear — satisfy in this order, no branching):**
 1. Stop Contract captured in constitution + shown to user ✓
 2. Constitution approved (alignment depth floor met) ✓
 3. Requirement coherence checked (no unresolved contradictions) ✓
 4. Premise falsifiable (research/theory artifacts only) ✓
-5. Domain excellence model present + problem framing locked + leverage map current ✓
-6. Active evaluation spec present (metrics + rubric + completion rule) ✓
-7. Evaluation critic passed (metric not gameable, paired metrics if needed) ✓
-8. Expert strategy council dispatched (≥3 councilors) + Principal Expert decision recorded ✓
-9. ROI controller positive or switched ✓
-10. Project under version control ✓
-11. Run `python scripts/bagel_v3_check.py <root>` — all mechanically-enforced gates pass ✓
+5. Research mode declared + experiment plan preregistered (research/experiment/benchmark/data-analysis-with-claims only) ✓
+6. Domain excellence model present + problem framing locked + leverage map current ✓
+7. Active evaluation spec present (metrics + rubric + completion rule) ✓
+8. Evaluation critic passed (metric not gameable, paired metrics if needed) ✓
+9. Expert strategy council dispatched (≥3 councilors) + Principal Expert decision recorded ✓
+10. ROI controller positive or switched ✓
+11. Project under version control ✓
+12. Run `python scripts/bagel_v3_check.py <root>` — all mechanically-enforced gates pass ✓
 
-If any step fails, enter recovery (shrink/isolate/diagnose/repair) for THAT step only — do not re-branch. When all 11 pass, loop phase becomes `autonomous_build`.
+If any step fails, enter recovery (shrink/isolate/diagnose/repair) for THAT step only — do not re-branch. When all 12 pass, loop phase becomes `autonomous_build`.
 9. Spawn Orchestrator or continue Orchestrator according to Supervisor mode.
 
 Loop binding before Stop Contract is allowed only for Align/Resume protection (see Loop Binding rule below). Build/Iterate before Stop Contract is forbidden.
+
+**Phase vocabulary (authoritative):** record a single `state.run_phase` from `{align, build, iterate, polish, excellence_loop, complete}` (see `references/run-phase-model.md`). The two legacy fields — `loop_binding.loop_phase` (`align_protection` while `run_phase=align`, else `autonomous_build`) and `state.phase` (alias of `run_phase`) — are **derived views**. Set `run_phase`; mirror it into `loop_phase` and `phase` per the derivation tables. Do not set them to values that contradict `run_phase`. The `S-2..S17` IDs in `references/state-machine.md` are full-mode expansion states (never read by scripts) and map to `run_phase` in the model file.
 
 Do not paste this whole skill, all references, or all history into workers. On Claude Code/Codex with true subagents, the main model becomes the **Supervisor**: it handles user alignment, heartbeat, hard-stop arbitration, and Orchestrator respawn, then spawns a fresh **Orchestrator** subagent/session to run BAGEL's internal workflow. Product code/tests/skeleton/diagnosis/evaluation/review are dispatched below the Orchestrator (see Roles — neither Supervisor nor Orchestrator writes product code while subagents are available).
 
@@ -120,36 +129,16 @@ After loading this skill, the main model **adopts the Supervisor role** when tru
 
 There is no "small task" exception. Validation commands, environment setup, browser checks, package installation, routine debugging, and normal BAGEL validators are Orchestrator/Runtime Doctor work, not Supervisor work. Supervisor must write a `role_guard` entry before each action; nested Supervisor runs without a role-guarded spawn record fail `scripts/supervisor_boundary_check.py`.
 
-| Role | Reads | Writes | Must Not Do |
-|---|---|---|---|
-| Supervisor | user messages, `.bagel/supervisor/*`, constitution/state/status summaries | user-intake, heartbeat, resume capsule, respawn log | implement, debug, review, or run normal slice loop |
-| Orchestrator | `.bagel/state.yaml` (quick) or `state.json` (full); `.bagel/constitution.yaml` (quick) or `constitution.json` (full); current stage capsule | state, ledgers, dispatch envelopes | write product code |
-| Artifact Drafter | vision notes, current stage schema | `.bagel` governance artifacts | write product code |
-| Project Cartographer | repository/artifact evidence, current behavior, docs | agent-facing project understanding | change product behavior |
-| Evaluation Architect | constitution, artifact profile, baseline evidence, target set | evaluation specs, metrics, rubrics | implement, approve, or choose product direction |
-| Runtime Doctor | failed command, logs, runtime facts, allowed paths | environment/tooling repair handoff + evidence | change product behavior or lower gates |
-| Skeleton Builder | architecture brief, route map, contracts | skeleton code, typed stubs, contract tests | implement real value slices |
-| Implementer | assigned slice spec, relevant contracts, local code files | code and tests for one slice | read full skill/history, change product scope |
-| Spec Reviewer | slice spec, changed files, contracts | review report | propose new product ideas |
-| Code Quality Reviewer | changed files, local patterns, test output | review report | reinterpret vision |
-| Security Engineer | changed files, artifact profile, dependency manifest | security review report (OWASP-aligned) | propose features, re-review spec compliance, or run iterative debugging |
-| Independent Reviewer | task spec, diff, tests, risk profile | merge-blocking review | rely on implementer explanation |
-| Integration Manager | merge queue, branches, locks, reviews, verification | integrated changes, conflict reports | implement features broadly |
-| Constitutional Court | constitution, proposed amendment, evidence | accept/reject amendment | consider implementation difficulty as justification |
-| Red-Team Oracle | constitution, decisions, baseline/final candidate | adversarial findings | fix issues directly |
-| Brainstormer | constitution + taste kernel, current artifact, progress-deltas, state.excellence | improvement ideas under ONE assigned lens | read other brainstormers' output, propose implementation, work outside assigned lens |
-| Product Visionary | constitution, taste kernel, artifact state, progress evidence | divergent concept candidates + falsifiable probes | implement, review, or mutate the constitution directly |
-| Judgment Councilor | one decision, one judgment dimension, constitution, proposal evidence | dimension verdict for Judgment Council | generate ideas, implement, or see other councilors' verdicts |
-| Domain Expert | domain excellence, framing, evaluation, option evidence | expert_council_verdict | implement or approve generic quality claims |
-| Systems Architect | architecture/project context, scope, risks, option evidence | expert_council_verdict | implement or authorize irreversible architecture without authority |
-| Evaluation Skeptic | evaluation spec, critic report, domain model, option evidence | expert_council_verdict | accept shallow proxy metrics |
-| Innovation Strategist | innovation contract, breakthrough search, leverage map, probes | expert_council_verdict | generate unlimited ideas or violate identity constraints |
-| User Proxy | constitution, Stop Contract, taste kernel, option evidence | expert_council_verdict | invent new user goals or hide uncertainty |
-| Risk Officer | autonomy contract, hard-stops, scope delta, risk profile | expert_council_verdict | authorize destructive/production changes |
-| Principal Expert | domain excellence model, problem framing, leverage map, evaluation critic, council verdicts, ROI state, evidence | binding expert_decision record | implement, bypass hard-stops, or make decisions without rejected alternatives/kill criteria |
-| User Alignment Curator | alignment artifacts, decision ledger, progress state | STATUS.md narrative sections + HTML dashboard + user_briefing/ | hide risks or unresolved decisions, write STATUS.md mechanical sections
+**Role separation (the enforceable boundary):**
 
-Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
+| Layer | Role | Must Not Do |
+|---|---|---|
+| **Supervisor** (main session, when true subagents exist) | user alignment, heartbeat, hard-stop arbitration, Orchestrator respawn, user proxy | implement, debug, review, or run the slice loop |
+| **Orchestrator** (spawned below Supervisor) | state, ledgers, dispatch envelopes, role dispatch | write product code |
+| **Workers** (dispatched below Orchestrator) | Implementer, Skeleton Builder, Spec/Code-Quality/Security/Independent Reviewer, Integration Manager, Runtime Doctor, Evaluation Architect, Project Cartographer, Artifact Drafter, User Alignment Curator | each worker's `Must Not Do` is defined in its `agents/<role>.md` prompt |
+| **Expert / judgment / adversarial bodies** | Principal Expert, Expert Strategy Council (Domain Expert, Systems Architect, Evaluation Skeptic, Innovation Strategist, User Proxy, Risk Officer), Judgment Council, Constitutional Court, Red-Team Oracle, Brainstormer, Product Visionary | each body's authority limits are defined in its `agents/<role>.md` prompt + `references/expert-strategy-council.md` / `taste-judgment.md` / `constitutional-court.md` |
+
+The full per-role **Reads / Writes / Must-Not-Do** matrix (27 roles) lives in `references/agent-operating-model.md` and each role's prompt in `agents/<role>.md`. Load the detailed matrix only when drafting or auditing a dispatch; the three-layer boundary above is all an agent needs at activation to enforce the Separation Principle. Role prompts live in `agents/`. Give an agent one role prompt plus one task envelope; do not give it other role prompts.
 
 ### Runtime Doctor repair primitives (when the local environment is missing a declared dependency)
 
@@ -187,7 +176,7 @@ A worker never browses the `references/` directory freely. The orchestrator puts
 | Principal Expert | expert-autonomy, domain-excellence-model, problem-framing, leverage-map, evaluation-critic, roi-controller | 3-6 |
 | User Alignment Curator | user-briefing, alignment-protocol | 1-2 |
 
-If a worker's task cannot be completed within its ceiling, the orchestrator derives a compact brief and puts that in the envelope instead of widening the ceiling. This is how "read strictly when needed, do not read otherwise" stays enforceable.
+If a worker's task cannot be completed within its ceiling, the orchestrator **derives a compact brief** rather than widening the ceiling. A compact brief is a task-local digest (≤300 tokens) the orchestrator writes by reading the full reference itself, then injecting only the facts the worker needs, in this shape: (1) the 2-5 specific facts/rules extracted, each with a one-line provenance (e.g. "from references/leverage-map.md § bottlenecks"), (2) the decision the worker must make, (3) what the worker must NOT decide (stays Orchestrator-side). The brief goes into the dispatch envelope's `context_refs` as an inline capsule; the worker never opens the source reference. This is how "read strictly when needed, do not read otherwise" stays enforceable.
 
 ## Durable State
 
@@ -213,50 +202,7 @@ Default quick control state under `.bagel/`:
 └── lessons/
 ```
 
-Expand to detailed state only when it pays for itself. Full mode may create:
-
-```text
-.bagel/
-├── constitution.json
-├── completion_horizon.yaml
-├── taste_kernel.yaml
-├── coherence_rules.yaml
-├── state.json
-├── STATUS.md
-├── supervisor/
-├── run_mode.yaml
-├── runtime_capabilities.yaml
-├── artifact_profile.yaml
-├── schema-registry.yaml
-├── context_policy.yaml
-├── vision_summary.md
-├── alignment/
-├── agent_context/
-├── user_briefing/
-├── project_inventory/
-├── evolution/
-├── git/
-├── agents/
-├── gates/
-├── excellence_horizon.yaml
-├── task_queue.json
-├── progress.json
-├── decisions/
-├── evidence/
-├── missing_beliefs/
-├── slices/
-├── product_graph.yaml
-├── contracts/
-├── stubs/
-├── reviews/
-├── redteam/
-├── simulations/
-├── ledger/
-├── snapshots/
-├── crystals/
-├── innovation/
-└── lessons/
-```
+Expand to detailed state only when it pays for itself. The **full-mode `.bagel/` tree** (40+ entries: `constitution.json`, `taste_kernel.yaml`, `agent_context/`, `project_inventory/`, `evolution/`, `git/`, `agents/`, `gates/`, `decisions/`, `evidence/`, `missing_beliefs/`, `slices/`, `product_graph.yaml`, `contracts/`, `stubs/`, `reviews/`, `redteam/`, `simulations/`, `ledger/`, `snapshots/`, `crystals/`, `innovation/`, `lessons/`, etc.) and the canonical schema for every state file live in `references/governance-data-model.md` — load it when drafting or migrating full-mode state, not at activation. The quick-mode tree above is all an agent needs at cold start.
 
 Treat `.bagel/` as the memory, not the conversation transcript. Save decisions, evidence, open risks, gate results, and next actions. Do not save chain-of-thought or long narrative logs.
 
@@ -277,6 +223,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 
 | File | Read strictly when... | Do not load when... | quick? |
 |---|---|---|---|
+| `references/run-phase-model.md` | setting, reading, or validating which phase the run is in (`state.run_phase`, `loop_binding.loop_phase`, `state.phase`) — the authoritative lifecycle enum | phase already set and consistent | always |
 | `references/alignment-protocol.md` | entering Align phase; conducting any user alignment conversation | already aligned and constitution locked | always |
 | `references/supervisor-resilience.md` | Claude Code/Codex true subagents are available; handling compaction/resume/new conversation; spawning or respawning Orchestrator; translating user instructions into BAGEL state | single-session work with no long-run autonomy or no true subagent support | always |
 | `references/platform-claude-code.md` / `references/platform-codex.md` | detected platform is CC/Codex and you must bind dispatch, subagents, hooks, loop, resume, or visual checks to native capabilities | platform is other, or run is single-session with no native loop needed | always |
@@ -294,6 +241,8 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/emergency-stop.md` | user asks to stop, hard-stop requires halting, or recovery must preserve state before pausing | normal progress continues safely | always |
 | `references/telemetry-protocol.md` | recording cycle telemetry, governance budget, context pressure, or deliverable/control-plane delta | no autonomous cycle has started | always |
 | `references/evidence-protocol.md` | recording command, benchmark, screenshot, experiment, or metric evidence | no evidence claim is being made | always |
+| `references/research-governance.md` | artifact type is research/experiment/benchmark/theory, or data analysis has empirical claims; choosing strict protocol execution vs autonomous researcher mode; preregistering or amending an experiment | non-research artifact with no empirical/scientific claim | always |
+| `references/research-lab-automation.md` | running many experiments, tool comparisons, ablations, benchmark lanes, or unattended research data collection/analysis; converting a locked protocol into a run matrix | single manual analysis with no experiment execution or batch lanes | always |
 | `references/handoff-integrity.md` | replacing Orchestrator/worker/helper, resuming from new conversation, or validating idempotency | no replacement/resume/action boundary exists | always |
 | `references/scope-control.md` | dispatching or merging any write task with allowed paths/dependencies/sensitive surfaces | read-only analysis only | always |
 | `references/alignment-freshness.md` | iteration end, user instruction change, taste-sensitive work, final delivery, or direction change | alignment is fresh and no taste-sensitive change occurred | always |
@@ -316,6 +265,7 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 | `references/ghost-ship-gate.md` | building a software skeleton and verifying end-to-end runnability before filling value | non-software artifact, or no skeleton needed | full |
 | `references/quality-assurance.md` | choosing run mode, review level, risk class, or verification strategy for a change | doing pure alignment/governance work with no artifact change | always |
 | `references/gate-predicates.md` | checking, failing, waiving, or recording any hard gate | no gate check is due this cycle | always |
+| `references/enforcement-honesty.md` | auditing the enforcement substrate, explaining a validator residual limit, or reviewing the semantic-integrity check inventory | not auditing enforcement and no residual-limit question is live | full |
 | `references/governance-data-model.md` | creating, validating, or migrating `.bagel/` state file schemas | state files already conform | full |
 | `references/clearing-policy.md` | finishing a value slice and before starting the next | mid-slice, or pure polish work | full |
 | `references/rework-sandbox.md` | isolating a risky change in a worktree/sandbox branch | change is small and reversible in-place | full |
@@ -350,14 +300,14 @@ This single table replaces all scattered "load X when Y" instructions. **Read th
 - In `quick_autonomy`, the `full` rows are skipped unless a hard gate fails or the run escalates to `full_genesis`.
 - If a worker needs content from a file not in its dispatch envelope, it must request a smaller derived brief, not the whole file (see Dispatch Envelope).
 
-**Token-budget awareness:** governance overhead is bounded, not proportional. For a quick_autonomy task touching one module, the orchestrator spends at most 25% of the cycle on governance reads/writes; the remaining ≥75% goes to the product artifact. For full_genesis the ceiling is 40%. If governance exceeds the ceiling, you are over-reading — cache more, read fewer rows. Record `governance_budget_ratio` per cycle in `.bagel/telemetry/cycles.yaml`; the `governance_budget_respected` gate fails above the ceiling.
+**Token-budget awareness:** governance overhead is bounded, not proportional. A **cycle** is one pass of the Long-Run Loop (§ Long-Run Loop, steps 1-13): re-anchor → select action → dispatch → verify → record delta → update telemetry → run validators. For a quick_autonomy task touching one module, the orchestrator spends at most 25% of the cycle's tokens on governance reads/writes; the remaining ≥75% goes to the product artifact. For full_genesis the ceiling is 40%. If governance exceeds the ceiling, you are over-reading — cache more, read fewer rows. Compute and record it per cycle in `.bagel/telemetry/cycles.yaml` via a mandatory `token_log` (a list of `{role, tokens, category}` entries where `category ∈ {governance, product}`); `governance_token_share = sum(governance tokens) / sum(all tokens)`. The `governance_budget_respected` gate recomputes this share from `token_log` and fails if the declared value deviates >5% from the derived value or exceeds the mode ceiling — so the budget is falsifiable from the log, not self-attested.
 
-**Three-tier loading discipline (read-cost management):** the `quick?` column has three practical tiers to keep cold-start and per-cycle reference costs bounded:
-- **boot (read once at run start, then cache):** runtime-capabilities, platform adapter, artifact-types, constitution-template, agent-operating-model, git-governance — these establish stable facts. Read at boot, record into state, do not re-read.
-- **quick-cycle (read when triggered, even in quick_autonomy):** alignment-protocol, supervisor-resilience, v2-measured-runtime, expert-autonomy, quality-assurance, gate-predicates, dispatch-envelope, evidence-protocol, scope-control, alignment-freshness, recovery-protocol, iteration-contract, orchestration-flow, roi-controller, telemetry-protocol — decision rules due per-cycle.
-- **full-only (skip in quick unless a hard gate fails):** state-machine, loop-runtime, runtime-protocol, coherence-rules, missing-belief-discovery, upmg-schema, ghost-ship-gate, clearing-policy, rework-sandbox, simulations, governance-data-model, multi-agent-coordination, reference-loading, start-prompts, packaging-boundary, project-understanding, alignment-information-architecture, crystals, evolution-ledger.
+**Three-tier loading discipline (read-cost management):** the `quick?` column has three practical tiers to keep cold-start and per-cycle reference costs bounded. **Per-cycle budgets below are trigger-gated ceilings, not the count of `always` rows** — the ~44 `always` rows exist so a trigger can fire in quick mode, but no single cycle triggers all of them; a typical cycle fires 2–4 quick-cycle rows.
+- **boot (read once at run start, then cache):** runtime-capabilities, platform adapter (claude-code/codex), artifact-types, constitution-template, agent-operating-model, git-governance, run-phase-model — these establish stable facts. Read at boot, record into state, do not re-read. (7 files, read once.)
+- **quick-cycle (read when triggered, even in quick_autonomy):** alignment-protocol, supervisor-resilience, v2-measured-runtime, expert-autonomy, quality-assurance, gate-predicates, dispatch-envelope, evidence-protocol, scope-control, alignment-freshness, recovery-protocol, iteration-contract, orchestration-flow, roi-controller, telemetry-protocol, evaluation-framework, evaluation-critic, domain-excellence-model, problem-framing, leverage-map, expert-strategy-council, taste-judgment, collective-decisions, innovation-protocol, lesson-memory, constitutional-court, excellence-loop, user-briefing, alignment-dashboard-html, emergency-stop, handoff-integrity, reference-loading — decision rules. A single cycle reads only the subset whose trigger fired; the hard ceiling is **≤8 quick-cycle reads per cycle** (governance_budget_respected gate fails above this). Most cycles fire 2–4.
+- **full-only (skip in quick unless a hard gate fails):** state-machine, loop-runtime, runtime-protocol, coherence-rules, missing-belief-discovery, upmg-schema, ghost-ship-gate, clearing-policy, rework-sandbox, simulations, governance-data-model, multi-agent-coordination, start-prompts, packaging-boundary, project-understanding, alignment-information-architecture, crystals, evolution-ledger.
 
-In quick_autonomy: read ≤6 boot files once + ≤8 quick-cycle files per cycle (only when triggered). If a cycle's reference reads exceed this, you are over-reading — the Loading Matrix fires per-trigger, not per-cycle-proactively. In full_genesis: boot + quick-cycle + full-only as triggered.
+In quick_autonomy: ≤7 boot files read once + ≤8 quick-cycle files per cycle (only when their trigger fires, not proactively). If a cycle's reference reads exceed the ceiling, you are over-reading — the Loading Matrix fires per-trigger, and `reference_load_check.py` + the `governance_budget_respected` gate enforce the ceiling. In full_genesis: boot + quick-cycle + full-only as triggered.
 
 ## Blank Project vs Existing Project
 
@@ -389,7 +339,7 @@ These are agent-facing control documents. They must be short, factual, and conti
 
 ## Alignment Before Autonomy
 
-Do more upfront alignment than native plan modes — at minimum 2× the question depth of a default plan mode — this is enforced by depth floors in `references/alignment-protocol.md`: standard requires all 8 choice cards + >= 3 open questions; deep requires >= 2 rounds, >= 8 total questions, all 8 cards + >= 5 open questions. The constitution is not locked (and Build must not start) until the floor for the selected depth is met. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
+Do more upfront alignment than native plan modes — at minimum 2× the question depth of a default plan mode (concretely: a default plan mode asks ~3-5 questions; BAGEL's **standard** floor is 8 choice cards + ≥3 open questions = ≥11 questions, and **deep** is ≥2 rounds × ≥8 questions = ≥16). This is enforced by depth floors in `references/alignment-protocol.md`: standard requires all 8 choice cards + ≥3 open questions; deep requires ≥2 rounds, ≥8 total questions, all 8 cards + ≥5 open questions. The constitution is not locked (and Build must not start) until the floor for the selected depth is met. Before autonomous implementation, capture the alignment content below. In `quick_autonomy`, store it compactly inside `.bagel/constitution.yaml` (vision/taste/non-goals/assumptions), `.bagel/ledger.yaml` (decisions/human-decisions), and `.bagel/STATUS.md` (briefing); you do not need the separate files. In `full_genesis`, produce and review the detailed files:
 
 - `.bagel/alignment/vision-canon.md` (full) **or** the `vision:`/`taste:`/`non_goals:`/`assumptions:` sections of `.bagel/constitution.yaml` (quick): user intent, taste, success definition, non-goals, hidden assumptions.
 - `.bagel/agent_context/project-facts.yaml` (full, existing projects) **or** the `project_facts:` section of `.bagel/context.yaml` (quick): the current true project state.
@@ -400,6 +350,13 @@ Do more upfront alignment than native plan modes — at minimum 2× the question
 - `.bagel/excellence_horizon.yaml` (full) **or** the `excellence_horizon:` section of `.bagel/constitution.yaml` (quick): the **starting** quality bar — meeting it is the signal to raise the bar, not to stop (see `references/excellence-loop.md` Bar-Raising Protocol).
 
 If the user's instruction conflicts with project reality, do not silently comply. Explain the risk, propose alternatives, reach consensus, then persist the decision.
+
+For research/experiment/benchmark/data-analysis-with-claims, alignment must also pick one of two V4 research modes and persist it as `research_autonomy.mode`:
+
+- `protocol_execution`: strict researcher-directed tool mode. Execute the user's protocol with maximal rigor; autonomously repair runtime, environment, verifier, logging, and agent-owned implementation bugs, but do not change hypotheses, metrics, thresholds, baselines, data/splits, seed policy, exclusion criteria, or analysis plan without a user `authority_ref`.
+- `autonomous_researcher`: scientific collaborator mode. Within the locked research direction, BAGEL may propose and run stronger ablations, robustness checks, alternative hypotheses, extra baselines, sensitivity analyses, and design amendments. Every amendment is recorded, post-result changes are labeled post-hoc, and core research identity changes still wake the user.
+
+Both modes require `.bagel/research/experiment-plan.yaml`, `.bagel/research/experiment-log.yaml`, and `.bagel/research/claim-evidence.yaml` as described in `references/research-governance.md`. These files are the experiment provenance layer: they record what was planned before results, what changed, who/what authorized it, what evidence exists, and which claims are confirmatory vs exploratory.
 
 Maintain two different alignment surfaces:
 
@@ -418,6 +375,7 @@ Start with a deep alignment conversation, not a build. Do not proceed until thes
 - Forbidden directions and non-goals.
 - Constraints: platform, integrations, privacy, budget, deadline, deployment target.
 - Autonomy policy: what the agent may decide alone and what requires the user.
+- Research mode, if applicable: whether BAGEL is a strict protocol executor (`protocol_execution`) or an autonomous scientific collaborator (`autonomous_researcher`), plus the protected protocol elements and allowed adaptations.
 - Excellence horizon: the quality level expected after autonomous iteration, including polish, robustness, documentation, and "no obvious improvement remains" criteria.
 - Long-run delegation: whether the user wants maximum autonomous momentum, how much time/token budget to spend, and which hard-stop boundaries remain non-negotiable.
 - Execution strategy: `fast_parallel`, `balanced_parallel`, or `stable_long_run`.
@@ -483,39 +441,48 @@ Hard rule: context that is not needed for the next decision becomes an artifact 
 
 ## Dispatch Envelope
 
-Every worker receives a bounded envelope:
+Every worker receives a bounded envelope in the canonical YAML shape that `scripts/dispatch_envelope_check.py` validates (see `references/dispatch-envelope.md` for the full schema). The legacy flat text-block form and its `branch_or_worktree` field are deprecated — use `git_target`:
 
-```text
-ROLE: Implementer
-AGENT_ID: agent-impl-vs003
-STATE: S8
-TASK: Implement VS-003 only.
-BRANCH_OR_WORKTREE:
-- ../.bagel-worktrees/repo/RUN-001/VS-003
-LOCKS:
-- LOCK-001
-READ ONLY:
-- .bagel/constitution.json
-- .bagel/agent_context/project-facts.yaml
-- .bagel/agent_context/conventions.md
-- .bagel/slices/VS-003.md
-- .bagel/contracts/billing.ts
-- src/billing/*
-WRITE ONLY:
-- src/billing/*
-- tests/billing/*
-EXIT CRITERIA:
-- listed requirements pass
-- tests added and run
-- no scope change
-RETURN:
-- status: DONE | BLOCKED | NEEDS_CONTEXT
-- files_changed
-- commands_run
-- open_risks
-- scope_expansion_requests
-- context_update_proposals
-- gate_predicate_results
+```yaml
+dispatch_envelope:
+  role: Implementer
+  agent_id: agent-impl-vs003
+  task_id: VS-003
+  dispatcher_role: Orchestrator
+  task: "Implement VS-003 only."
+  git_target:
+    type: worktree                 # branch | worktree | current
+    branch: lane/vs-003
+    worktree_path: ../.bagel-worktrees/repo/RUN-001/VS-003
+  locks:
+    - resource: src/billing
+      lock_ref: .bagel/git/locks/LOCK-001/lock.yaml
+  read_only:
+    - .bagel/constitution.json
+    - .bagel/agent_context/project-facts.yaml
+    - .bagel/agent_context/conventions.md
+    - .bagel/slices/VS-003.md
+    - .bagel/contracts/billing.ts
+    - src/billing/*
+  write_only:
+    - src/billing/*
+    - tests/billing/*
+  forbidden_paths:
+    - .bagel/supervisor/*
+    - src/auth/*
+  exit_criteria:
+    - listed requirements pass
+    - tests added and run
+    - no scope change
+  lane_type: deliverable
+return_contract:
+  - status: DONE | BLOCKED | NEEDS_CONTEXT
+  - files_changed
+  - commands_run
+  - open_risks
+  - scope_expansion_requests
+  - context_update_proposals
+  - gate_predicate_results
 ```
 
 If a worker asks for broad history, narrow the task or generate a smaller artifact. Do not satisfy the request by dumping the transcript.
@@ -530,56 +497,30 @@ The failure modes below are enumerated across this skill; they are gathered here
 
 | # | Red light | Why it fails | Corrective action | See |
 |---|---|---|---|---|
-| 1 | Supervisor/Orchestrator writes product code while true subagents are available | The #1 failure smell — destroys the Separation Principle and independent review | Downgrade to R1 max review, record `collapsed_no_true_subagents` only if subagents truly absent; otherwise dispatch the work below the Orchestrator | L91, `references/agent-operating-model.md` |
-| 2 | Treat `.bagel/` governance artifacts (constitution, STATUS, checks) as the user deliverable | Governance is the control plane, not the product; user gets app/research/doc | Keep governance only in state/ledger/dispatch; never put "fill constitution / run BAGEL checks" in the product task queue | L67, L226 |
-| 3 | Obey stale `.bagel/` topology because it is already written down | Old run may say main=Orchestrator when loaded skill requires nested Supervisor | Migrate state to current skill instructions, spawn fresh Orchestrator; current skill outranks stale artifacts | L65 |
-| 4 | Build/Iterate before Stop Contract is captured | Loop binding before Stop Contract is for Align/Resume protection only | Keep loop phase `align_protection`; 🔴 CHECKPOINT · STOP CONTRACT must pass first | L61, L390 |
-| 5 | Pause for routine approval or idle "just in case" | Autonomy is the default reason this skill exists | Apply the tie-breaker: continue, isolate, or switch strategy; only 🔴 STOP for hard-stop boundaries | L27, L31 |
-| 6 | Self-approve or self-review work as independent (R3) | No independent verification = no R3 claim | Dispatch an independent reviewer below the Orchestrator; downgrade and record as non-independent (R1 max) if impossible | L91, `references/quality-assurance.md` |
-| 7 | Silent skip on git/tsv/gate anomaly | Breaks the ratchet and audit trail | Surface the anomaly to the user first, then apply the recovery menu | L501, `references/recovery-protocol.md` |
-| 8 | Present `degraded_resume` as successful autonomous iteration | It is a marked downgrade, never an equal mode | Mark `.bagel/STATUS.md [DEGRADED]`; continue useful work + write durable resume plan, do not claim full autonomy | L85 |
-| 9 | Wake the user for anything other than a hard-stop boundary | Burns user trust on autonomy-solvable friction | Only wake for the boundaries in the canonical "Hard-stop boundaries" line below this table — never for autonomy-solvable friction | L27, L382, L501 |
-| 10 | Force-push, reset, or delete user changes when isolating a lane | Destroys user work | Move to its own branch/worktree only; record as `isolated` in `.bagel/state.yaml` | L37 |
-| 11 | Free-browse `references/` from a worker | Workers over-read, dilute attention, blow token budget | Orchestrator puts only triggered references (per Loading Matrix) in the dispatch envelope; worker requests a smaller brief if more is needed | L127, L309 |
-| 12 | Lower a gate to keep moving | Gates are the safety contract | Enter autonomous recovery (shrink task, isolate, diagnose, switch strategy) instead; never lower the gate itself | L501, `references/gate-predicates.md` |
-| 13 | Stop at baseline running | Baseline is the start of the excellence loop, not the end | Continue positive optimization until budget/user/hard-stop/Stop Criteria | L547 |
-| 14 | Silently accept mutually-exclusive requirements and build | Builds a doomed architecture; the contradiction surfaces as irrecoverable failure after sunk cost | Run the Requirement Coherence Check before Build; on contradiction, 🔴 CHECKPOINT S1 hard-stop with tradeoff options — never silently pick one requirement | Requirement Coherence Check |
+| 1 | Supervisor/Orchestrator writes product code while true subagents are available | The #1 failure smell — destroys the Separation Principle and independent review | Downgrade to R1 max review, record `collapsed_no_true_subagents` only if subagents truly absent; otherwise dispatch the work below the Orchestrator | § Roles, § Boot Sequence (Supervisor layer comes first), `references/agent-operating-model.md` |
+| 2 | Treat `.bagel/` governance artifacts (constitution, STATUS, checks) as the user deliverable | Governance is the control plane, not the product; user gets app/research/doc | Keep governance only in state/ledger/dispatch; never put "fill constitution / run BAGEL checks" in the product task queue | § Boot Sequence ("`.bagel/` artifacts are the control plane"), § Durable State |
+| 3 | Obey stale `.bagel/` topology because it is already written down | Old run may say main=Orchestrator when loaded skill requires nested Supervisor | Migrate state to current skill instructions, spawn fresh Orchestrator; current skill outranks stale artifacts | § Boot Sequence ("Current skill instructions outrank stale `.bagel/`") |
+| 4 | Build/Iterate before Stop Contract is captured | Loop binding before Stop Contract is for Align/Resume protection only | Keep loop phase `align_protection`; 🔴 CHECKPOINT · STOP CONTRACT must pass first | § Boot Sequence step 3-4, § Alignment Before Autonomy |
+| 5 | Pause for routine approval or idle "just in case" | Autonomy is the default reason this skill exists | Apply the tie-breaker: continue, isolate, or switch strategy; only 🔴 STOP for hard-stop boundaries | § Core Philosophy, § Checkpoints vs routine approval |
+| 6 | Self-approve or self-review work as independent (R3) | No independent verification = no R3 claim | Dispatch an independent reviewer below the Orchestrator; downgrade and record as non-independent (R1 max) if impossible | § Roles, `references/quality-assurance.md` |
+| 7 | Silent skip on git/tsv/gate anomaly | Breaks the ratchet and audit trail | Surface the anomaly to the user first, then apply the recovery menu | § Dispatch Envelope, `references/recovery-protocol.md` |
+| 8 | Present `degraded_resume` as successful autonomous iteration | It is a marked downgrade, never an equal mode | Mark `.bagel/STATUS.md [DEGRADED]`; continue useful work + write durable resume plan, do not claim full autonomy | § Boot Sequence ("If a platform cannot support timers...") |
+| 9 | Wake the user for anything other than a hard-stop boundary | Burns user trust on autonomy-solvable friction | Only wake for the boundaries in the canonical "Hard-stop boundaries" line below this table — never for autonomy-solvable friction | § Core Philosophy, § Vision Intake, § Dispatch Envelope |
+| 10 | Force-push, reset, or delete user changes when isolating a lane | Destroys user work | Move to its own branch/worktree only; record as `isolated` in `.bagel/state.yaml` | § How to isolate a lane |
+| 11 | Free-browse `references/` from a worker | Workers over-read, dilute attention, blow token budget | Orchestrator puts only triggered references (per Loading Matrix) in the dispatch envelope; worker requests a smaller brief if more is needed | § Per-role reference budget, § Loading Matrix |
+| 12 | Lower a gate to keep moving | Gates are the safety contract | Enter autonomous recovery (shrink task, isolate, diagnose, switch strategy) instead; never lower the gate itself | § Hard Gates, `references/gate-predicates.md` |
+| 13 | Stop at baseline running | Baseline is the start of the excellence loop, not the end | Continue positive optimization until budget/user/hard-stop/Stop Criteria | § Completion |
+| 14 | Silently accept mutually-exclusive requirements and build | Builds a doomed architecture; the contradiction surfaces as irrecoverable failure after sunk cost | Run the Requirement Coherence Check before Build; on contradiction, 🔴 CHECKPOINT S1 hard-stop with tradeoff options — never silently pick one requirement | § Requirement Coherence Check |
 
 **Hard-stop boundaries (the ONLY things that wake the user):** irreversible or non-recoverable destructive action · serious security/privacy/legal/financial/production-data risk · credentials or paid external resources · core product/research identity changes · **external non-rollbackable world effects (send email, publish/post, mutate a third-party API, trigger a deploy, charge a card, exfiltrate source/secrets to an external endpoint)** · explicit user-forbidden boundaries · genuine impossibility after useful alternatives are exhausted.
 
+For research runs, the same list includes its scientific equivalents: human-subject/clinical/regulated-data exposure, privacy-sensitive datasets, paid compute beyond the Stop Contract, external publication/submission/posting/email, or any change that turns the user's research question into a materially different claim.
+
 **Canonical hard-stop list:** this enumeration is the single authoritative source. `references/recovery-protocol.md` and `references/runtime-protocol.md` MUST defer to this list — if they rephrase or conditionally reopen a boundary ("only when not pre-authorized"), that condition is void unless the pre-authorization is a Stop Contract field the user filled interactively (not an agent-asserted `pre_authorized` boolean with no validator).
 
-### V3.4 Semantic Integrity Checks (enforced by expert_strategy_check.py)
+### Enforcement honesty (summary — full detail in `references/enforcement-honesty.md`)
 
-These anti-cheat validators are unconditional for any non-lite run. They prevent the most common "form-satisfiable" shortcuts. The agent must populate the record files below to pass them — omitting a record does not skip the check.
-
-| Check | Record file | What it catches |
-|---|---|---|
-| `validate_council_output` | councilor `output_ref` YAML | empty/placeholder verdicts, perspective/agent mismatch, verdict without evidence |
-| `validate_premise_fidelity` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity:` | proxy substitution without user consent, silent premise rewrite |
-| `validate_named_dependency_protocol` | `.bagel/expert/named-dependency-protocol.yaml` | in-memory fallback for a named external dependency (scan: in_memory/fake_redis/mock_redis/hashmap) |
-| `validate_dataset_integrity` | `.bagel/expert/dataset-integrity.yaml` | missing split hashes, no disjointness proof, test-set tuning, all-data preprocessing |
-| `validate_requirement_coherence` | `.bagel/ledger.yaml` → `human_decisions:` | mutually-exclusive requirements (CAP/latency-bandwidth/strong-vs-eventual/realtime-vs-offline/cost-vs-capability) built without a recorded human tradeoff decision |
-| `validate_premise_falsifiable` | `.bagel/expert/problem-framing.yaml` → `premise_fidelity`/`falsifiability:` | unfalsifiable premise (consciousness/qualia/free-will + prove/exists claim) run without reframing to a concrete metric + falsifier |
-| `validate_gameable_metric_pairing` | `.bagel/state.yaml` → `evaluation.metrics` | a gameable retrieval headline (hit@1/precision@1/exact-match) used as the sole quality signal without a robustness/ranking pair (MRR/nDCG/MAP/recall@k/held-out) |
-| governance budget mode-aware ceiling | `.bagel/telemetry/cycles.yaml` → `budget.governance_token_share` | governance share exceeding the run-mode cap (quick ≤25%, full ≤40%) — per-cycle hard fail, not just a streak warning |
-| governance share derived from token_log | `.bagel/telemetry/cycles.yaml` → `token_log` | declared `governance_token_share` inconsistent with the recomputable share from the per-entry `token_log` (governance-category tokens / all tokens) — catches a self-reported lie |
-| `validate_production_surface` | source/config/dispatch scan → `.bagel/ledger.yaml` → `human_decisions:` | production-data/credential signals (cloud keys AKIA, non-localhost prod connection strings, prod-host patterns, cloud-SDK usage) without a recorded hard-stop acknowledgment |
-| `no_hardcoded_secrets` | generated source/config scan | hardcoded secret/key patterns (AWS AKIA, GitHub PAT, private key blocks, Stripe live keys, Slack tokens) in generated code — fails UNCONDITIONALLY (committed secrets are irreversible leaks, no acknowledgment can clear) |
-
-### Enforcement honesty (what the validators can and cannot guarantee)
-
-The validators use a **two-tier design**: a structured-declaration path (paraphrase-proof, authoritative) and a signal-substring fallback (catches the common form, evadable by synonym). Always prefer the structured path — declare `requirement_axes` with `{requirement_axis, strength}` from the fixed enum, and `metric_role` from `{gameable_top1, ranking_robustness, held_out_generalization, qualitative, other}`. The substring fallback is a safety net for pre-structured runs only.
-
-Known residual limits, each a platform boundary rather than a skill-design gap:
-
-1. **Substring fallback is evadable by synonym** — but the structured-declaration path is not. `validate_requirement_coherence` checks declared `requirement_axes` against `_AXIS_CONFLICTS` (consistency/availability/partition/latency/offline_window/merge_model/cost/capability) before falling back to signal matching; `validate_gameable_metric_pairing` checks declared `metric_role` before falling back to name matching. Declare structured fields to get the paraphrase-proof guarantee. The structured declaration is **mandatory** once a problem-framing with a stated problem exists (not signal-gated); a `no_contradiction_axes_needed: true` attestation is cross-validated against the stated-problem text and refused if it contradicts a strong-axis signal.
-2. **`governance_token_share` is recomputable from `token_log`** — `token_log` is **mandatory** for Build/Iterate cycles that produce a deliverable delta (control-plane-only cycles within Build are exempt); when present, the validator recomputes the governance share from per-entry `{role, tokens, category}` records and fails if the declared share deviates >5% from the derived value. This makes the budget gate falsifiable, not just self-attested. (Residual limit: the token_log entries themselves are agent-recorded; platform-level token accounting would be even stronger.)
-3. **The production-data/credential hard-stop (S7) has a mechanical first line** — `scripts/production_surface_check.py` scans source/config/dispatch envelopes (including scripts/deploy/migrations/tests dirs and .env/.envrc/secrets files) for cloud keys (AKIA shapes), non-localhost production connection strings, prod-host patterns, and cloud-SDK usage with region; detected signals without a **structured** hard-stop acknowledgment (`hardstop_type: production_data` + `acknowledged: true` in the ledger) fail the cycle. The human STOP remains the final authority for intent-sensitive judgment. This is a **first line** that catches the naive inline-secrets cheat; env-var indirection (`os.environ.get`) and ORM-config connections are a known residual that the human STOP covers.
-
-Do not present these limits as fully solved. The structured paths, token_log derivation, and credential scanner make the common cheats impossible or falsifiable; the residual risk is a determined adversarial agent fabricating the entire token_log or attestation, which requires platform-level provenance to close.
-
-**The unifying residual (external audit finding, honestly stated):** every validator is a Python checker the agent is *instructed* to run (loop step 9), reading `.bagel/` YAML the agent authored, cross-checked against other agent-authored YAML. The checkers verify *shape* (fields exist, enums valid, hashes match agent-written hashes) — almost never *ground truth*. A context-degraded agent that wants the run to "succeed" can populate the public schema with plausible prose. Full closure requires **platform-level provenance**: an externally-triggered gate (Claude Code `Stop`/`PostToolUse` hook, or CI on the `.bagel/` commit) that runs the validator independently of the agent; append-only/signed state so post-hoc edits are detectable; and real token/command accounting from the platform, not agent self-report. This is the single most valuable change — one checker the agent cannot choose not to run. Until it exists, the enforcement substrate is *voluntary*, and all guarantees are "hard-to-lazily-fake" not "impossible-to-fake."
+The validators use a two-tier design (structured-declaration path = paraphrase-proof; substring fallback = catches the common form, evadable by synonym). The semantic-integrity check inventory (council output, premise fidelity, named-dependency protocol, dataset integrity, requirement coherence, falsifiability, gameable-metric pairing, governance budget, production surface, hardcoded secrets) and the **honestly-stated residual limits** live in `references/enforcement-honesty.md`. Key residual, stated plainly: every validator is a Python checker the agent is *instructed* to run, reading `.bagel/` YAML the agent authored — it verifies *shape*, almost never *ground truth*. Full closure requires platform-level provenance (externally-triggered gate, append-only state, platform token accounting). Until then the enforcement substrate is *voluntary*; guarantees are "hard-to-lazily-fake", not "impossible-to-fake". The validator suite's single third-party dependency is PyYAML (`requirements.txt`); `scripts/bagel_v3_check.py` detects a missing dependency and prints a clear FAIL with the install command.
 
 ## Hard Gates
 
@@ -587,10 +528,11 @@ Block progress when any predicate in `references/gate-predicates.md` fails. Reco
 
 - **Alignment & constitution:** `constitution_approved`, `requirement_coherence_checked`, `premise_falsifiable`, `alignment_freshness_current`, `domain_excellence_model_present`, `problem_framing_locked`, `leverage_map_current`, `evolution_record_present`
 - **Expert strategy:** `expert_decision_present`, `evaluation_critic_passed`, `gameable_metric_paired`, `roi_controller_positive_or_switched`, `named_dependency_real_protocol`, `premise_fidelity_proven`, `dataset_integrity_checked`
+- **Research governance:** `research_mode_declared`, `experiment_plan_preregistered`, `experiment_event_log_current`, `confirmatory_claim_not_posthoc`
 - **Evidence & regression:** `flywheel_integrity_passed`, `no_regression_vs_green_floor`, `metric_delta_has_evidence_artifact`, `evidence_replay_integrity_passed`, `bar_raise_has_value_class`, `bar_raise_has_judgment`, `bar_raise_preceded_by_brainstormers`, `iteration_count_not_bypassed`, `task_queue_excludes_control_plane`, `active_evaluation_spec_present`
 - **Scope & dispatch:** `scope_delta_within_contract`, `dispatch_envelope_valid`, `project_understanding_current`, `production_data_hardstop_respected`, `no_hardcoded_secrets`, `context_fresh_for_dispatch`, `parallel_ownership_safe`, `worker_did_not_merge`, `merge_inputs_clean`, `typed_contracts_present_when_required`, `skeleton_gate_passed_when_required`, `artifact_specific_slice_coverage_present`, `decision_mutations_cleared`, `red_team_blockers_resolved`, `scope_reduction_authorized`, `rollback_point_present_for_risk`
 - **Review quality:** `review_level_satisfied`, `review_level_consistent_with_registry`
-- **Runtime & supervisor:** `project_under_version_control`, `runtime_capability_observed_with_proof`, `handoff_validation_passed`, `action_idempotency_safe`, `supervisor_boundary_respected`, `supervisor_role_guard_passed`, `supervisor_layer_bound`, `resume_capsule_current`, `context_tree_budget_policy_present`, `governance_budget_respected`, `emergency_stop_preserves_state`
+- **Runtime & supervisor:** `project_under_version_control`, `runtime_capability_observed_with_proof`, `handoff_validation_passed`, `action_idempotency_safe`, `supervisor_boundary_respected`, `supervisor_role_guard_passed`, `supervisor_layer_bound`, `resume_capsule_current`, `context_tree_budget_policy_present`, `governance_budget_respected`, `liveness_current`, `emergency_stop_preserves_state`
 
 After repeated failures of the same gate, enter autonomous recovery within the permissions listed in `references/recovery-protocol.md`: shrink the task, isolate in a worktree, dispatch a diagnostic reviewer, brainstorm alternatives, try another implementation/research/design path, perform local repairs, create missing verifiers, or roll back and retry from the last valid checkpoint. Wake the user only for the hard-stop boundaries (see the Anti-Patterns chapter). Always write `.bagel/ledger/recovery-log.md` (full) or append to the `recovery:` section of `.bagel/ledger.yaml` (quick).
 
@@ -606,7 +548,7 @@ For long autonomous work, run in cycles:
 6. Write a progress delta in `.bagel/evidence/progress-deltas.yaml`.
 7. Update `.bagel/STATUS.md` with: run status, current focus, timeline, budget allocation, latest delta assessment, recent autonomous decisions, blocked lanes, and next action. See `references/runtime-protocol.md` for the full template.
 8. Update loop telemetry: elapsed time, cycles, agents dispatched, compactions, recovery events, timer wakeups, tests, screenshots, token estimate when available.
-9. Run `python scripts/bagel_v3_check.py <project-root>` as the main validator. In V3 this unified suite calls operational, Supervisor-boundary, flywheel, memory, runtime-proof, telemetry, deliverable-delta, handoff, evidence replay, scope, evaluation-quality, expert-strategy, ROI, alignment freshness, and reference-load checks.
+9. Run `python scripts/bagel_v3_check.py <project-root>` as the main validator. In V4.1 this unified suite calls liveness, operational, Supervisor-boundary, flywheel, memory, runtime-proof, telemetry, deliverable-delta, handoff, evidence replay, scope, evaluation-quality, expert-strategy, research-governance, ROI, alignment freshness, and reference-load checks.
 10. Treat any V2 check failure as a gate failure: repair evidence/state, rollback or isolate a bad change, dispatch the missing agent/reviewer/curator, validate a handoff, or switch strategy before continuing.
 11. Persist structured output.
 12. Replace non-root context when pressure rises: write handoff, validate it, dispatch a fresh child. Do not routine-compact Orchestrator/workers.

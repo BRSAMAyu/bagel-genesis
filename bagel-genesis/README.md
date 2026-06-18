@@ -9,7 +9,7 @@ A skill-level operating protocol that makes an autonomous agent do *real expert 
 `Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.9-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v4.3-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
 [![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
@@ -28,7 +28,7 @@ Most agent skills stop at "generate code." BAGEL is different — it encodes the
 - **Prove progress** with measurable deltas — not "it looks done"
 - **Wake you** only for genuine hard-stops, not routine questions
 
-And as of **V3.4**, it does all this as a **hard-to-fake runtime**: the expert council verdicts, risk assessments, dependency integrations, and research integrity claims are all *mechanically validated*, so an agent cannot satisfy the gates with empty placeholders or proxy substitutions.
+And as of **V4.1**, it does this with a hardened research governance layer: strict protocol-execution mode, autonomous-researcher mode, preregistered plan hashes, ledger-bound research authority, metric recompute evidence, amendment review, and liveness checks.
 
 ---
 
@@ -97,6 +97,7 @@ V3.4 added **Semantic Integrity validators** that catch the most common "form-sa
 | **Premise fidelity** | Proxy substitution of user's claim | `proxy_used=true` without `user_authority_ref` fails; unfalsifiable premises can't become proxy experiments |
 | **Named dependency protocol** | In-memory fallback for real deps | Scans product/test code for `in_memory`/`fake_redis`/`hashmap fallback` labels; `test_uses_real_endpoint` must be true |
 | **Dataset integrity** | Test-set leakage | Requires split hashes + disjointness proof; `tuning_used_test_set=true` invalidates headline claims |
+| **Research governance** | Silent protocol drift and post-hoc headline claims | Requires research mode, preregistered experiment plan, event log, and confirmatory-vs-exploratory claim separation |
 | **Schema drift prevention** | Validator reading undeclared fields | `skill_lint.py` auto-diffs agent schema docs vs validator field sets on every edit |
 
 ---
@@ -110,7 +111,17 @@ git clone https://github.com/BRSAMAyu/bagel-genesis.git
 # Copy or symlink into your agent's skills directory:
 ln -s "$(pwd)/bagel-genesis" ~/.codex/skills/bagel-genesis      # Codex
 ln -s "$(pwd)/bagel-genesis" ~/.claude/skills/bagel-genesis     # Claude Code
+
+# Install the validator dependency (PyYAML). The runtime gate suite in
+# scripts/ cannot run without it — every validator imports `yaml`.
+pip install -r bagel-genesis/requirements.txt
 ```
+
+> **Required dependency.** `python scripts/bagel_v3_check.py <root>` — the
+> main per-cycle validator — crashes with a stack trace instead of enforcing
+> gates if PyYAML is missing. Run `pip install -r requirements.txt` once per
+> environment. The suite detects the missing dependency and prints a clear
+> FAIL with the install command.
 
 ### Use
 
@@ -141,11 +152,15 @@ what exists and what must be preserved. Then run autonomous polish and optimizat
 # Validate the skill itself (schema drift, cross-file consistency)
 python bagel-genesis/scripts/skill_lint.py bagel-genesis
 
-# Validate a running BAGEL project (all 17+ runtime checks)
+# Validate a running BAGEL project (all 26 runtime checks)
 python bagel-genesis/scripts/bagel_v3_check.py /path/to/project
 
 # Dryrun the test-prompts regression suite
 python bagel-genesis/scripts/test_prompts_dryrun.py bagel-genesis
+
+# Mechanically grade the validator enforcement layer (4 positive + 16 negative
+# fixture-based assertions proving the anti-cheat validators catch what evals claim)
+python bagel-genesis/evals/mechanical_grader.py bagel-genesis
 ```
 
 ---
@@ -201,15 +216,20 @@ Each pack provides executable methodology (not just rubrics) for its artifact ty
 ```text
 bagel-genesis/
 ├── SKILL.md                    # Entry point — the operating protocol
-├── agents/                     # 26 role prompts (Orchestrator, workers, council, experts)
-├── references/                 # 63 trigger-loaded protocols
+├── VERSION                     # Canonical version pin (single source of truth)
+├── requirements.txt            # Validator dependency (PyYAML)
+├── agents/                     # 27 role prompts (Orchestrator, workers, council, experts)
+├── references/                 # 65 trigger-loaded protocols (+6 expert-packs)
 │   ├── expert-packs/           # 6 domain-specific methodology packs
-│   ├── gate-predicates.md      # 41 hard gates (mechanically + agent-attested tiers)
+│   ├── gate-predicates.md      # 60 core gate predicates (mechanically + agent-attested tiers)
 │   └── ...
-├── scripts/                    # 23 validation & runtime scripts
-│   ├── bagel_v3_check.py       # Master validator (17+ sub-checks)
+├── scripts/                    # 39 validation & runtime scripts
+│   ├── bagel_v3_check.py       # Master validator (26 sub-checks; legacy filename)
 │   ├── expert_strategy_check.py# Expert autonomy + semantic integrity
+│   ├── research_governance_check.py # V4 research mode + experiment provenance gates
+│   ├── liveness_check.py       # V4.1 heartbeat/telemetry staleness gate
 │   ├── skill_lint.py           # Schema-drift + cross-file consistency
+│   ├── _bagel_deps.py          # PyYAML bootstrap (clear FAIL, not stack trace)
 │   ├── test_prompts_dryrun.py  # Test-prompts regression suite
 │   └── ...
 ├── evals/
@@ -239,17 +259,19 @@ BAGEL is **autonomy-first, not reckless**.
 
 ---
 
-## Runtime Validation (17+ checks)
+## Runtime Validation (26 checks)
 
-`bagel_v3_check.py` orchestrates a comprehensive validation suite against any running BAGEL project:
+`bagel_v3_check.py` orchestrates the V4.1 validation suite against any running BAGEL project. The filename is kept for backward compatibility.
 
 ```text
-✓ bagel_run_check         ✓ supervisor_boundary      ✓ runtime_proof
+✓ liveness                ✓ bagel_run_check          ✓ supervisor_boundary
+✓ runtime_proof
 ✓ dispatch_envelope       ✓ flywheel                 ✓ bagel_memory
 ✓ bagel_telemetry         ✓ deliverable_delta        ✓ resume_integrity
 ✓ evidence_replay         ✓ scope                    ✓ evaluation_quality
-✓ expert_strategy         ✓ roi                      ✓ alignment_freshness
-✓ reference_load          ✓ emergency_stop
+✓ expert_strategy         ✓ research_governance      ✓ roi
+✓ alignment_freshness     ✓ reference_load           ✓ emergency_stop
+✓ production_surface      ✓ non_functional_quality
 ```
 
 Each check exits non-zero on failure, making the gate mechanically enforced.
@@ -257,6 +279,35 @@ Each check exits non-zero on failure, making the gate mechanically enforced.
 ---
 
 ## <a id="changelog"></a>Changelog
+
+### v4.3 — Research Lab Closure and Mode-2 Coverage
+
+- Fixed the autonomous research amendment dead path by replacing crash-prone blank checks and adding a mechanical `design_amendment` negative fixture.
+- Hardened research-lab pre-Build enforcement by recursively scanning all lane string fields for executable command patterns and non-canonical LLM calls.
+- Connected mode-2 amendment approval to real R3/R4 independence: `true_subagents.observed=true` with proof plus review registry-derived reviewer/worker separation.
+- Added fresh-preregistration and rerun lineage checks for amendment-origin confirmatory claims, plus amendment drift/rate limits.
+- Added `environment_lock_check.py` for Build-started research reproducibility capture.
+- Added `evals/coverage_map.py` so critical validator paths cannot silently lose mechanical fixture coverage.
+
+### v4.1 — Research Integrity Hardening
+
+- Fixed the V4 dataset-integrity dead trigger by reading the new `.bagel/research/claim-evidence.yaml` path and experiment plan datasets.
+- Bound strict-mode research `authority_ref` to real `ledger.yaml human_decisions` records.
+- Added preregistered experiment-plan hash checking to catch post-result plan mutation.
+- Added amendment validation for reviewer independence, forbidden-direction overlap, expected information gain, confound risk, and baseline-strength deltas.
+- Added `metric_recompute` evidence mode and tightened nondeterminism waivers.
+- Added `liveness_check.py` as the first suite gate for stale heartbeat/telemetry detection.
+- Expanded mechanical grader to 10 assertions: 2 positive + 8 anti-cheat negative fixtures.
+
+### v4.0 — Research Governance Layer (strict protocol mode + autonomous researcher mode)
+
+V4 makes autonomous research a first-class operating mode instead of a generic expert-pack variant:
+
+- **Two explicit research modes:** `protocol_execution` for strict researcher-directed experiments, and `autonomous_researcher` for high-agency scientific iteration inside a locked research direction.
+- **Experiment provenance layer:** new `references/research-governance.md` defines `.bagel/research/experiment-plan.yaml`, `experiment-log.yaml`, and `claim-evidence.yaml` so every hypothesis, run, repair, amendment, result, and claim remains traceable.
+- **Four new mechanical gates:** `research_mode_declared`, `experiment_plan_preregistered`, `experiment_event_log_current`, and `confirmatory_claim_not_posthoc`, enforced by `scripts/research_governance_check.py`.
+- **Protocol drift defense:** in strict mode, hypotheses, metrics, thresholds, baselines, data/splits, seeds, exclusion criteria, and analysis plans cannot change without user authority.
+- **Post-hoc honesty:** autonomous design improvements remain allowed, but after-results amendments are labeled exploratory and cannot become confirmatory headline claims without a fresh preregistered rerun.
 
 ### v3.9 — External 9-agent audit (critical safety + integrity defects fixed)
 
@@ -276,19 +327,6 @@ A 9-agent, 3-round independent external review (architecture/red-team/realism/co
 
 **Honesty:** the "unifying residual" (agent-authored YAML validated by agent-invoked script) is now openly stated in the Enforcement honesty section — full closure requires platform-level provenance.
 
-### v3.7 — Five-judge full-skill audit (5 independent perspectives, 6 consensus weaknesses fixed)
-
-Dispatched 5 independent agents from completely different perspectives (architecture/coherence, adversarial red-team, usability/executability, research-integrity, completeness/coverage) to freely and fully review the entire skill. They found 8 consensus weaknesses (C1-C8) the prior same-context judges had missed. 5 Darwin rounds fixed C1-C6:
-
-- **C1 (omission-as-pass):** scope_check + dispatch now derive coverage from `git diff` — an agent that makes out-of-scope edits without recording a scope_delta **fails** (was: silently passed when the record was omitted)
-- **C2 (statistical rigor):** new `validate_statistical_rigor` — headline claims require n_seeds≥5, a significance test (paired_t/wilcoxon/bootstrap) with p_value, effect_size, correction, AND **p_value < pre_registered_threshold** (presence-only was theater)
-- **C3 (claim-evidence matrix):** new `validate_claim_evidence_matrix` — each claim maps to metric + run_refs (files must exist) + ablation_status + reproducibility_status; headline claims fail if ablation=pending or repro=missing
-- **C4 (output-side secret leak):** new `no_hardcoded_secrets` gate — scans generated code for AWS keys / GitHub PATs / private key blocks / Stripe live keys / Slack tokens; fails **unconditionally** (no acknowledgment can clear a committed secret)
-- **C5 (gate-index drift):** SKILL.md Hard Gates replaced static 40-item list with family-grouped pointer to the authoritative 53-predicate table + `skill_lint.check_version_drift` catches future drift
-- **C6 (v2_check + compact):** orchestrator.md v2_check→v3_check, "Context Compaction" → "Context Hygiene (handoff-and-replace)" — aligns with replace-not-compact policy
-
-Remaining (C7 a11y/perf/i18n ungated, C8 evidence existence-only for non-dataset claims) are disclosed as known limits — they require domain-specific tooling integration (axe-core, Lighthouse) beyond skill-scope validators.
-
 ### v3.8 — Maximize 5-judge findings (73.2→83.8, +10.6)
 
 Systematically exploited ALL findings from the 5 independent judges — not just the C1-C6 fixes, but every high-value suggestion across architecture, usability, research-integrity, and completeness:
@@ -303,12 +341,25 @@ Systematically exploited ALL findings from the 5 independent judges — not just
 - `agents/security-engineer.md`: new OWASP-aligned specialist role (authz, injection, XSS, secrets, supply-chain, data protection, DoS) replacing the 4-item checklist stub in Code Quality Reviewer
 
 **Usability fixes (Judge S3):**
-- Three-tier loading discipline: boot (≤6 files, read-once-cache) / quick-cycle (≤8 per-cycle) / full-only — so quick_autonomy has a bounded reference ceiling, not 47 always-rows
+- Three-tier loading discipline: boot (≤7 files, read-once-cache) / quick-cycle (≤8 per-cycle) / full-only — so quick_autonomy has a bounded reference ceiling, not 45 always-rows
 - Linear 11-step build-unlock checklist (no branching) — eliminates the 15-gate branching paralysis at step 8
 
 **Statistical-rigor hardening (Judge V2):**
 - Stats-rigor + claim-evidence now fire for data_analysis artifacts (was: research/theory only)
 - `pre_registered_threshold` is REQUIRED for headline claims (omitting it to skip significance check is caught as evasion)
+
+### v3.7 — Five-judge full-skill audit (5 independent perspectives, 6 consensus weaknesses fixed)
+
+Dispatched 5 independent agents from completely different perspectives (architecture/coherence, adversarial red-team, usability/executability, research-integrity, completeness/coverage) to freely and fully review the entire skill. They found 8 consensus weaknesses (C1-C8) the prior same-context judges had missed. 5 Darwin rounds fixed C1-C6:
+
+- **C1 (omission-as-pass):** scope_check + dispatch now derive coverage from `git diff` — an agent that makes out-of-scope edits without recording a scope_delta **fails** (was: silently passed when the record was omitted)
+- **C2 (statistical rigor):** new `validate_statistical_rigor` — headline claims require n_seeds≥5, a significance test (paired_t/wilcoxon/bootstrap) with p_value, effect_size, correction, AND **p_value < pre_registered_threshold** (presence-only was theater)
+- **C3 (claim-evidence matrix):** new `validate_claim_evidence_matrix` — each claim maps to metric + run_refs (files must exist) + ablation_status + reproducibility_status; headline claims fail if ablation=pending or repro=missing
+- **C4 (output-side secret leak):** new `no_hardcoded_secrets` gate — scans generated code for AWS keys / GitHub PATs / private key blocks / Stripe live keys / Slack tokens; fails **unconditionally** (no acknowledgment can clear a committed secret)
+- **C5 (gate-index drift):** SKILL.md Hard Gates replaced static 40-item list with family-grouped pointer to the authoritative 53-predicate table + `skill_lint.check_version_drift` catches future drift
+- **C6 (v2_check + compact):** orchestrator.md v2_check→v3_check, "Context Compaction" → "Context Hygiene (handoff-and-replace)" — aligns with replace-not-compact policy
+
+Remaining (C7 a11y/perf/i18n ungated, C8 evidence existence-only for non-dataset claims) are disclosed as known limits — they require domain-specific tooling integration (axe-core, Lighthouse) beyond skill-scope validators.
 
 ### v3.6 — Deep gap closure (Darwin ratchet, 88.6→91.1)
 

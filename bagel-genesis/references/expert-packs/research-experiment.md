@@ -19,12 +19,20 @@ expert_pack:
 
 These are the executable procedures that turn a hypothesis into a falsifiable, reproducible result. An experiment without all of these is not deliverable — it is a preliminary observation.
 
+### 0. Research autonomy mode and preregistration
+Before running experiments, load `references/research-governance.md` and declare `research_autonomy.mode`:
+
+- `protocol_execution`: follow the researcher's protocol exactly. Runtime repairs and bug fixes are allowed; design changes require a user `authority_ref`.
+- `autonomous_researcher`: autonomously improve the scientific design inside the locked research direction. Every design change is a recorded amendment; post-result changes are exploratory until rerun under a fresh preregistered plan.
+
+Create `.bagel/research/experiment-plan.yaml` before Build. It must contain the study objective, hypotheses, primary metric, decision threshold, practical significance threshold, baselines, controls, datasets/splits, seeds, analysis plan, allowed adaptations, forbidden changes, and stopping rule. The experiment plan is the boundary between confirmatory science and exploration.
+
 ### 1. Falsifiable hypothesis
 State one sentence of the form: **"If <mechanism>, then <intervention> will produce <predicted measurable change> on <metric>, relative to <baseline>, under <conditions>."** If you cannot fill every slot, the hypothesis is not yet testable — reframe it (see `references/problem-framing.md`) before running anything. Record the falsifier: the exact result that would make you reject the hypothesis.
 
 **Termination rule for unfalsifiable premises (do NOT skip this):** Some premises cannot be made falsifiable no matter how you reframe them — typically because the core term has no operational definition (e.g. "consciousness", "understanding", "true intelligence") or there is no experimental criterion that could ever disprove the claim (e.g. "X is computable by a classical Turing machine" with no bound on X). If after one reframe attempt the hypothesis *still* cannot fill the template with a concrete, measurable metric and a concrete falsifier, **stop.** Do not substitute a narrow proxy and pretend the original premise is answered. Treat the unfalsifiable premise as a research-identity hard-stop (see SKILL.md hard-stop boundaries): 🔴 CHECKPOINT · S1 HARD-STOP, surface to the user that the premise as stated is not experimentally testable, and propose either (a) redefining the target to an operationalizable sub-question, or (b) accepting that the question is philosophical, not empirical. "你看着办" does not authorize burning an overnight run on an untestable premise. The `premise_falsifiable` gate enforces this: it passes only when the hypothesis fills the template with a real metric AND a real falsifier.
 
-**Premise fidelity record (V3.4 — required when reframing or proxying):** Record in `.bagel/expert/problem-framing.yaml` under `premise_fidelity:`:
+**Premise fidelity record (V4 — required when reframing or proxying):** Record in `.bagel/expert/problem-framing.yaml` under `premise_fidelity:`:
 
 ```yaml
 premise_fidelity:
@@ -44,7 +52,7 @@ Rules enforced by `expert_strategy_check.py`: proxy_used=true without user_autho
 - **Baseline**: a fair, strong baseline, not a strawman. For ML: same data, same compute budget, same training recipe; isolate only the variable under test. For systems: same hardware, same workload, same warm-up.
 - **Controls**: list every variable held constant and every variable that differs. Data leakage check: train/val/test splits fixed and disjoint; no test data in tuning.
 - **Random seeds**: run at least **3 seeds** for any stochastic result (default 5 for headline claims). Record every seed. Single-seed wins are red-flagged by `evaluation_traps`.
-- **Dataset integrity record (V3.4 — required for empirical dataset-based claims):** Record in `.bagel/expert/dataset-integrity.yaml`:
+- **Dataset integrity record (V4 — required for empirical dataset-based claims):** Record in `.bagel/expert/dataset-integrity.yaml`:
 
 ```yaml
 dataset_integrity:
@@ -88,6 +96,8 @@ A reviewer running the commands on the recorded environment must reach the same 
 ### 7. Honest claims
 Every claim in the final report maps to a row in a claim-evidence matrix: claim → metric → run(s) → ablation status → reproducibility status. Claims that outrun their evidence are rejected before delivery. Negative results and null findings are recorded, not hidden — `common_amateur_failures: hidden_data_leakage` includes hidden negative results.
 
+Maintain `.bagel/research/claim-evidence.yaml`. A claim may be `confirmatory` only if it follows the preregistered plan and cites metric refs, run refs, ablation status, reproducibility status, and dataset integrity. If an analysis, metric, threshold, exclusion, or hypothesis was chosen after seeing relevant results, mark it `posthoc: true`; it may be valuable exploratory evidence but cannot be a headline confirmatory claim without a fresh preregistered rerun.
+
 ### 8. Statistical rigor (signal vs noise)
 Mean ± std across 3 seeds is descriptive only — it cannot tell signal from noise. For a claim to count as a real effect rather than run-to-run variance:
 
@@ -96,3 +106,8 @@ Mean ± std across 3 seeds is descriptive only — it cannot tell signal from no
 - **Power / sample size**: if the effect is smaller than the seed-to-seed std, 3 seeds cannot reliably detect it. For headline claims where the expected delta is small, either increase seeds until the confidence interval excludes zero, or explicitly report the result as "not statistically distinguishable from baseline." Do not claim a small advantage that is within noise.
 - **Practical significance threshold**: statistical significance is necessary but not sufficient. Pre-register the minimum effect size that counts as a practically meaningful win for the user's actual goal (e.g. "≥5% wall-clock latency reduction at iso-quality", "≥0.005 val_bpb drop"). A statistically significant but sub-threshold delta is reported as a tie, not a win — the user asked for a real improvement, not a p-value.
 - **Pre-registration binding**: the primary metric and the decision threshold (e.g. "method wins if val_bpb drops ≥0.005 with p<0.05 corrected") are fixed before running, recorded in the reproducibility package, and not moved after seeing results. Moving the threshold post-hoc is `evaluation_traps: posthoc_story`.
+
+### 9. Experiment event log and design amendments
+Maintain `.bagel/research/experiment-log.yaml` during the run. Every run start/completion, runtime repair, code fix, failed job, design amendment, analysis completion, claim, and negative result gets an event with `event_id`, timestamp, actor role, evidence/result refs, whether design changed, change class, authority ref if required, and post-hoc status.
+
+In `protocol_execution`, protected protocol elements cannot change without `authority_ref`: hypothesis, primary metric, decision threshold, dataset/split, baseline, seed policy, exclusion criteria, statistical test, and analysis plan. In `autonomous_researcher`, design amendments are allowed only when they preserve the locked research identity and record expected information gain, confound risk, pre/post-result boundary, and reviewer evidence. A core research identity change is a hard-stop, not an autonomous amendment.

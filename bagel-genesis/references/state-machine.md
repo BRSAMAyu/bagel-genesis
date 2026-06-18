@@ -11,11 +11,11 @@ Before applying state-specific gates, load `.bagel/artifact_profile.yaml` and `r
 ```
 S-2 Existing Project Intake (only when workspace/project is non-blank)
  ↓
-S-1 Deep Alignment
+S0 Vision Intake            ← captures vision_summary.md first (the input to alignment)
  ↓
-S0 Vision Intake
+S-1 Deep Alignment          ← produces vision-canon, autonomy-contract, etc. (alignment OUTPUTS)
  ↓
-S1 Constitution + Horizon
+S1 Constitution + Horizon   ← Stop Contract + BUILD UNLOCK checkpoint fires at S1 exit
  ↓
 S2 Taste Kernel + Coherence
  ↓
@@ -27,7 +27,7 @@ S5 Decision Classification
  ↓
 S6 Skeleton Era
  ↓
-S7 Skeleton/Ghost Ship Gate
+S7 Skeleton/Ghost Ship Gate  ← the align→build run_phase transition fires here
  ↓
 S8 Value Slice Filling Loop
  ↓
@@ -49,6 +49,8 @@ S16 Excellence Loop + Independent Critique
  ↓
 S17 Final Delivery
 ```
+
+**Ordering rationale (P2-1 fix):** S0 Vision Intake must precede S-1 Deep Alignment. S-1's required artifacts (`vision-canon.md`, `decision-map.yaml`, `autonomy-contract.yaml`, `excellence_horizon.yaml`) are the *outputs* of deep alignment, which can only be produced once the vision itself is captured in S0's `vision_summary.md`. The previous ordering (S-1 before S0) asked the agent to produce alignment artifacts before the vision they align to. Each S-state's `run_phase` is mapped in `references/run-phase-model.md`.
 
 ## S-2: Existing Project Intake
 
@@ -95,9 +97,32 @@ S17 Final Delivery
 
 ---
 
+## S0: Vision Intake
+
+**Entry:** User invokes BAGEL Genesis with a vision.
+
+**Required Artifacts:**
+- `.bagel/vision_summary.md`
+
+**Process:**
+1. Read user's vision description
+2. If vision is vague, run a short native brainstorming pass: ask for the north star, target users, excluded directions, core workflows, constraints, and non-goals. External brainstorming tools are optional, not required.
+3. Ask clarifying questions (purpose, users, constraints)
+4. Identify implicit assumptions
+5. Draft vision summary
+
+**Exit Conditions:**
+- Vision summary approved by user **or** the user has delegated approval under a long-run autonomy contract (record the delegation in `.bagel/ledger.yaml` or `.bagel/alignment/human-decisions.yaml`)
+- No ambiguity in product purpose
+
+**Hard Gates:**
+- User has explicitly approved the vision summary **or** delegated approval under a long-run autonomy contract. Under delegation, do not stop for S0 confirmation unless a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction).
+
+---
+
 ## S-1: Deep Alignment
 
-**Entry:** User presents a broad vision or asks for long autonomous work.
+**Entry:** S0 complete — `vision_summary.md` exists (S-1 consumes it as input).
 
 **Required Artifacts:**
 - `.bagel/alignment/vision-canon.md`
@@ -124,29 +149,6 @@ S17 Final Delivery
 - No long autonomous execution without autonomy contract.
 - No baseline-only stop condition when the user requested high completion.
 - No autonomous run without evolution ledger initialized.
-
----
-
-## S0: Vision Intake
-
-**Entry:** User invokes BAGEL Genesis with a vision.
-
-**Required Artifacts:**
-- `.bagel/vision_summary.md`
-
-**Process:**
-1. Read user's vision description
-2. If vision is vague, run a short native brainstorming pass: ask for the north star, target users, excluded directions, core workflows, constraints, and non-goals. External brainstorming tools are optional, not required.
-3. Ask clarifying questions (purpose, users, constraints)
-4. Identify implicit assumptions
-5. Draft vision summary
-
-**Exit Conditions:**
-- Vision summary approved by user **or** the user has delegated approval under a long-run autonomy contract (record the delegation in `.bagel/ledger.yaml` or `.bagel/alignment/human-decisions.yaml`)
-- No ambiguity in product purpose
-
-**Hard Gates:**
-- User has explicitly approved the vision summary **or** delegated approval under a long-run autonomy contract. Under delegation, do not stop for S0 confirmation unless a hard-stop boundary is unresolved (core promise, privacy/legal/financial/safety posture, target audience, production data, credentials/paid resources, or an irreversible direction).
 
 ---
 
@@ -768,7 +770,7 @@ Run deterministic checks selected by artifact profile:
 
 For simpler projects, use this path:
 ```
-[S-2 if existing project] → S-1 → S0 → S1 → S2 → S3 → S5 → S6 → S7 → [S8(slice) → S9(clear)] repeated → S10 → S13 → S15 → S16 → S17
+[S-2 if existing project] → S0 → S-1 → S1 → S2 → S3 → S5 → S6 → S7 → [S8(slice) → S9(clear)] repeated → S10 → S13 → S15 → S16 → S17
 ```
 Skip S-2 only for truly blank projects. Skip S4's UPMG backend, S11 (L2 scenarios), S12 (L3 simulation), and S16b (crystals) unless project complexity warrants them. Keep the lightweight file-backed product graph and excellence loop for all long autonomous projects.
 

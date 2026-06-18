@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""V3.4 test-prompts dryrun CI (Tier 1 static check).
+"""V4 test-prompts dryrun CI (Tier 1 static check).
 
 For each test prompt in test-prompts.json, verify that the gates and validators it
 expects actually exist in the skill (gate-predicates.md, scripts/). This turns the

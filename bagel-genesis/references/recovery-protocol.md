@@ -56,22 +56,22 @@ Allowed autonomous repairs:
 
 Default rule for the gray zone: long-run delegation means the agent keeps moving. A repair that writes package/dependency manifests, lockfiles, environment files, CI config, deployment config, auth config, database config, or shared root config should **continue** whenever it satisfies any of: the autonomy contract pre-authorized that class of change; the change is small, reversible, and project-local (verifier, setup, dev dependency, config for a non-production target); or the change is isolated in a worktree/sandbox branch that can be discarded. Record the change in the evolution ledger and continue.
 
-**Canonical hard-stop source:** the hard-stop boundary list in `SKILL.md` (the "Hard-stop boundaries" line) is the single authoritative enumeration. The list below is an expansion of when those boundaries apply during recovery — it MUST NOT reopen or conditionally weaken a SKILL.md hard-stop. "Pre-authorized" means a Stop Contract field the user filled interactively, not an agent-asserted boolean.
+**Canonical hard-stop source:** the hard-stop boundary list in `SKILL.md` (the "Hard-stop boundaries" line) is the single authoritative enumeration. The expansion below names *when those same boundaries apply during recovery* — it MUST NOT reopen or conditionally weaken a SKILL.md hard-stop. In particular, **"pre-authorized" is not a generic escape hatch**: it means a specific `stop_contract` field the user filled interactively during Align (e.g. `stop_contract.pre_authorized.dependency_upgrades: [list]`), recorded in `.bagel/constitution.yaml` and shown to the user at the 🔴 CHECKPOINT · STOP CONTRACT. An agent-asserted `pre_authorized: true` boolean with no matching Stop Contract field is void (SKILL.md Anti-Patterns canonical-list rule).
 
-Wake the user (hard-stop) only when an action crosses a true hard-stop boundary from the SKILL.md canonical list. The items below are hard-stops when they cross those boundaries:
+Wake the user (hard-stop) only when an action crosses a true hard-stop boundary from the SKILL.md canonical list. The items below are hard-stops when they cross those boundaries. The "clears only via …" clauses name the exact Stop Contract field that can clear them — if that field is absent or unfilled, the hard-stop fires:
 
-- using paid services or creating cloud resources,
-- adding credentials, tokens, or external accounts,
-- running destructive migrations or deleting user data,
-- changing production infrastructure,
-- upgrading major dependencies or replacing frameworks,
-- adding or upgrading dependencies that change lockfiles unless pre-approved,
-- editing `.env`, secrets files, package manager config, CI/deploy config, or root toolchain config unless pre-approved,
+- using paid services or creating cloud resources — clears only via `stop_contract.pre_authorized.cloud_resources`,
+- adding credentials, tokens, or external accounts — clears only via `stop_contract.pre_authorized.credentials`,
+- running destructive migrations or deleting user data — clears only via `stop_contract.pre_authorized.destructive_migrations`,
+- changing production infrastructure — never clearable from recovery (production is a canonical hard-stop),
+- upgrading major dependencies or replacing frameworks — clears only via `stop_contract.pre_authorized.dependency_upgrades`,
+- adding or upgrading dependencies that change lockfiles — clears only via `stop_contract.pre_authorized.dependency_upgrades`,
+- editing `.env`, secrets files, package manager config, CI/deploy config, or root toolchain config — clears only via `stop_contract.pre_authorized.config_files`,
 - mocking an external service in a way that could be mistaken for real integration,
-- weakening security/privacy/legal guarantees,
-- force-pushing, rewriting history, or destructive git cleanup,
+- weakening security/privacy/legal guarantees — never clearable,
+- force-pushing, rewriting history, or destructive git cleanup — never clearable (Anti-Pattern #10),
 - installing system-wide tools outside the project,
-- broad scope reduction or product/artifact identity changes.
+- broad scope reduction or product/artifact identity changes — clears only via Constitutional Court (S14).
 
 If a repair crosses a real hard-stop boundary, write a recovery option, continue with safe adjacent positive-EV work on other tasks, and surface the blocked decision in the user briefing. Do not idle.
 

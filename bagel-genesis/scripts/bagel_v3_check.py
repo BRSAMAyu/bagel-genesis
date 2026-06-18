@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Run the BAGEL V3.1 executable expert-runtime validator suite."""
+"""Run the BAGEL V4 executable expert-runtime validator suite.
+
+The filename remains bagel_v3_check.py for backward compatibility with
+existing BAGEL runs and docs that invoke the unified validator by this path.
+"""
 
 from __future__ import annotations
 
@@ -8,8 +12,31 @@ import subprocess
 import sys
 from pathlib import Path
 
+# P0-1 fix: the validator suite's single declared third-party dependency is
+# PyYAML (requirements.txt). Every sub-check imports `yaml`. If it is missing
+# the sub-processes would each emit a ModuleNotFoundError stack trace that
+# looks like an environment bug rather than a gate result. Surface it once,
+# clearly, with the exact remediation, before dispatching any sub-check.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _bagel_deps import ensure_yaml_optional  # noqa: E402
+
+if ensure_yaml_optional() is None:
+    sys.stderr.write(
+        "FAIL: BAGEL V4 check cannot run — PyYAML is not installed.\n"
+        "      Every sub-validator imports `yaml`. Without it the suite "
+        "crashes instead of enforcing gates.\n"
+        "      Fix:  pip install -r requirements.txt   (or:  pip install "
+        "PyYAML>=6.0)\n"
+        "      Then re-run:  python scripts/bagel_v3_check.py <project-root>\n"
+    )
+    raise SystemExit(1)
+
 
 CHECKS = [
+    "attestation_check.py",
+    "audit_verifier.py",
+    "ci_readiness_check.py",
+    "liveness_check.py",
     "bagel_run_check.py",
     "supervisor_boundary_check.py",
     "runtime_proof_check.py",
@@ -23,6 +50,9 @@ CHECKS = [
     "scope_check.py",
     "evaluation_quality_check.py",
     "expert_strategy_check.py",
+    "research_governance_check.py",
+    "research_lab_check.py",
+    "environment_lock_check.py",
     "roi_check.py",
     "alignment_freshness_check.py",
     "reference_load_check.py",
@@ -94,17 +124,21 @@ def main() -> int:
             command.append("--strict-warnings")
         # T1.2 fix: evidence_replay_check must run with --replay by default so cited
         # commands are actually re-executed (was: bare call, allowing fabrication).
+        # V5: also pass --attested so metric_recompute extracts_from is bound to a
+        # platform-attested command output when the attestation tier is configured.
+        # The flag self-disables when BAGEL_ATTEST_KEY is unset (no-op, UNATTESTED).
         if script == "evidence_replay_check.py":
             command.append("--replay")
+            command.append("--attested")
         result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         print(f"== {script} ==")
         print(result.stdout, end="")
         if result.returncode != 0:
             failures.append(script)
     if failures:
-        print("BAGEL V3.1 check failed: " + ", ".join(failures), file=sys.stderr)
+        print("BAGEL V4 check failed: " + ", ".join(failures), file=sys.stderr)
         return 1
-    print("BAGEL V3.1 check passed.")
+    print("BAGEL V4 check passed.")
     return 0
 
 

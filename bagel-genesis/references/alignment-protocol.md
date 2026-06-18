@@ -280,6 +280,41 @@ options:
     description: "Generate and test plausible paths, while labeling claims that lack ground truth."
 ```
 
+#### Research Autonomy Mode
+
+Ask this for research, experiments, benchmarks, theory-to-experiment work, or data analysis with empirical claims:
+
+```yaml
+question: "Which research mode should BAGEL use?"
+options:
+  - label: "Protocol execution"
+    description: "Strict tool mode: run the researcher's protocol, repair failures, and record everything; do not change design without authority."
+  - label: "Autonomous researcher"
+    description: "Scientific collaborator mode: improve hypotheses, ablations, baselines, and analysis inside the locked direction, with amendments and post-hoc labels."
+```
+
+Persist as:
+
+```yaml
+research_autonomy:
+  mode: protocol_execution | autonomous_researcher
+  researcher_intent_lock:
+    objective: ""
+    protected_hypotheses: []
+    protected_protocol_elements: [primary_metric, decision_threshold, dataset_split, baseline, exclusion_criteria, analysis_plan]
+    forbidden_directions: []
+  permission_model:
+    may_repair_runtime: true
+    may_fix_agent_owned_code: true
+    may_change_experiment_design: false
+    may_generate_new_hypotheses: false
+    may_retire_unpromising_hypotheses: false
+    may_change_primary_metric: false
+    may_change_dataset_or_splits: false
+```
+
+For `autonomous_researcher`, set `may_change_experiment_design: true` and explicitly list allowed adaptations (for example stronger baselines, extra ablations, robustness checks, sensitivity analysis, alternative hypotheses). Even in that mode, core research identity, human-subject/clinical/regulated data, credentials, paid resources, external publication, and production/external-world effects remain hard-stops.
+
 #### Hard-Stop Boundary
 
 ```yaml
@@ -309,9 +344,9 @@ How I will store it: ...
 
 Examples must be neutral and diverse. Do not lead the user toward the agent's preferred implementation. The goal is to help the user recognize their own preference, not to sell an option.
 
-### For existing projects: questions 17-19 are answered by the cartographer, not the user
+### For existing projects: questions 20-22 are answered by the cartographer, not the user
 
-For a takeover, the user often cannot answer "which conventions are protected" or "what already works." Route 17-19 to the **Project Cartographer**: it inspects the repo, infers protected vs. replaceable conventions, and produces a draft the user only **vetoes or approves**. Do not block alignment waiting for the user to articulate repo facts they may not know. Ask the user only for items the cartographer cannot infer (intentional product promises, business constraints).
+For a takeover, the user often cannot answer "which conventions are protected" or "what already works." Route 20-22 to the **Project Cartographer**: it inspects the repo, infers protected vs. replaceable conventions, and produces a draft the user only **vetoes or approves**. Do not block alignment waiting for the user to articulate repo facts they may not know. Ask the user only for items the cartographer cannot infer (intentional product promises, business constraints).
 
 ### Core Vision
 
@@ -343,12 +378,15 @@ For a takeover, the user often cannot answer "which conventions are protected" o
 
 15. What metric, benchmark, proof obligation, or observation would convince us an idea is better?
 16. What domains are computationally verifiable now, and what claims would need real-world/physical evidence later?
+17. Should BAGEL operate as a strict protocol executor or an autonomous researcher, and which protocol elements are protected from autonomous change?
+18. Which design adaptations are allowed without waking you: stronger baselines, extra ablations, more seeds, robustness checks, alternative hypotheses, sensitivity analysis, or none?
+19. Which claims must remain confirmatory, and which may be exploratory/post-hoc discovery?
 
 ### Existing Projects
 
-17. Which modules, behaviors, conventions, and user promises are protected?
-18. Which areas may be redesigned aggressively?
-19. What already works and should not be rebuilt?
+20. Which modules, behaviors, conventions, and user promises are protected?
+21. Which areas may be redesigned aggressively?
+22. What already works and should not be rebuilt?
 
 ## Vision Canon
 
@@ -417,6 +455,21 @@ briefing_preferences:
     mode: continuous_dashboard | section_tabs | slide_like_walkthrough
     style: calm_operator | product_studio | research_lab
     update_frequency: every_milestone | every_cycle | final_only
+research_autonomy:
+  mode: protocol_execution | autonomous_researcher
+  researcher_intent_lock:
+    objective: ""
+    protected_hypotheses: []
+    protected_protocol_elements: []
+    forbidden_directions: []
+  permission_model:
+    may_repair_runtime: true
+    may_fix_agent_owned_code: true
+    may_change_experiment_design: false
+    may_generate_new_hypotheses: false
+    may_retire_unpromising_hypotheses: false
+    may_change_primary_metric: false
+    may_change_dataset_or_splits: false
 ```
 
 ## Decision Map
@@ -504,6 +557,7 @@ autonomy_contract:
     - project-local environment and tooling repairs
     - experiment hypotheses, metrics, and iteration plans
     - alternative implementation or research paths after failure
+    - research design amendments only when `research_autonomy.mode=autonomous_researcher` and the amendment preserves the locked research identity
     - minor scope sequencing
     - bug and environment repairs
     - rollback and retry for agent-owned changes
@@ -517,6 +571,8 @@ autonomy_contract:
     - paid external services or credentials
     - production infrastructure or production data changes
     - privacy/business-model/core-audience/core-promise changes
+    - human-subject, clinical, regulated-data, or core research identity changes
+    - external publication/submission/posting/email of research outputs
     - explicit user-forbidden boundary
   unattended_policy:
     continue_after_quota_resumes: true

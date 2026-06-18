@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate V3.1 executable expert strategy artifacts."""
+"""Validate V4 executable expert strategy artifacts."""
 
 from __future__ import annotations
 
@@ -886,13 +886,29 @@ def validate_dataset_integrity(root: Path, errors: list[str]) -> None:
     """
     di_path = root / ".bagel/expert/dataset-integrity.yaml"
     if not di_path.exists():
-        # check if the run made empirical claims that require dataset_integrity
-        claims = as_dict(load_yaml(root / ".bagel/expert/claim-evidence.yaml", {}))
-        has_dataset_claim = any(
-            "dataset" in str(as_dict(c).get("evidence_type") or "").lower()
-            or "empirical" in str(as_dict(c).get("evidence_type") or "").lower()
-            for c in as_list(claims.get("claims"))
-        )
+        # V4.1: read the V4 research claim-evidence path and experiment plan,
+        # not only the legacy expert/claim-evidence.yaml + evidence_type field.
+        constitution = as_dict(load_yaml(root / ".bagel/constitution.yaml", {}))
+        state = as_dict(load_yaml(root / ".bagel/state.yaml", {}))
+        artifact_type = str(
+            as_dict(state.get("artifact_profile")).get("type")
+            or constitution.get("artifact_type")
+            or ""
+        ).lower()
+        has_research_artifact = any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study", "data_analysis", "data-analysis", "analysis"))
+        legacy_claims = as_dict(load_yaml(root / ".bagel/expert/claim-evidence.yaml", {}))
+        research_matrix = as_dict(load_yaml(root / ".bagel/research/claim-evidence.yaml", {}))
+        research_claims = as_dict(research_matrix.get("claim_evidence_matrix")) or research_matrix
+        plan = as_dict(load_yaml(root / ".bagel/research/experiment-plan.yaml", {}))
+        plan_body = as_dict(plan.get("experiment_plan")) or plan
+        has_dataset_claim = has_research_artifact or bool(as_list(plan_body.get("datasets")))
+        for claims in (legacy_claims, research_claims):
+            for c in as_list(claims.get("claims") or claims.get("claim_evidence")):
+                row = as_dict(c)
+                if row.get("dataset_integrity_ref") or row.get("claim_type") in {"confirmatory", "exploratory", "negative_result"}:
+                    has_dataset_claim = True
+                if "dataset" in str(row.get("evidence_type") or "").lower() or "empirical" in str(row.get("evidence_type") or "").lower():
+                    has_dataset_claim = True
         if has_dataset_claim:
             errors.append("empirical dataset claim present but .bagel/expert/dataset-integrity.yaml missing")
         return
@@ -936,6 +952,8 @@ def validate_claim_evidence_matrix(root: Path, state: dict[str, Any], errors: li
     if not any(t in artifact_type for t in ("research", "theory", "benchmark", "experiment", "study", "data_analysis", "data-analysis", "analysis")):
         return  # claim-evidence matrix applies to empirical/research/data-analysis artifacts
     ce_path = root / ".bagel/expert/claim-evidence.yaml"
+    if not ce_path.exists() and (root / ".bagel/research/claim-evidence.yaml").exists():
+        ce_path = root / ".bagel/research/claim-evidence.yaml"
     if not ce_path.exists():
         # check whether the run made headline claims that require a matrix
         framing = as_dict(load_yaml(root / ".bagel/expert/problem-framing.yaml", {}))
@@ -949,13 +967,19 @@ def validate_claim_evidence_matrix(root: Path, state: dict[str, Any], errors: li
             )
         return
     ce = as_dict(load_yaml(ce_path, {}))
-    claims = as_list(ce.get("claims") or ce.get("claim_evidence"))
+    ce_body = as_dict(ce.get("claim_evidence_matrix")) or ce
+    claims = as_list(ce_body.get("claims") or ce_body.get("claim_evidence"))
     if not claims:
         errors.append("claim_evidence_matrix: claim-evidence.yaml exists but has no claim rows")
         return
     for i, raw in enumerate(claims, start=1):
         c = as_dict(raw)
         for field in ("claim_text", "metric", "run_refs"):
+            # V4 research claims use `text` + `metric_refs`.
+            if field == "claim_text" and c.get("text"):
+                continue
+            if field == "metric" and c.get("metric_refs"):
+                continue
             if not c.get(field):
                 errors.append(f"claim_evidence_matrix: claim {i} missing required field {field}")
         run_refs = as_list(c.get("run_refs"))
@@ -992,12 +1016,15 @@ def validate_statistical_rigor(root: Path, state: dict[str, Any], errors: list[s
     # Only enforce when a statistical-results record exists OR headline claims exist
     sr_path = root / ".bagel/expert/statistical-rigor.yaml"
     ce_path = root / ".bagel/expert/claim-evidence.yaml"
+    if not ce_path.exists() and (root / ".bagel/research/claim-evidence.yaml").exists():
+        ce_path = root / ".bagel/research/claim-evidence.yaml"
     has_headline = False
     if ce_path.exists():
         ce = as_dict(load_yaml(ce_path, {}))
-        for raw in as_list(ce.get("claims") or ce.get("claim_evidence")):
+        ce_body = as_dict(ce.get("claim_evidence_matrix")) or ce
+        for raw in as_list(ce_body.get("claims") or ce_body.get("claim_evidence")):
             c = as_dict(raw)
-            if c.get("is_headline") is True or "headline" in str(c.get("claim_text") or "").lower():
+            if c.get("is_headline") is True or c.get("allowed_in_headline") is True or "headline" in str(c.get("claim_text") or c.get("text") or "").lower():
                 has_headline = True
                 break
     if not sr_path.exists():
@@ -1073,6 +1100,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
         # caught even in a lite run, not silently built.
         validate_requirement_coherence(root, state, errors)
         validate_premise_falsifiable(root, state, errors)
+        validate_dataset_integrity(root, errors)
         # C2/C3: research integrity (statistical rigor + claim-evidence matrix)
         validate_claim_evidence_matrix(root, state, errors)
         validate_statistical_rigor(root, state, errors)

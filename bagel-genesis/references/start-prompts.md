@@ -5,17 +5,17 @@ Use these as copy-paste launch prompts when the user wants a reliable start.
 ## Overnight Stable Run
 
 ```text
-Use BAGEL Genesis V3.1. Detect runtime capabilities and record observed proof, bind the strongest loop with interval <=25 minutes, capture the Stop Contract, initialize git if needed, create quick_autonomy unless full_genesis is justified, dispatch Supervisor -> Orchestrator, start the first evidence-producing cycle, and run scripts/bagel_v3_check.py before each cycle ends.
+Use BAGEL Genesis V4. Detect runtime capabilities and record observed proof, bind the strongest loop with interval <=25 minutes, capture the Stop Contract, initialize git if needed, create quick_autonomy unless full_genesis is justified, dispatch Supervisor -> Orchestrator, start the first evidence-producing cycle, and run scripts/bagel_v3_check.py before each cycle ends.
 ```
 
 ## Existing Project Limited Takeover
 
 ```text
-Use BAGEL Genesis V3.1 for limited_takeover. First build evidence-backed project understanding for the requested scope, draft protected vs replaceable surfaces, ask me only to veto/correct intent-sensitive classifications, bind loop, dispatch workers for implementation, record scope deltas, and run scripts/bagel_v3_check.py.
+Use BAGEL Genesis V4 for limited_takeover. First build evidence-backed project understanding for the requested scope, draft protected vs replaceable surfaces, ask me only to veto/correct intent-sensitive classifications, bind loop, dispatch workers for implementation, record scope deltas, and run scripts/bagel_v3_check.py.
 ```
 
 ## Autonomous Research Run
 
 ```text
-Use BAGEL Genesis V3.1 for an autonomous research run. Align on hypothesis, verification method, stop contract, and artifact type. Build a replayable experiment/evidence protocol, run iterative hypothesis probes, record evidence with hashes and replay policy, use Judgment Council for strategy switches, and run scripts/bagel_v3_check.py each cycle.
+Use BAGEL Genesis V4 for an autonomous research run. Align on research_autonomy.mode (protocol_execution vs autonomous_researcher), hypothesis, verification method, stop contract, and artifact type. Preregister `.bagel/research/experiment-plan.yaml`, maintain the experiment log and claim-evidence matrix, run iterative hypothesis probes, record evidence with hashes and replay policy, use Judgment Council for strategy switches, and run scripts/bagel_v3_check.py each cycle.
 ```

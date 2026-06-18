@@ -1,6 +1,6 @@
 # Orchestration Flow
 
-Authoritative V3.1 end-to-end execution map. It defines phase, required dispatches, durable records, merge rules, and validators.
+Authoritative V4 end-to-end execution map. It defines phase, required dispatches, durable records, merge rules, and validators.
 
 ## RUN START
 
@@ -96,7 +96,7 @@ Authoritative V3.1 end-to-end execution map. It defines phase, required dispatch
 7. **ROI value accounting**
    - Split hard value and soft value. Soft-only streaks force strategy change.
    - Verify: `roi_check.py`.
-8. **V3.1 check**
+8. **V4 check**
    - Run `scripts/bagel_v3_check.py`.
 
 ## ITERATE

@@ -13,7 +13,7 @@
 ---
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.9-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v4.3-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](bagel-genesis/evals/evals.json)
 [![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
@@ -100,7 +100,7 @@ and keep going until the agreed iteration budget is reached or a true hard-stop 
 
 BAGEL 附带 26 个 Python 验证器，agent 每个周期运行一次。关键的：
 
-- **`bagel_v3_check.py`** — 统一套件运行器（19 个检查 + 紧急停止断路器）
+- **`bagel_v3_check.py`** — 统一套件运行器（26 个检查 + 紧急停止断路器）
 - **`expert_strategy_check.py`** — 需求一致性、前提可证伪性、统计严谨性、claim-evidence 矩阵、Council 输出验证、命名依赖协议、数据集完整性
 - **`flywheel_check.py`** — 回归底线（带溯源）、证据内容（≥50 字节）、迭代/周期/预算上限
 - **`scope_check.py`** — 从 git diff 派生的 scope 覆盖（遗漏=失败）、Constitutional Court 裁决验证
@@ -118,6 +118,26 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 BAGEL 对其验证器能保证和不能保证什么异常坦诚。每个验证器都是 agent 运行的 Python 检查器，读取 agent 自己写的 `.bagel/` YAML。检查器验证的是**形状**（字段存在、枚举有效、哈希匹配）——它们提高了懒惰/粗心作弊的门槛，但一个有决心的对抗性 agent 如果用伪造数据填充完整 schema 仍能通过。完全闭合需要**平台级 provenance**（外部触发的门控、append-only 签名状态、真实 token 计量）——这在 skill 的 Enforcement Honesty 节中明确说明。
 
 ## 更新日志
+
+### v4.3 — 科研实验室收尾 + 模式二覆盖度硬化
+
+V4.3 闭合了一次 5-agent 独立审查中影响最大的发现，并把科研自主性升级为可信、CI 可验证的自主科研底座：
+
+- **模式二 amendment 死代码修复** —— `{None, "", []}` 集合字面量在任何格式正确的 amendment 上崩溃；现已稳定运行，并强制结构化 `expected_information_gain` / `confound_risk` / `protected_field_impact` + 由 `true_subagents.observed` 证明支撑的 R3/R4 reviewer 独立性（不再是自填字符串）。
+- **Lab 自动化硬化** —— pre-Build 执行不再因 `run_command` 改名 `eval_script`/`setup` 而绕过；validator 现递归扫描所有 lane 字符串字段，抓可执行命令模式和非 canonical LLM 调用。
+- **平台证明 + CI auditor** —— Claude Code 的 `PostToolUse`/`PreToolUse`/`Stop` hook 用 agent 触达不到的密钥为每次 Bash/文件/turn 事件签名；CI 侧 auditor 通过 command_ref pin、非对称 verdict 签名、plan-before-runs DAG 锚定、per-seed run_ref 唯一性、统计重算（抓伪造 p 值）把 headline claim 绑定到 committed git bytes。
+- **环境锁** —— `environment_lock_check.py` 要求 Build 后科研实验记录 pip-freeze/cuda/确定性标志，闭合复现性缺口。
+- **覆盖度治理** —— `evals/coverage_map.py`（已升级为 per-case guard）验证每个机械 grader fixture 都能 build 且指向存在的 validator，防止"validator 存在但没有 fixture 覆盖"这类失败（正是它藏住了 v4.2 的崩溃）。
+
+结构性边界在文档中保持诚实：pinned-but-malicious 协议脚本仍需 human code review；完全的 ground-truth 闭合需要用户配置外部 CI/branch-protection（skill 检测到后降级为 UNATTESTED，不假装已验证）。
+
+### v4.1 — 科研完整性强化
+
+V4.1 修复最高风险科研漏洞：dataset-integrity 会在 V4 research claim 路径触发，严格模式 authority_ref 必须绑定真实 human decision，实验计划有预注册哈希绑定，headline 指标可要求 metric recompute extractor，长程运行 heartbeat 过期会失败。
+
+### v4.0 — 科研治理层
+
+V4 新增严格科研协议执行模式 `protocol_execution` 和自主科研员模式 `autonomous_researcher`，要求预注册实验计划、实验事件日志、claim-evidence 矩阵，并用机械检查拦截严格模式下的协议漂移和 post-hoc 伪装成 headline confirmatory claim。
 
 ### v3.9 — 外部 9-agent 审查（关键安全 + 完整性缺陷修复）
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate BAGEL V3.1 evidence-backed ROI controller state."""
+"""Validate BAGEL V4 evidence-backed ROI controller state."""
 
 from __future__ import annotations
 

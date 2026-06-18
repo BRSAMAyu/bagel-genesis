@@ -13,7 +13,7 @@ A skill-level operating protocol for autonomous multi-agent project delivery on 
 ---
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v3.9-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v4.3-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](bagel-genesis/evals/evals.json)
 [![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
@@ -53,7 +53,7 @@ Normal agent usage fails in exactly the places that matter for unattended work:
 | Agent self-approval | Review independence from agent/session registry |
 | Weak taste / local optimization | Brainstormers + Judgment Council for direction-level decisions |
 | No clear quality bar | Evaluation Architect generates metrics, rubrics, anti-gaming notes |
-| Fake progress | 19 mechanical validators replay evidence, check hashes, enforce regression floors |
+| Fake progress | 26 mechanical validators replay evidence, check hashes, enforce regression floors |
 | Silent scope creep | Scope deltas track allowed/touched paths with git-diff-derived coverage |
 | Unverifiable claims | Statistical-rigor gate (n_seeds, p_value < threshold, effect size, correction) |
 | Fabricated evidence | `--replay` re-executes cited commands by default |
@@ -100,7 +100,7 @@ and keep going until the agreed iteration budget is reached or a true hard-stop 
 
 BAGEL ships 26 Python validators that the agent runs each cycle. Key ones:
 
-- **`bagel_v3_check.py`** — unified suite runner (19 checks + emergency-stop circuit breaker)
+- **`bagel_v3_check.py`** — unified suite runner (26 checks + emergency-stop circuit breaker)
 - **`expert_strategy_check.py`** — requirement coherence, premise falsifiability, statistical rigor, claim-evidence matrix, council output validation, named-dependency protocol, dataset integrity
 - **`flywheel_check.py`** — regression floors (with provenance), evidence content (≥50 bytes), iteration/cycle/budget caps
 - **`scope_check.py`** — git-diff-derived scope coverage (omission = fail), Constitutional Court verdict verification
@@ -118,6 +118,26 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 BAGEL is unusually candid about what its validators can and cannot guarantee. Every validator is a Python checker the agent runs, reading `.bagel/` YAML the agent authored. The checkers verify **shape** (fields exist, enums valid, hashes match) — they raise the bar against lazy/careless cheating, but a determined adversarial agent that populates the full schema with fabricated data can still pass. Full closure requires **platform-level provenance** (externally-triggered gates, append-only signed state, real token accounting) — this is openly stated in the skill's Enforcement Honesty section.
 
 ## Changelog
+
+### v4.3 — Research Lab Closure + Mode-2 Coverage Hardening
+
+V4.3 closes the highest-impact findings from a 5-agent independent audit and upgrades research autonomy into a trustworthy, CI-verifiable autonomous-research substrate:
+
+- **Mode-2 amendment dead path fixed** — the `{None, "", []}` set literal crashed `validate_amendment` on any well-formed amendment; now runs cleanly and enforces structured `expected_information_gain` / `confound_risk` / `protected_field_impact` + R3/R4 reviewer independence backed by `true_subagents.observed` proof (not self-attested strings).
+- **Lab automation hardened** — pre-Build execution is no longer defeated by renaming `run_command` → `eval_script`/`setup`; the validator now recursively scans all lane string fields for executable command patterns and non-canonical LLM calls.
+- **Platform attestation + CI auditor** — `PostToolUse`/`PreToolUse`/`Stop` Claude Code hooks sign every Bash/file/turn event with a key the agent cannot reach; a CI-side auditor binds headline claims to committed git bytes via command_ref pinning, asymmetric verdict signing, plan-before-runs DAG anchoring, per-seed run_ref uniqueness, and statistic recompute (catches fabricated p-values).
+- **Environment lock** — `environment_lock_check.py` requires pip-freeze/cuda/determinism capture for Build-started research, closing the reproducibility gap.
+- **Coverage governance** — `evals/coverage_map.py` (upgraded to a per-case guard) verifies every mechanical grader fixture builds and targets an existing validator, preventing the "validator exists but no fixture ever exercises it" failure class that hid the v4.2 crash.
+
+Structural limits kept honest in docs: pinned-but-malicious protocol scripts still require human code review; full ground-truth closure needs external CI/branch-protection the user must configure (skill detects and degrades to UNATTESTED rather than over-claiming).
+
+### v4.1 — Research Integrity Hardening
+
+V4.1 closes the highest-risk research gaps: dataset-integrity now fires on the V4 research claim path, strict-mode authority refs must resolve to real human decisions, experiment plans are hash-bound, headline metrics can require recompute extractors, and stale long-run heartbeats fail the suite.
+
+### v4.0 — Research Governance Layer
+
+V4 adds explicit `protocol_execution` and `autonomous_researcher` modes for rigorous autonomous research, with preregistered experiment plans, experiment event logs, claim-evidence matrices, and mechanical checks against strict-protocol drift and post-hoc headline claims.
 
 ### v3.9 — External 9-agent audit (critical safety + integrity defects fixed)
 

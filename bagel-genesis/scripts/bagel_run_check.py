@@ -253,6 +253,17 @@ def validate_loop(root: Path, state: dict[str, Any], errors: list[str], warnings
     loop_phase = loop.get("loop_phase")
     if loop_phase and loop_phase not in {"align_protection", "autonomous_build"}:
         fail(errors, "loop_binding.loop_phase must be align_protection|autonomous_build")
+    # P0-2 reconciliation: run_phase is the single authoritative lifecycle enum
+    # (references/run-phase-model.md). loop_phase and phase are derived views.
+    # If a run records run_phase, the derived loop_phase must match it; otherwise
+    # the three phase vocabularies silently disagree. This catches that drift.
+    run_phase = str(state.get("run_phase") or "").lower()
+    RUN_PHASE_SET = {"align", "build", "iterate", "polish", "excellence_loop", "complete"}
+    if run_phase and run_phase not in RUN_PHASE_SET:
+        fail(errors, f"state.run_phase must be one of {sorted(RUN_PHASE_SET)}, got {run_phase!r} (see references/run-phase-model.md)")
+    expected_loop_phase = "align_protection" if run_phase == "align" else "autonomous_build"
+    if run_phase and loop_phase and loop_phase != expected_loop_phase:
+        fail(errors, f"phase drift: run_phase={run_phase!r} implies loop_phase={expected_loop_phase!r} but loop_binding.loop_phase={loop_phase!r} (set run_phase and derive loop_phase per references/run-phase-model.md)")
     if mode == "degraded_resume":
         attempts = as_list(loop.get("attempts"))
         attempted = {as_dict(item).get("tier") or as_dict(item).get("mechanism") for item in attempts}

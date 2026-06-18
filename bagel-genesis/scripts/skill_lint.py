@@ -104,6 +104,8 @@ def main() -> int:
     failures.extend(check_loading_matrix_files_exist(root))
     failures.extend(check_v34_schema_drift(root))
     failures.extend(check_version_drift(root))
+    failures.extend(check_anti_pattern_refs(root))
+    failures.extend(check_v41_research_wiring(root))
 
     if failures:
         print("BAGEL skill lint failed:")
@@ -804,13 +806,15 @@ def check_v34_schema_drift(root: Path) -> list[str]:
 
 
 def check_version_drift(root: Path) -> list[str]:
-    """v3.7 cross-file version-consistency checks (Judge S1 finding C5+C6).
+    """v3.7 cross-file version-consistency checks (Judge S1 finding C5+C6) + P1-2 version pin.
 
     Catches: (1) deprecated bagel_v2_check.py references in agent/reference prompts
     (the real suite is bagel_v3_check.py); (2) the "compact" instruction in orchestrator.md
     contradicting the replace-not-compact policy; (3) SKILL.md gate-index under-counting
     gate-predicates.md (the static list was replaced with a pointer, but verify it stays
-    a pointer, not a re-enumerated list that drifts).
+    a pointer, not a re-enumerated list that drifts); (4) P1-2: a canonical VERSION file
+    pins the current version; live labels in scripts/SKILL.md must match it, while
+    historical changelog headings (### v3.x) and named test ids are exempt.
     """
     out: list[str] = []
     # C6a: no agent/reference prompt should reference the deprecated bagel_v2_check.py
@@ -830,6 +834,134 @@ def check_version_drift(root: Path) -> list[str]:
         gates_section = skill.split("## Hard Gates")[1].split("##")[0]
         if "gate-predicates.md" not in gates_section:
             out.append("SKILL.md: Hard Gates section does not reference gate-predicates.md as the authoritative source — a static list here will drift from the real predicate table")
+    # P1-2: canonical VERSION file is the single source of truth for the current version.
+    version_file = root / "VERSION"
+    if not version_file.exists():
+        out.append("VERSION: missing — the canonical version pin file (single source of truth) must exist at repo root.")
+    else:
+        canon_major_minor = ".".join(version_file.read_text(encoding="utf-8").strip().split(".")[:2])  # e.g. "3.9"
+        # Live labels in scripts (docstrings, output banners) must match the canonical version.
+        # Exempt: historical changelog headings (### v3.x lines in README.md) and named test ids.
+        for pyfile in sorted(root.glob("scripts/*.py")):
+            if pyfile.name == "skill_lint.py":
+                continue
+            content = pyfile.read_text(encoding="utf-8", errors="ignore")
+            for m in re.finditer(r"[Vv]3\.(\d)", content):
+                found_minor = m.group(1)
+                if found_minor != canon_major_minor.split(".")[1]:
+                    line_no = content.count("\n", 0, m.start()) + 1
+                    out.append(
+                        f"{pyfile.relative_to(root)}:{line_no}: live version label 'V3.{found_minor}' "
+                        f"diverges from canonical VERSION '{canon_major_minor}' — update the label or VERSION."
+                    )
+    return out
+
+
+def check_anti_pattern_refs(root: Path) -> list[str]:
+    """Anti-Patterns table references must not use bare `Lxx` line numbers.
+
+    Line-number citations in a frequently-edited prose file drift silently
+    (an earlier audit found ~13 of 15 stale). Section-anchor references
+    ("§ Roles", "§ Boot Sequence step 8") are stable across edits. This check
+    fails if the Anti-Patterns table reintroduces any `L\\d+` citation, so the
+    drift cannot recur unnoticed.
+    """
+    out: list[str] = []
+    skill_path = root / "SKILL.md"
+    if not skill_path.exists():
+        return out
+    text = skill_path.read_text(encoding="utf-8")
+    # Scope to the Anti-Patterns table region only (between its heading and
+    # the next ## heading), so legitimate Lxx elsewhere (if any) is untouched.
+    if "## Anti-Patterns" not in text:
+        return out
+    table_region = text.split("## Anti-Patterns", 1)[1].split("\n## ", 1)[0]
+    for m in re.finditer(r"\bL\d+\b", table_region):
+        line_no = text.count("\n", 0, text.index(table_region) + m.start()) + 1
+        out.append(
+            f"SKILL.md:{line_no}: Anti-Patterns table uses bare line-ref 'L{m.group(0)[1:]}' "
+            f"— line numbers drift; use a section-anchor reference like '§ Boot Sequence step 8' instead."
+        )
+    return out
+
+
+def check_v41_research_wiring(root: Path) -> list[str]:
+    """V4.1 research governance must stay wired into docs, suite, and gates."""
+    out: list[str] = []
+
+    def read(rel: str) -> str:
+        p = root / rel
+        return p.read_text(encoding="utf-8", errors="ignore") if p.exists() else ""
+
+    suite = read("scripts/bagel_v3_check.py")
+    gates = read("references/gate-predicates.md")
+    skill = read("SKILL.md")
+    research = read("references/research-governance.md")
+    checker = read("scripts/research_governance_check.py")
+    replay = read("scripts/evidence_replay_check.py")
+    auditor = read("scripts/ci_auditor.py")
+    verifier = read("scripts/audit_verifier.py")
+    lab_check = read("scripts/research_lab_check.py")
+    workflow = read(".github/workflows/bagel-audit.yml")
+    ci_doc = read("references/ci-audit.md")
+    lab_doc = read("references/research-lab-automation.md")
+    required_gates = {
+        "research_mode_declared",
+        "experiment_plan_preregistered",
+        "experiment_event_log_current",
+        "confirmatory_claim_not_posthoc",
+    }
+    if "research_governance_check.py" not in suite:
+        out.append("scripts/bagel_v3_check.py: V4.1 requires research_governance_check.py in CHECKS.")
+    if "research_lab_check.py" not in suite:
+        out.append("scripts/bagel_v3_check.py: V4.1 requires research_lab_check.py in CHECKS.")
+    if "environment_lock_check.py" not in suite:
+        out.append("scripts/bagel_v3_check.py: V4.3 requires environment_lock_check.py in CHECKS.")
+    if "ci_readiness_check.py" not in suite:
+        out.append("scripts/bagel_v3_check.py: V4.1 requires ci_readiness_check.py in CHECKS.")
+    if "liveness_check.py" not in suite:
+        out.append("scripts/bagel_v3_check.py: V4.1 requires liveness_check.py as a top-level CHECK.")
+    for gate_id in required_gates:
+        if gate_id not in gates:
+            out.append(f"references/gate-predicates.md: missing V4.1 research gate {gate_id}.")
+    for token in ("protocol_execution", "autonomous_researcher", "research_autonomy.mode"):
+        if token not in skill:
+            out.append(f"SKILL.md: missing V4.1 research mode token {token}.")
+    for token in ("preregistered_plan_sha256", "research_design_amendment", "authority_ref"):
+        if token not in checker and token not in research:
+            out.append(f"V4.1 research governance missing {token} in checker/reference.")
+    if "metric_recompute" not in replay:
+        out.append("scripts/evidence_replay_check.py: V4.1 requires metric_recompute mode.")
+    for token in ("research_run_matrix", "allowed_llm_entrypoints", "no_experiment_before_build_unlock"):
+        if token not in lab_check + lab_doc + skill:
+            out.append(f"research lab automation wiring missing {token}.")
+    for token in ("walk_strings", "EXECUTION_RE", "CANONICAL_LLM_ENTRYPOINT"):
+        if token not in lab_check:
+            out.append(f"scripts/research_lab_check.py: V4.3 requires recursive command/LLM scan token {token}.")
+    for token in ("capability_observed_with_proof", "registry_confirms_reviewer", "fresh_preregistration_valid"):
+        if token not in checker:
+            out.append(f"scripts/research_governance_check.py: V4.3 amendment governance missing {token}.")
+    coverage_map = read("evals/coverage_map.py")
+    grader = read("evals/mechanical_grader.py")
+    for token in ("design_amendment", "renamed executable field", "coverage_map"):
+        if token == "coverage_map":
+            if not coverage_map:
+                out.append("evals/coverage_map.py: V4.3 requires eval coverage governance.")
+        elif token not in grader:
+            out.append(f"evals/mechanical_grader.py: V4.3 missing fixture coverage token {token}.")
+    env_lock = read("scripts/environment_lock_check.py")
+    if "research_environment_lock_v1" not in env_lock:
+        out.append("scripts/environment_lock_check.py: V4.3 environment-lock schema check missing.")
+    for token in ("preregistration.yaml", "extracts_from_sha256", "TRIVIAL_EXTRACTOR_RE", "run_ref"):
+        if token not in auditor:
+            out.append(f"scripts/ci_auditor.py: V4.1 CI closure missing {token}.")
+    for token in ("openssl-sha256", "BAGEL_AUDIT_PRIVATE_KEY_PEM"):
+        if token not in auditor + verifier + workflow + ci_doc:
+            out.append(f"CI audit asymmetric signing docs/wiring missing {token}.")
+    if "set -euo pipefail" not in workflow or "PIPESTATUS[0]" not in workflow:
+        out.append(".github/workflows/bagel-audit.yml: CI auditor must preserve auditor exit status through tee with pipefail/PIPESTATUS.")
+    if re.search(r"Optional but recommended.*branch protection", ci_doc, re.I | re.S):
+        out.append("references/ci-audit.md: branch protection must be documented as required, not optional.")
     return out
 
 

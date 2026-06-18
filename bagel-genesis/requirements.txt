@@ -1,0 +1,9 @@
+# Runtime dependencies for the BAGEL Genesis validator suite (scripts/*.py).
+#
+# Install once per environment:
+#   pip install -r requirements.txt
+#
+# The validator scripts import `yaml` (PyYAML). Without it the entire
+# `python scripts/bagel_v3_check.py <root>` suite crashes with a stack trace
+# instead of running the gates. PyYAML is the only third-party dependency.
+PyYAML>=6.0

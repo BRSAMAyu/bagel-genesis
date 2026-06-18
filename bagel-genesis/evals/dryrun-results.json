@@ -1,6 +1,6 @@
 {
-  "$comment": "Darwin v3.6 dry-run results. Records that each pressure scenario S1-S9 produces the gate/checkpoint behavior the skill prescribes, verified by live attacks against expert_strategy_check.py + cross-checked against gate-predicates.md. eval_mode=dry_run (no live subagent run; these are simulated scenario walks + live validator attacks).",
-  "skill_version": "v3.6",
+  "$comment": "Dry-run results. Records that each pressure scenario S1-S9 produces the gate/checkpoint behavior the skill prescribes, verified by live attacks against expert_strategy_check.py + cross-checked against gate-predicates.md. eval_mode=dry_run (no live subagent run; these are simulated scenario walks + live validator attacks). The mechanical enforcement substrate (the validators these scenarios attack) is independently graded by evals/mechanical_grader.py, which runs 4 positive + 16 negative fixture-based assertions against the validator scripts every commit.",
+  "skill_version": "v4.3",
   "eval_date": "2026-06-16",
   "eval_mode": "dry_run",
   "scenarios": [

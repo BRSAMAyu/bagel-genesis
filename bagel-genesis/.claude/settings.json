@@ -1,0 +1,56 @@
+{
+  "_comment": "Copy this file (or merge the hooks block) into your project's .claude/settings.json. The attestation tier only activates when BAGEL_ATTEST_KEY is set in your shell environment — see references/platform-attestation.md. Replace SKILL_PATH with the absolute path to this skill directory.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 SKILL_PATH/scripts/attest_fileop.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 SKILL_PATH/scripts/attest_fileop.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 SKILL_PATH/scripts/attest_bash.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 SKILL_PATH/scripts/attest_fileop.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 SKILL_PATH/scripts/attest_stop.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility wrapper for BAGEL V3.1 validator suite."""
+"""Compatibility wrapper for BAGEL V4 validator suite."""
 
 from __future__ import annotations
 
