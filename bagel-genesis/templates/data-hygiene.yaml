@@ -1,0 +1,25 @@
+# Merge into: .bagel/research/experiment-plan.yaml  (under experiment_plan:)
+# data_leakage_check.py requires this block for any confirmatory/headline claim. It
+# encodes the three classic integrity rejects that sink a paper even with perfect
+# statistics: all-data preprocessing, selecting on test, outcome-dependent exclusions.
+experiment_plan:
+  analysis_plan:
+    preprocessing_scope: train_only   # train_only | train_val | all_data
+                                      # all_data (preprocessing saw test) REQUIRES
+                                      # data_hygiene.test_set_policy.leakage_audited=true
+                                      # AND a non-empty leakage_justification below
+  data_hygiene:
+    test_set_policy:
+      touch_count: 1                  # int — times the test set was evaluated; >1 needs
+                                      # a leakage_justification
+      selection_used: validation      # validation | val | train — NEVER test
+                                      # (selecting hyperparameters on test = leakage)
+      leakage_audited: true           # you explicitly checked train/test overlap and
+                                      # pretraining contamination — must be true
+      leakage_justification: ""       # REQUIRED if preprocessing_scope=all_data or
+                                      # touch_count > 1; else may be empty
+    exclusions:                       # every dropped run/example, if any
+      - criterion: "NaN in first 100 steps"
+        preregistered: true           # true if the rule was outcome-independent (set
+                                      # before seeing results); otherwise:
+        # posthoc: true               # label honestly if decided after seeing outcomes

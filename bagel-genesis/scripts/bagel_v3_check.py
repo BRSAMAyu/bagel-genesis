@@ -49,8 +49,14 @@ CHECKS = [
     "evidence_replay_check.py",
     "scope_check.py",
     "evaluation_quality_check.py",
+    "finding_verification_check.py",
     "expert_strategy_check.py",
     "research_governance_check.py",
+    "statistical_rigor_check.py",
+    "data_leakage_check.py",
+    "reproducibility_checklist_check.py",
+    "discovery_sandbox_check.py",
+    "optimization_integrity_check.py",
     "research_lab_check.py",
     "environment_lock_check.py",
     "roi_check.py",
@@ -59,6 +65,7 @@ CHECKS = [
     "emergency_stop_check.py",
     "production_surface_check.py",
     "non_functional_quality_check.py",
+    "execution_fidelity_check.py",
 ]
 
 

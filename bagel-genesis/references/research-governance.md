@@ -9,6 +9,7 @@ Every research-like run must declare exactly one mode in `.bagel/constitution.ya
 ```yaml
 research_autonomy:
   mode: protocol_execution | autonomous_researcher
+  objective: discovery | optimization   # REQUIRED when mode is autonomous_researcher
   researcher_intent_lock:
     objective: ""
     protected_hypotheses: []
@@ -31,6 +32,8 @@ research_autonomy:
 `protocol_execution` is the strict tool mode. The agent executes the researcher's protocol, repairs local runtime/code/environment failures, and records everything. It must not introduce new hypotheses, change the primary metric, alter data splits, alter thresholds, remove baselines, change exclusion criteria, reinterpret the research question, or present post-hoc analyses as confirmatory without explicit human authority.
 
 `autonomous_researcher` is the scientific collaborator mode. The agent may propose and run design improvements, new ablations, alternative hypotheses, extra robustness checks, and negative-result follow-ups inside the locked research direction. It still may not change the core research identity, use restricted data, touch human-subject/clinical/compliance surfaces, spend paid resources, or make external non-rollbackable effects without a hard-stop decision.
+
+`autonomous_researcher` further splits by `objective` into two styles with opposite freedom/safety profiles — **`discovery`** (the Explorer: divergent, sandboxed idea generation whose deliverable is vetted novel ideas, never commits to the user's project) and **`optimization`** (the Optimizer: convergent benchmark-score improvement with latitude to rewrite the method, under the full Mode-1 integrity stack). The two styles route to different loops, roles, and enforcement. See `references/autonomous-research.md` for the complete operational spec of both; this file covers the shared governance (preregistration, amendments, drift limits) that applies the moment a claim becomes confirmatory.
 
 ## Required Research Artifacts
 
@@ -199,6 +202,140 @@ Headline/confirmatory claims must cite metric recompute evidence. Each confirmat
 
 CI-level headline evidence is stricter: metric evidence must include `extracts_from` and `extracts_from_sha256`, and the extractor must reference that artifact. A trivial extractor that prints a literal (`echo 0.847`, `printf`, `python -c 'print(...)'`) is not evidence. Per-seed statistics must cite `run_ref` evidence for each seed; YAML-only seed values are refused.
 
+## Statistical Rigor (Mode 1 paper-grade)
+
+Provenance gates above stop HARKing and post-hoc relabeling. They do **not** make
+a confirmatory claim statistically honest — that is the job of
+`scripts/statistical_rigor_check.py`, which holds every **confirmatory or
+headline** claim (exploratory/negative/limitation claims and non-research runs are
+untouched) to the bar a top-venue referee applies. It encodes the most common
+empirical desk-reject reasons as mechanical predicates.
+
+Extend the plan and claim records with these fields:
+
+```yaml
+experiment_plan:
+  analysis_plan:
+    statistical_test: "paired bootstrap, 10k resamples"
+    correction: "Holm-Bonferroni"   # REQUIRED once >1 confirmatory comparison exists
+    min_seeds: 5                     # hard floor >= 3; single/double-seed headline is rejected
+    effect_size_metric: "Cohen's d"
+  seeds: [0, 1, 2, 3, 4]             # len(seeds) >= min_seeds
+  baselines:
+    - id: "baseline-A"
+      parity:                        # an unfair baseline is the #1 "unfair comparison" reject
+        tuning_budget_matched: true
+        compute_matched: true
+        data_matched: true
+        justification: ""            # REQUIRED if ANY matched flag is false
+  compute_budget:                    # NeurIPS reproducibility-checklist requirement
+    accelerator: "A100-80GB"
+    total_runs: 30
+    gpu_hours: 12.5                  # warn-if-missing (wall_clock accepted instead)
+
+claim_evidence_matrix:
+  claims:
+    - claim_id: C1
+      claim_type: confirmatory
+      hypothesis_id: H1
+      allowed_in_headline: true
+      statistics:
+        n_runs: 5                    # >= min_seeds — the headline aggregates the seed floor
+        aggregation: mean            # mean | median
+        dispersion_type: ci95        # std | sem | ci95 | ci99 | iqr — no error bar => reject
+        dispersion_value: 0.012
+        comparison_baseline: "baseline-A"   # the baseline this claim beats
+        test: "paired bootstrap, 10k resamples"   # should match analysis_plan.statistical_test
+        p_value: 0.003
+        effect_size: 0.81            # significance without an effect size is uninterpretable
+        effect_size_metric: "Cohen's d"
+        meets_practical_significance: true   # effect vs the hypothesis's prereg threshold;
+                                             # if false, the claim may NOT be allowed_in_headline
+```
+
+Enforced for confirmatory/headline claims: a declared seed floor `>= 3` with
+enough registered seeds; per-claim error bars (`aggregation` + `dispersion_type` +
+numeric `dispersion_value`); a real significance test, numeric `p_value`, numeric
+`effect_size`, and `effect_size_metric` for any baseline comparison; a
+multiple-comparison `correction` once more than one comparative claim exists;
+declared baseline `parity` (asymmetry must be justified); a `compute_budget` with
+accelerator and total run count; and `meets_practical_significance` so a
+statistically-significant-but-trivial effect cannot be headlined. In
+`protocol_execution` a confirmatory claim must also bind to a preregistered
+`hypothesis_id` (no orphan headline introduced during execution).
+
+Honest limit: this verifies the *shape and internal consistency* of the reported
+statistics, not the arithmetic — it makes a statistically dishonest run impossible
+to pass *by omission*, but cannot by itself catch a fabricated-but-well-formed
+number. Pair it with `metric_recompute` evidence (recomputes the value from saved
+logs) and an external research referee for full closure.
+
+## Data Hygiene & Leakage (Mode 1 paper-grade)
+
+`statistical_rigor_check.py` proves the numbers are well-formed; it does **not**
+prove they are uncontaminated. `scripts/data_leakage_check.py` closes the three
+classic integrity rejects that sink a paper even when the statistics are
+impeccable — all-data preprocessing, selecting on the test set, and
+outcome-dependent exclusions. It fires on confirmatory/headline claims in
+research runs after Build. Extend the plan with:
+
+```yaml
+experiment_plan:
+  analysis_plan:
+    preprocessing_scope: train_only   # train_only | train_val | all_data
+  data_hygiene:
+    test_set_policy:
+      touch_count: 1                   # times the test set was evaluated (int)
+      selection_used: validation       # validation | val | train  — NEVER test
+      leakage_audited: true            # train/test overlap + pretraining contamination checked
+      leakage_justification: ""        # REQUIRED if preprocessing_scope==all_data OR touch_count>1
+    exclusions:
+      - criterion: "runs that NaN'd in first 100 steps"
+        preregistered: true            # outcome-independent
+        posthoc: false                 # set true to explicitly label a post-hoc exclusion
+```
+
+Enforced: `all_data` preprocessing is allowed only with `leakage_audited: true`
+and a non-empty justification; `selection_used: test` is rejected outright (it turns
+the test number into a training number); `touch_count` must be an int and any value
+>1 needs justification; `leakage_audited` must be true; every exclusion must be
+`preregistered: true` or explicitly `posthoc: true` (an outcome-dependent exclusion
+decided after seeing results is p-hacking). Honest limit: this verifies the run
+*declares* leakage-free handling and that the declaration is internally consistent —
+it cannot read the training data to prove no overlap exists. The audit itself is the
+researcher's + referee's job.
+
+## Reproducibility Checklist (Mode 1 paper-grade)
+
+A confirmatory-headline research run must also produce the submission-ready,
+NeurIPS/ICML-style checklist at `.bagel/research/reproducibility-checklist.yaml`,
+validated by `scripts/reproducibility_checklist_check.py`:
+
+```yaml
+reproducibility_checklist:
+  items:
+    code_released:               {answer: yes, evidence_ref: "repo/ or release note"}
+    datasets_documented:         {answer: yes, evidence_ref: "experiment-plan.yaml#datasets"}
+    seeds_reported:              {answer: yes, evidence_ref: "experiment-plan.yaml#seeds"}
+    hyperparameters_reported:    {answer: yes, evidence_ref: "configs/"}
+    compute_reported:            {answer: yes, evidence_ref: "experiment-plan.yaml#compute_budget"}
+    error_bars_reported:         {answer: yes, evidence_ref: "claim-evidence.yaml#statistics"}
+    significance_reported:       {answer: yes, evidence_ref: "claim-evidence.yaml#statistics"}
+    train_test_split_documented: {answer: yes, evidence_ref: "experiment-plan.yaml#data_hygiene"}
+    limitations_section:         {answer: yes, evidence_ref: "report#limitations"}
+    broader_impacts:             {answer: na,  evidence_ref: ""}
+    assets_licensed:             {answer: na,  evidence_ref: ""}
+```
+
+Enforced: every item answered `yes|no|na`; a `yes` needs a non-empty `evidence_ref`
+(no empty boxes); the hard-required items (seeds, compute, error bars, significance,
+train/test split, limitations) cannot be `no`/`na`; and every mechanical `yes` is
+cross-checked against the real artifact (seeds≥3 in the plan, `compute_budget`
+present, confirmatory claims carry dispersion + p_value, `test_set_policy` exists),
+so the checklist can never be greener than the work. Honest limit: items with no
+mechanical artifact (limitations/impacts/license prose) are checked for presence of
+an answer + ref, not substance — that judgment is the Research Referee's.
+
 ## Environment Lock
 
 Once research Build starts, capture `.bagel/research/environment-lock.yaml`:
@@ -233,3 +370,20 @@ The final report must include:
 - reproducibility commands and environment;
 - design amendments and whether they were pre-result or post-hoc;
 - limitations, threats to validity, and what would falsify the conclusion next.
+
+Before any confirmatory headline is final-accepted, it must pass the full
+mechanical floor — `statistical_rigor_check.py` (statistics well-formed),
+`data_leakage_check.py` (numbers uncontaminated), and
+`reproducibility_checklist_check.py` (paper complete + boxes backed by artifacts) —
+**and** an independent **Research Referee** (`agents/research-referee.md`, judgment
+floor) recorded as a `.bagel/reviews/REF-*.yaml` finding-verification record. The
+mechanical layer is the omission floor (a dishonest run cannot pass *by leaving
+something out*); the referee is the judgment floor (catching the well-formed-but-wrong
+that no script can). `execution_fidelity_check.py` independently refuses a `complete`
+research run that is missing the claim's statistics, the referee record, or the
+reproducibility checklist — so none of these can be silently skipped at the finish. The referee must be a real
+isolated R3/R4 dispatch (`true_subagents.observed: true` + proof, per
+`references/runtime-capabilities.md`); same-thread role-switching is R1/R2 and
+cannot final-accept a confirmatory headline. Any P0/P1 the referee confirms (its
+`reproduction.result: reproduced`) forces `net_assessment: backward` and blocks
+acceptance until resolved.

@@ -37,6 +37,21 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else SCRIPT_DIR.parent
 PY = sys.executable
 
+# Fixtures pin LF-based hashes (sha256_text == str.encode(), which is LF). On
+# Windows, Path.write_text translates \n -> \r\n, and core.autocrlf can normalize
+# committed blobs, so on-disk/committed bytes disagree with the pinned hash and the
+# (correctly strict) validators reject the self-inconsistent fixture. Force LF on
+# every fixture write so the pins stay consistent on all platforms. This is a no-op
+# on Linux/macOS and does NOT touch the validators — they remain byte-exact strict.
+_orig_write_text = Path.write_text
+
+
+def _write_text_lf(self, data, encoding="utf-8", errors=None, newline="\n"):
+    return _orig_write_text(self, data, encoding=encoding, errors=errors, newline=newline)
+
+
+Path.write_text = _write_text_lf
+
 
 def run(script: str, root: Path, *, expect_fail: bool) -> tuple[bool, str]:
     """Run a validator script against `root`. Return (matched_expectation, detail)."""
@@ -55,6 +70,9 @@ def git_init(root: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     subprocess.run(["git", "config", "user.email", "bagel-test@example.com"], cwd=root, check=True)
     subprocess.run(["git", "config", "user.name", "bagel-test"], cwd=root, check=True)
+    # Keep committed blobs byte-identical to on-disk LF bytes (no CRLF normalization),
+    # so pinned LF hashes match `git show HEAD:...` on Windows checkouts too.
+    subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
 
 
 def git_commit(root: Path, message: str) -> str:
@@ -860,6 +878,62 @@ def fixture_claim_metric_value_unbound(root: Path) -> None:
     )
 
 
+def fixture_discovery_blast_radius(root: Path) -> None:
+    """Mode-2 Explorer cheat: a `objective: discovery` run modifies the user's real
+    project tree (a file outside the sandbox and .bagel/). discovery_sandbox_check
+    must catch the blast-radius violation via git porcelain."""
+    git_init(root)
+    bagel = root / ".bagel"
+    (bagel / "explore").mkdir(parents=True, exist_ok=True)
+    (bagel / "constitution.yaml").write_text(
+        "research_autonomy:\n"
+        "  mode: autonomous_researcher\n"
+        "  objective: discovery\n"
+        "  discovery_contract:\n"
+        "    sandbox_path: .bagel/explore/\n"
+    )
+    (bagel / "state.yaml").write_text("run_status: in_progress\n")
+    # A legitimate sandbox file (allowed) ...
+    (bagel / "explore/scratch.txt").write_text("toy probe output\n")
+    git_commit(root, "baseline")
+    # ... and a forbidden write into the user's real project tree (untracked).
+    (root / "src").mkdir(exist_ok=True)
+    (root / "src/app.py").write_text("# discovery should never touch this\n")
+
+
+def fixture_optimization_select_on_test(root: Path) -> None:
+    """Mode-2 Optimizer cheat: a kept variant was selected on the TEST split (turning
+    the benchmark into a training signal). optimization_integrity_check must reject it."""
+    git_init(root)
+    bagel = root / ".bagel"
+    (bagel / "research").mkdir(parents=True, exist_ok=True)
+    (bagel / "constitution.yaml").write_text(
+        "research_autonomy:\n"
+        "  mode: autonomous_researcher\n"
+        "  objective: optimization\n"
+    )
+    (bagel / "state.yaml").write_text("run_phase: iterate\n")
+    (bagel / "research/optimization-target.yaml").write_text(
+        "optimization_target:\n"
+        "  targets:\n"
+        "    - benchmark: GSM8K\n"
+        "      metric: accuracy\n"
+        "      goal: maximize\n"
+        "      current_baseline: 0.82\n"
+        "      split_policy: select_on_val_test_once\n"
+    )
+    (bagel / "research/optimization-log.yaml").write_text(
+        "optimization_log:\n"
+        "  variants:\n"
+        "    - variant_id: V1\n"
+        "      change: tuned prompt\n"
+        "      selection_split: test\n"   # the cheat
+        "      val_score: 0.88\n"
+        "      kept: true\n"
+    )
+    git_commit(root, "optimization run state")
+
+
 # (label, script, expect_fail, fixture-factory)
 NEGATIVE_CASES = [
     ("no-hardcoded-secrets catches committed AKIA key",
@@ -892,6 +966,10 @@ NEGATIVE_CASES = [
      "research_lab_check.py", True, fixture_research_lab_renamed_command),
     ("research governance rejects unverified design_amendment reviewer",
      "research_governance_check.py", True, fixture_research_amendment_dead_path),
+    ("discovery sandbox catches blast-radius write outside sandbox",
+     "discovery_sandbox_check.py", True, fixture_discovery_blast_radius),
+    ("optimization integrity catches kept variant selected on test",
+     "optimization_integrity_check.py", True, fixture_optimization_select_on_test),
 ]
 
 
@@ -942,6 +1020,7 @@ def fixture_minimal_healthy_run(root: Path) -> None:
     # Real git repo (scripts run `git rev-parse --is-inside-work-tree`).
     subprocess.run(["git", "init", "-q"], cwd=root, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
     subprocess.run(["git", "-c", "user.email=a@b.c", "-c", "user.name=t", "add", "-A"],
                    cwd=root, check=True)
     bagel = root / ".bagel"

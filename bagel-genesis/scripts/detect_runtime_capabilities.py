@@ -132,7 +132,11 @@ def render_yaml() -> str:
         timers_observed = None
         hooks_observed = None
     elif platform == "claude_code":
-        true_subagents_observed = claude_cli
+        # observed stays UNKNOWN until a real isolated dispatch is recorded by
+        # the Task PostToolUse hook (attest_subagent.py) into the proof file.
+        # CLI presence is an adapter claim, NOT an observation — conflating them
+        # taught the agent that observed:true precedes evidence (RUN-001 finding 2).
+        true_subagents_observed = None
         timers_observed = None
         hooks_observed = None
     else:
@@ -188,14 +192,39 @@ runtime_capabilities:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--out", help="Write YAML to this path instead of stdout")
+    parser = argparse.ArgumentParser(description=__doc__)
+    # Accept a positional <root> like every other BAGEL script
+    # (bagel_v3_check.py <root>, runtime_proof_check.py <root>, …). Without
+    # this, the convention-following invocation `detect…py .` errored out on
+    # the first command of every run (RUN-001 finding 1).
+    parser.add_argument(
+        "root",
+        nargs="?",
+        default=None,
+        help="Project root. Detection runs against it and YAML is written to "
+        "<root>/.bagel/runtime_capabilities.yaml unless --out is given. "
+        "Omit (or pass nothing) to print to stdout.",
+    )
+    parser.add_argument(
+        "--out",
+        help="Write YAML to this explicit path instead of the <root> default / stdout",
+    )
     args = parser.parse_args()
+
+    # When a root is given, detect against it (git-repo probe is cwd-sensitive).
+    if args.root is not None:
+        root = Path(args.root).resolve()
+        if root.is_dir():
+            os.chdir(root)
+        out_path = Path(args.out) if args.out else root / ".bagel" / "runtime_capabilities.yaml"
+    else:
+        out_path = Path(args.out) if args.out else None
+
     output = render_yaml()
-    if args.out:
-        path = Path(args.out)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(output, encoding="utf-8")
+    if out_path is not None:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(output, encoding="utf-8")
+        print(f"runtime capabilities written to {out_path}")
     else:
         print(output, end="")
     return 0

@@ -1,0 +1,27 @@
+# Copy to: .bagel/research/optimization-log.yaml
+# Log EVERY variant you try, not just the winner. This is the honest denominator: a
+# gain that is really one-in-N noise must be visible as one-in-N. optimization_integrity
+# _check.py requires every KEPT variant to declare a selection_split that is NOT test.
+optimization_log:
+  variants:
+    - variant_id: V1
+      change: "what you changed, concretely (the diagnosed loss it attacks)"
+      selection_split: validation   # validation | val | dev | train — NEVER test.
+                                    # A kept variant selected on test fails the gate.
+      val_score: 0.84               # its score on the selection split
+      kept: true                    # true if it beat the running best on validation
+    - variant_id: V2
+      change: "another thing you tried"
+      selection_split: validation
+      val_score: 0.80
+      kept: false                   # tried-and-dropped variants belong here too —
+                                    # that is the point of the honest denominator
+# When the winner is locked, evaluate it ONCE on the held-out test set and record the
+# headline as a confirmatory claim in claim-evidence.yaml (see below), not here:
+#   claim_id: C1
+#   claim_type: confirmatory
+#   benchmark: GSM8K
+#   evaluated_on: test            # the held-out split, touched once
+#   final_score: 0.87             # must beat current_baseline in the declared direction
+#   ablation_ref: .bagel/research/ablations/c1.yaml   # attributes the gain to the change
+#   statistics: { correction: Holm }  # multiple-comparison correction once >=3 shopped

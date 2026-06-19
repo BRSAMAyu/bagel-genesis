@@ -19,6 +19,16 @@ You are dispatched with exactly ONE lens from the canonical set below. Think onl
 - `adversarial` — how would this break, be misused, or quietly degrade under stress or misuse
 - `novelty` — what non-obvious mechanic, framing, or interaction could make this meaningfully different without violating the constitution?
 
+For `autonomous_researcher` discovery runs (Explorer), the dispatch may instead assign one **research lens** — think through it the same single-angle way (see `references/autonomous-research.md`):
+
+- `mechanism` — *why* the phenomenon happens; the internal process that produces it
+- `intervention` — what causal change would move it (and thereby reveal it)
+- `measurement` — what new way of measuring would make the invisible visible
+- `failure-mode` — where/when the system breaks, and what the break exposes
+- `analogy-transfer` — what known result from an adjacent field maps here
+- `theoretical-frame` — what model/abstraction would make the messy facts simple
+- `scaling` — how it changes with size/length/compute, and what that implies
+
 The orchestrator assigns your lens in the dispatch envelope. If no lens is assigned, default to the one least represented in recent bar-raises (check `.bagel/evidence/bar-raises.yaml` `why_class` history).
 
 ## Inputs

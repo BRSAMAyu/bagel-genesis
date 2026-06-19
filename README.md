@@ -13,7 +13,7 @@ A skill-level operating protocol for autonomous multi-agent project delivery on 
 ---
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v4.3-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v5.0-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](bagel-genesis/evals/evals.json)
 [![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
@@ -118,6 +118,18 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 BAGEL is unusually candid about what its validators can and cannot guarantee. Every validator is a Python checker the agent runs, reading `.bagel/` YAML the agent authored. The checkers verify **shape** (fields exist, enums valid, hashes match) — they raise the bar against lazy/careless cheating, but a determined adversarial agent that populates the full schema with fabricated data can still pass. Full closure requires **platform-level provenance** (externally-triggered gates, append-only signed state, real token accounting) — this is openly stated in the skill's Enforcement Honesty section.
 
 ## Changelog
+
+### v5.0 — Mode-2 complete, execution-gap closure, externally-verified substrate
+
+V5 completes the two halves of "an independent researcher who can do creative and innovative work," closes the gap between *designed protocol* and *actual agent behavior*, and puts the validator substrate itself under external CI:
+
+- **Mode-2 split into two complete styles by `research_autonomy.objective`.** **Explorer** (`discovery`) returns vetted *novel ideas* under a **zero-blast-radius** sandbox contract (`research-explorer.md` + `discovery_sandbox_check.py`); **Optimizer** (`optimization`) chases the best *honest* benchmark score — may tune, swap, or replace the method — under an anti-gaming contract (`research-optimizer.md` + `optimization_integrity_check.py`: target+baseline locked first, every kept variant selected on validation not test, full variant denominator logged, headline bound to the Mode-1 confirmatory stack + attributed by ablation).
+- **Mode-1 data-integrity + reproducibility floor** — `data_leakage_check.py` (all-data preprocessing / selecting-on-test / outcome-dependent exclusions) and `reproducibility_checklist_check.py` (NeurIPS/ICML checklist with every mechanical `yes` cross-checked against the real artifact, now robust to YAML boolean coercion).
+- **Execution-gap closure** — `execution_fidelity_check.py` inverts skip-if-absent (a claim that implies an artifact fails when the artifact is absent); opt-in `BAGEL_REQUIRE_CONTROL_PLANE=1` blocks product writes at the tool boundary until the constitution exists, regardless of whether the agent read the protocol.
+- **Producer-side templates** (`templates/`) so agents fill the schema instead of reconstructing it — each annotated with exactly what its gate checks, verified to pass end-to-end.
+- **Externally-verified substrate** — `run_all_self_tests.py` runs every validator self-test in one command; the CI workflow gained a `validators` job running the consolidated self-tests + the 22-assertion mechanical grader on every push, so a gate cannot silently regress in a process the agent controls.
+
+Structural limits kept honest: a gate proves the *protocol* was honest (locked target, val-selection, logged denominator, held-out confirmation), not that the test set never leaked into training — that audit composes with `data_leakage`; full ground-truth closure still needs the external CI/branch-protection the user configures.
 
 ### v4.3 — Research Lab Closure + Mode-2 Coverage Hardening
 

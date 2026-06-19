@@ -1,5 +1,6 @@
 {
   "_comment": "Copy this file (or merge the hooks block) into your project's .claude/settings.json. The attestation tier only activates when BAGEL_ATTEST_KEY is set in your shell environment — see references/platform-attestation.md. Replace SKILL_PATH with the absolute path to this skill directory.",
+  "_comment_control_plane": "OPT-IN engagement forcing function: set BAGEL_REQUIRE_CONTROL_PLANE=1 in your shell to make the Write/Edit PreToolUse hook (attest_fileop.py) BLOCK all product/source writes until .bagel/constitution.yaml exists. This guarantees the agent runs the Align phase before writing code instead of ignoring the skill. Off by default. Bootstrap paths (.bagel/, status.md, .git*) are always allowed. See references/gate-predicates.md control_plane_first.",
   "hooks": {
     "PreToolUse": [
       {
@@ -37,6 +38,15 @@
           {
             "type": "command",
             "command": "python3 SKILL_PATH/scripts/attest_fileop.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 SKILL_PATH/scripts/attest_subagent.py"
           }
         ]
       }

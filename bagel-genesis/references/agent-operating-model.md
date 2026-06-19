@@ -83,6 +83,18 @@ Reviews amendments and suspected engineering escape. It sees constitution, amend
 
 Attacks the baseline/final candidate and major decisions from adversarial, edge-case, persona, environment, privacy, and failure perspectives. It produces findings; it does not fix them.
 
+### Research Referee
+
+The adversarial Reviewer-2 / Area Chair for research runs (`agents/research-referee.md`). It attacks the *experimental validity* of confirmatory claims — statistical conclusion validity, confounds, construct validity, generalization, data leakage, baseline fairness, reproducibility — the threats the mechanical `statistical_rigor_check.py` cannot see. It emits findings in the finding-verification schema (`.bagel/reviews/REF-*.yaml`) with an executable `reproduction` per counted objection, so a confidently-wrong referee objection that does not reproduce cannot sink the work. It judges design, not writing, and does not propose new directions.
+
+### Research Explorer
+
+The discovery driver for `autonomous_researcher` runs with `objective: discovery` (`agents/research-explorer.md`). Given a vague direction, it runs the discovery loop — frame the search, diverge via ≥3 research-lens Brainstormers, ground each idea's novelty against named prior work, cheap-probe in the sandbox, select through the Judgment Council — and returns a short list of vetted *novel ideas* (`.bagel/explore/discovery-report.yaml`). It operates under a hard zero-blast-radius contract: it creates and runs nothing outside `.bagel/explore/` and `.bagel/`, so it cannot touch the user's real project. It does not preregister or make confirmatory claims; strong ideas are recommended for promotion to a fresh run, never silently converted into headlines.
+
+### Research Optimizer
+
+The score driver for `autonomous_researcher` runs with `objective: optimization` (`agents/research-optimizer.md`). Given a method and named benchmark(s), it runs the optimization loop — lock the target and record the honest baseline, diagnose where the method loses points, propose variants, select on validation, confirm the single winner once on held-out test — and may tune, swap components, or replace the method entirely. The freedom is in the method; the rigor on the number is absolute: every kept variant is val-selected, the full variant denominator is logged, and the headline binds the Mode-1 confirmatory stack (`statistical_rigor` + `data_leakage` + `reproducibility_checklist` + R3/R4 referee) plus `optimization_integrity_check.py`, and is attributed to its change by an ablation. A gain it cannot defend is not reported.
+
 ## Dispatch Envelope Contract
 
 Every dispatched agent receives:

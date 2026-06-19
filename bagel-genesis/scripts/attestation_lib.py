@@ -265,6 +265,33 @@ def index_writes(verified: list[dict[str, Any]]) -> dict[str, list[dict[str, Any
     return out
 
 
+def index_subagents(verified: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Build a list of every attested Task/Agent (subagent) dispatch, ordered by
+    timestamp ascending. Written ONLY by the Task PostToolUse hook
+    (attest_subagent.py) in the harness process — the agent cannot mint a valid
+    signed Task attestation, so this is a real-dispatch witness that the
+    true_subagents runtime proof can bind to (closing RUN-001 finding 3: a
+    hand-written subagent-proof.yaml is shape-valid but has no attested dispatch
+    behind it)."""
+    out: list[dict[str, Any]] = []
+    for r in verified:
+        if str(r.get("tool") or "") != "Task":
+            continue
+        ti = r.get("tool_input") or {}
+        to = r.get("tool_output") or {}
+        out.append({
+            "agent_id": str(to.get("agent_id") or ""),
+            "subagent_type": str(ti.get("subagent_type") or ""),
+            "description": str(ti.get("description") or ""),
+            "isolated_context": to.get("isolated_context"),
+            "subagent_tokens": to.get("subagent_tokens"),
+            "attestation_id": r.get("attestation_id"),
+            "timestamp": r.get("timestamp"),
+        })
+    out.sort(key=lambda a: str(a.get("timestamp") or ""))
+    return out
+
+
 def first_write_timestamp(index: dict[str, list[dict[str, Any]]], file_path_substring: str) -> str | None:
     """Earliest attested write timestamp for any file whose path contains the
     given substring (e.g. 'experiment-plan.yaml'). None if no attested write."""

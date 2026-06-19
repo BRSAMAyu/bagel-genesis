@@ -13,7 +13,7 @@
 ---
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v4.3-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v5.0-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](bagel-genesis/evals/evals.json)
 [![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
@@ -118,6 +118,18 @@ python bagel-genesis/scripts/skill_lint.py bagel-genesis
 BAGEL 对其验证器能保证和不能保证什么异常坦诚。每个验证器都是 agent 运行的 Python 检查器，读取 agent 自己写的 `.bagel/` YAML。检查器验证的是**形状**（字段存在、枚举有效、哈希匹配）——它们提高了懒惰/粗心作弊的门槛，但一个有决心的对抗性 agent 如果用伪造数据填充完整 schema 仍能通过。完全闭合需要**平台级 provenance**（外部触发的门控、append-only 签名状态、真实 token 计量）——这在 skill 的 Enforcement Honesty 节中明确说明。
 
 ## 更新日志
+
+### v5.0 — 模式二完成、执行落差闭合、底座外部可验证
+
+V5 完成"既能创造又能创新的独立研究者"的两半，闭合"设计的协议"与"agent 的真实行为"之间的落差，并把 validator 底座本身放到外部 CI 之下：
+
+- **模式二按 `research_autonomy.objective` 拆成两种完整风格。** **探索者**（`discovery`）在**零爆炸半径**沙箱契约下返回经自我验证的*新颖想法*（`research-explorer.md` + `discovery_sandbox_check.py`）；**优化者**（`optimization`）在反作弊契约下追求最高的*诚实*基准分——可调参、换组件、甚至替换方法（`research-optimizer.md` + `optimization_integrity_check.py`：先锁定目标+基线、每个保留变体在验证集而非测试集上选择、记录完整变体分母、headline 绑定模式一确证栈并由消融归因）。
+- **模式一数据完整性 + 复现性底线** —— `data_leakage_check.py`（全量数据预处理 / 在测试集上选择 / 结果相关的剔除）与 `reproducibility_checklist_check.py`（NeurIPS/ICML 清单，每个机械 `yes` 都对照真实产物交叉核验，并对 YAML 布尔强制转换稳健）。
+- **执行落差闭合** —— `execution_fidelity_check.py` 反转 skip-if-absent（claim 暗示某产物时，产物缺失即失败而非静默跳过）；可选 `BAGEL_REQUIRE_CONTROL_PLANE=1` 在工具边界阻止产品写入，直到 constitution 存在，与 agent 是否读过协议无关。
+- **生产者侧模板**（`templates/`）让 agent 填模板而非重建 schema——每个都标注其 gate 检查什么，并端到端验证可通过。
+- **底座外部可验证** —— `run_all_self_tests.py` 一条命令跑完所有 validator 自测；CI 工作流新增 `validators` job，在每次 push 上运行合并自测 + 22 条断言的机械 grader，使任何 gate 都无法在 agent 可控的进程里悄悄退化。
+
+结构性边界保持诚实：gate 证明的是*协议*诚实（锁定目标、验证集选择、记录分母、留出确认），而非测试集从未泄漏进训练——那项审计与 `data_leakage` 组合完成；完全的 ground-truth 闭合仍需用户配置外部 CI/branch-protection。
 
 ### v4.3 — 科研实验室收尾 + 模式二覆盖度硬化
 

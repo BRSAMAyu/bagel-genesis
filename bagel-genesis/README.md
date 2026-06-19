@@ -9,8 +9,9 @@ A skill-level operating protocol that makes an autonomous agent do *real expert 
 `Claude Code` · `Codex` · `Cursor` · any skills-compatible runtime
 
 [![Skills Standard](https://img.shields.io/badge/Agent%20Skills-Standard-blue)](https://skills.sh)
-[![Version](https://img.shields.io/badge/version-v4.3-green)](#changelog)
+[![Version](https://img.shields.io/badge/version-v5.0-green)](#changelog)
 [![Evals](https://img.shields.io/badge/evals-120-orange)](evals/evals.json)
+[![Grader](https://img.shields.io/badge/grader-22%2F22-brightgreen)](evals/mechanical_grader.py)
 [![Darwin](https://img.shields.io/badge/Darwin-9%20agent%20audit-blueviolet)](#changelog)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
@@ -259,9 +260,9 @@ BAGEL is **autonomy-first, not reckless**.
 
 ---
 
-## Runtime Validation (26 checks)
+## Runtime Validation (33 checks)
 
-`bagel_v3_check.py` orchestrates the V4.1 validation suite against any running BAGEL project. The filename is kept for backward compatibility.
+`bagel_v3_check.py` orchestrates the validation suite against any running BAGEL project. The filename is kept for backward compatibility. Run every validator's unit self-test in one command with `python scripts/run_all_self_tests.py`.
 
 ```text
 ✓ liveness                ✓ bagel_run_check          ✓ supervisor_boundary
@@ -279,6 +280,19 @@ Each check exits non-zero on failure, making the gate mechanically enforced.
 ---
 
 ## <a id="changelog"></a>Changelog
+
+### v5.0 — Mode-2 complete, execution-gap closure, externally-verified substrate
+
+The release that closes the two halves of "an independent researcher who can do creative and innovative work," hardens the gap between *designed protocol* and *actual agent behavior*, and puts the validator substrate itself under external CI.
+
+- **Mode-2 is now two complete styles, split by `research_autonomy.objective`.**
+  - **Explorer (`objective: discovery`)** — the user gives a vague direction and gets back vetted *novel ideas*, with **zero blast radius** on the real project. `agents/research-explorer.md` owns the discovery loop (frame → diverge via research-lens brainstormers → ground novelty → cheap-probe in sandbox → council-select → report). `scripts/discovery_sandbox_check.py` (predicate `discovery_sandbox_clean`) enforces sandbox-only writes *and* report integrity.
+  - **Optimizer (`objective: optimization`)** — the user names benchmark(s) and gets the best *honest* score; the agent may tune, swap components, or replace the method. `agents/research-optimizer.md` owns the loop (lock target → diagnose → propose variants → select on validation → confirm once on test → report). `scripts/optimization_integrity_check.py` (predicate `optimization_integrity_clean`) is the anti-leaderboard-gaming gate: target + numeric baseline locked first, every kept variant selected on validation never test, the full variant denominator logged, and the headline bound to the Mode-1 confirmatory stack + attributed by ablation.
+- **Mode-1 data-integrity + reproducibility floor.** `scripts/data_leakage_check.py` (`data_hygiene_leakage_free`) encodes the three classic integrity rejects — all-data preprocessing, selecting on test, outcome-dependent exclusions. `scripts/reproducibility_checklist_check.py` (`reproducibility_checklist_complete`) enforces a NeurIPS/ICML checklist where every mechanical `yes` is cross-checked against the real artifact, so the checklist can never be greener than the work. Now tolerant of YAML 1.1 boolean coercion (`answer: yes` → `True`) so correct work is not rejected on a serialization technicality.
+- **Execution-gap closure** (directly answers "agents aren't always willing to follow the markdown"). `scripts/execution_fidelity_check.py` (`execution_fidelity_satisfied`) is the anti-skip-if-absent gate: where a *claim* implies an artifact, absence is FAILURE not a silent skip. Opt-in `BAGEL_REQUIRE_CONTROL_PLANE=1` adds a willingness-independent PreToolUse block (`control_plane_first`) at the tool boundary.
+- **Producer-side templates** (`templates/`) so agents *fill* the schema rather than reconstruct it — discovery-frame, discovery-report, optimization-target, optimization-log, reproducibility-checklist, data-hygiene. Each is annotated with exactly what its gate checks; verified to pass end-to-end.
+- **The substrate is now externally verified.** `scripts/run_all_self_tests.py` runs every validator's self-test in one command; the CI workflow gained a `validators` job that runs the consolidated self-tests **and** the mechanical grader on every push — so a gate the agent relies on cannot silently regress in a process the agent controls.
+- **Grader expanded to 22 assertions** (added Mode-2 discovery blast-radius and optimization test-selection negative fixtures). New agents registered in `references/agent-operating-model.md`; predicates documented in `references/gate-predicates.md`; foundation in `references/autonomous-research.md`.
 
 ### v4.3 — Research Lab Closure and Mode-2 Coverage
 

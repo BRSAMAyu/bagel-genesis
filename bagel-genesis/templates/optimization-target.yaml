@@ -1,0 +1,16 @@
+# Copy to: .bagel/research/optimization-target.yaml
+# Fill this BEFORE claiming any gain. optimization_integrity_check.py requires it the
+# moment a headline gain appears, and you cannot move a bar you never wrote down.
+#
+# Record the baseline by RUNNING the user's method as-is — never take it on faith.
+optimization_target:
+  targets:
+    - benchmark: GSM8K            # the named benchmark (one entry per benchmark)
+      metric: accuracy           # the metric you optimize
+      goal: maximize             # maximize | minimize (must be one of these)
+      current_baseline: 0.82     # REQUIRED numeric — the honest score of the user's
+                                 # method, measured by you, that a gain must beat
+      split_policy: select_on_val_test_once  # how splits are used: select variants on
+                                              # validation, touch test exactly once
+  method_latitude: may_replace_method  # may_tune | may_swap_components | may_replace_method
+                                       # how far the contract lets you change the method

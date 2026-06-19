@@ -1,0 +1,26 @@
+# Copy to: .bagel/explore/discovery-report.yaml
+# The Explorer's deliverable. discovery_sandbox_check.py requires every idea to be
+# self-validated: a non-empty novelty_record.what_is_new, a probe with a real result,
+# a council_verdict, and a falsifiable_next. No bare assertions enter the deliverable.
+discovery_report:
+  ideas:
+    - id: DISC-001
+      title: "one-line summary"
+      lens: mechanism             # which research lens surfaced it
+      claim: "the idea, concretely"
+      why_it_matters: "what it would explain or enable for the user's direction"
+      novelty_record:
+        known_work: ["named related work / approach it is NOT"]
+        what_is_new: "the specific delta vs that work"   # REQUIRED, non-empty
+        why_different: "why this is not a rename of the known work"
+        already_done_risk: low    # low | medium | high
+      probe:
+        command: "the cheapest experiment you ran, in the sandbox"
+        result: "what came back — bytes/numbers/observation"   # REQUIRED, non-empty
+        belief_update: "what this moved, including if it moved AGAINST the idea"
+      council_verdict: passed     # passed | disputed | vetoed  (REQUIRED)
+      falsifiable_next: "the next real experiment to pursue it"  # REQUIRED, non-empty
+      recommendation: pursue      # pursue | probe_further | park
+  considered_not_pursued:         # the negative space is part of research taste
+    - idea: "..."
+      why_dropped: "..."

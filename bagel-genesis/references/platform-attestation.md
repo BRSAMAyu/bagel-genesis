@@ -77,6 +77,19 @@ they intercept actions at the tool-call boundary, not by cryptographic secrecy:
   This converts the V4 advisory stop into a next-action kill switch.
 - **External validator trigger** (`attest_stop.py` Stop hook): the suite runs
   at turn end independent of the agent choosing to run it.
+- **Control-plane-first gate** (`attest_fileop.py` PreToolUse on
+  Write/Edit/MultiEdit, **opt-in** via `BAGEL_REQUIRE_CONTROL_PLANE=1`): while
+  enabled and `.bagel/constitution.yaml` does not yet exist, the harness blocks
+  any product/source write (only bootstrap paths — `.bagel/`, `status.md`,
+  `.git*` — are allowed) and returns an instruction to create the control plane
+  first. This is the one forcing function for *engagement itself*: it converts
+  "the agent ignored the skill and just wrote code" from a silent pass into a
+  blocked action, at the tool boundary, regardless of whether the agent read
+  SKILL.md. Off by default so it never surprises a non-BAGEL repo; a no-op once
+  the constitution exists. It does not force *good* engagement (the agent can
+  write a minimal constitution to unblock), but it guarantees the Align artifact
+  exists before any product code, which the rest of the suite then has something
+  to check against. See `references/gate-predicates.md` `control_plane_first`.
 
 ### What the layer does NOT close — the key-isolation limit (structural)
 
@@ -104,6 +117,31 @@ surface. The real closure is external: run the validator (and the signing) in
 a process the agent does not control — e.g. CI on the `.bagel/` commit, or a
 sidecar auditor with its own credentials. That is out of scope for a skill.
 
+### Subagent dispatch binding (true_subagents proof)
+
+`scripts/attest_subagent.py` (PostToolUse on the `Task` tool) closes a concrete
+shape-only leak: a hand-written `.bagel/evidence/runtime/subagent-proof.yaml`
+with **zero real dispatch behind it** used to pass `runtime_proof_check.py`,
+byte-indistinguishable from a genuine proof. Now:
+
+- The detector defaults `true_subagents.observed` to `unknown` (CLI presence is
+  not observation). It is flipped to `true` only by the hook, on a real dispatch.
+- The hook writes a signed `tool: Task` attestation whose `agent_id` comes from
+  the platform `tool_response`, and refreshes the proof's `verifier_agent_id` +
+  `attestation_ref` from it — the hook process writes these, not the agent.
+- When the key is set, `runtime_proof_check.py` requires the `true_subagents`
+  proof to bind to a real signed Task attestation (by `attestation_ref` or
+  `verifier_agent_id`). A forged proof with no matching attestation **fails**.
+- When the key is absent, it degrades to the pre-existing shape-only check
+  (honest UNATTESTED fallback — unchanged behavior).
+
+Honest limit: identical to the rest of this layer — an *informed* agent that
+reads the key can still mint a forged Task attestation. This binds the proof to
+a real dispatch under key isolation and closes the uninformed/lazy path; full
+closure is external (CI). The Task `tool_response` shape also varies by harness
+version, so agent-id extraction is best-effort (the `attestation_ref` binding
+does not depend on it).
+
 ### Other honest limits
 
 - The layer proves "command X ran and produced bytes Y." It does NOT prove
@@ -125,6 +163,8 @@ sidecar auditor with its own credentials. That is out of scope for a skill.
 |---|---|
 | `scripts/attestation_lib.py` | signing, chain, read/verify (shared by hook + validators) |
 | `scripts/attest_bash.py` | PostToolUse hook for Bash (writes attestations) |
+| `scripts/attest_fileop.py` | PreToolUse guards (attestation append-only, emergency-stop, opt-in control-plane-first) + PostToolUse file-write attestation |
+| `scripts/attest_subagent.py` | PostToolUse hook for Task (binds true_subagents proof to a real signed dispatch) |
 | `scripts/attestation_check.py` | suite validator (first gate; reports VERIFIED/UNATTESTED/TAMPERED) |
 | `.claude/settings.json` | hook installation template |
 | `scripts/evidence_replay_check.py` | gains `--attested` mode binding extracts_from to attestations |

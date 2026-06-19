@@ -1,0 +1,19 @@
+# Copy to: .bagel/explore/discovery-frame.yaml
+# Fill this FIRST (discovery loop step 0). An unframed search wanders; this rubric is
+# what makes later selection principled instead of arbitrary. It is the Explorer's own
+# working artifact — not directly gated, but the discovery-report it leads to IS gated.
+discovery_frame:
+  direction: "the vague direction the user gave, restated"
+  sub_questions:                  # decompose the direction into open questions
+    - "open question 1"
+    - "open question 2"
+  priors:                         # what is already known / established here
+    - "known fact or result 1"
+  what_counts_as_valuable:        # define a valuable novel finding for THIS direction
+    novelty_bar: "what makes an idea novel enough to report (not a rename of known work)"
+    usefulness_bar: "what makes it useful to the user's direction"
+  idea_budget: 5                  # how many vetted ideas to return (few strong > many weak)
+  forbidden_directions:           # directions the user ruled out, or out of scope
+    - "off-limits direction 1"
+  sandbox_path: .bagel/explore/   # everything you create/run lives here — ZERO blast
+                                  # radius on the user's real project

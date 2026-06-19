@@ -41,16 +41,33 @@ findings:
     location: "file:line or artifact"
     description: "..."
     required_fix: "..."
-evidence_reviewed:
-  - "..."
-missing_evidence:
-  - "..."
+    # Demonstrating input — REQUIRED for any P0/P1 you intend to count against the
+    # candidate. It is the smallest executable command that exhibits the defect, so
+    # the orchestrator can RUN it rather than trust your judgment. A single reviewer
+    # is not ground truth (a confident review can be simply wrong); only a finding
+    # whose input actually reproduces the claimed behavior counts.
+    reproduction:
+      command: "the exact runnable command, e.g. python linkcheck.py /tmp/case"
+      expectation: "a substring that proves the defect when present in stdout"
+      result: reproduced | not_reproduced   # set after you actually run it
 merge_recommendation: merge | repair_then_recheck | rollback | escalate
 ```
+
+After reviewing, also write a consolidated record to `.bagel/reviews/<REV-id>.yaml` in
+the schema `scripts/finding_verification_check.py` enforces (review_id,
+reviewer_agent_id, net_assessment, findings[] each with the `reproduction` block and
+`counts_toward_net_assessment`). The orchestrator runs that gate: a P0/P1 may set
+`counts_toward_net_assessment: true` only if its `reproduction.result == reproduced`;
+`net_assessment: forward` is rejected while any confirmed P0/P1 counts. This converts
+your verdict from trusted opinion into executably-verified evidence.
 
 ## Rules
 
 - P0/P1 blocks merge.
+- Any P0/P1 you want counted against the candidate MUST carry a `reproduction`
+  block you actually executed (`result: reproduced`). A finding you could not
+  reproduce is downgraded to INFO or dropped — never let an unreproduced claim
+  drive the verdict. When the artifact is runnable, reproduce before you assert.
 - Missing evidence can block when risk is medium or higher.
 - Do not suggest unrelated improvements.
 - Do not approve based on the implementer's explanation.

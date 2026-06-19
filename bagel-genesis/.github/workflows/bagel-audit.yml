@@ -25,8 +25,28 @@ on:
       - ".bagel/evidence/**"
       - ".bagel/state.yaml"
       - ".bagel/constitution.yaml"
+      - "scripts/**"
+      - "evals/**"
 
 jobs:
+  # Externally verify the validator substrate itself — the self-tests and the
+  # end-to-end grader — in a process the agent cannot edit mid-run. If a gate the
+  # agent relies on regresses (a self-test breaks, or the grader stops catching a
+  # documented cheat), this fails the push regardless of what local state claims.
+  validators:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Validator self-tests
+        run: python3 scripts/run_all_self_tests.py
+      - name: Mechanical grader (suite catches documented cheats)
+        run: python3 evals/mechanical_grader.py
+
   audit:
     runs-on: ubuntu-latest
     permissions:

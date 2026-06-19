@@ -113,6 +113,45 @@ def pretooluse_write_attestations_guard(root: Path, event: dict) -> int | None:
     return None
 
 
+# Files the agent is always allowed to write even before the control plane exists,
+# because they are needed to bootstrap it (the control plane itself, the status
+# board, and version-control scaffolding).
+_BOOTSTRAP_ALLOW = (".bagel/", "status.md", ".git", ".gitignore", ".gitattributes")
+
+
+def pretooluse_control_plane_gate(root: Path, event: dict) -> int | None:
+    """PreToolUse Write/Edit: the action-boundary forcing function for engagement.
+
+    OPT-IN via BAGEL_REQUIRE_CONTROL_PLANE=1 in the shell env. When enabled, the
+    agent may NOT write product/source files until it has actually engaged the
+    skill — i.e. until `.bagel/constitution.yaml` exists (the Align artifact). This
+    converts "the agent ignored the skill and just wrote code" from a silent pass
+    into a blocked action with an instruction. It is the one enforcement that does
+    not depend on the agent's willingness, because hooks fire at the tool boundary.
+
+    Disabled by default (returns None) so it never surprises a non-BAGEL repo. Once
+    the control plane exists, this is a no-op — engagement has happened.
+    """
+    if os.environ.get("BAGEL_REQUIRE_CONTROL_PLANE") != "1":
+        return None
+    if (root / ".bagel/constitution.yaml").exists():
+        return None  # control plane engaged; nothing to force
+    ti = event.get("tool_input") or {}
+    file_path = str(ti.get("file_path") or ti.get("path") or "")
+    norm = file_path.replace("\\", "/").lower()
+    rel = norm.split(str(root).replace("\\", "/").lower() + "/")[-1]
+    if any(rel == a or rel.startswith(a) or a in rel for a in _BOOTSTRAP_ALLOW):
+        return None  # bootstrap path — allowed so the agent CAN create the plane
+    return _block(
+        "BAGEL control plane is not initialized (BAGEL_REQUIRE_CONTROL_PLANE=1). "
+        f"Refusing to write product file {file_path} before the run engages the skill. "
+        "Create .bagel/constitution.yaml first (Align phase: north star, stop_contract, "
+        "research_autonomy if applicable) per SKILL.md Boot Sequence, then proceed. This "
+        "block exists because product code written outside the BAGEL control plane is "
+        "unreviewed, ungated, and untracked."
+    )
+
+
 def main() -> int:
     event = _read_stdin()
     if not event:
@@ -129,6 +168,9 @@ def main() -> int:
                 return blocked
         if tool_name in {"Write", "Edit", "MultiEdit"}:
             blocked = pretooluse_write_attestations_guard(root, event)
+            if blocked is not None:
+                return blocked
+            blocked = pretooluse_control_plane_gate(root, event)
             if blocked is not None:
                 return blocked
         return 0

@@ -7,10 +7,14 @@ BAGEL is autonomy-first. Do not copy the example booleans below as platform fact
 Prefer the runtime detector before hand-writing this file:
 
 ```bash
-python scripts/detect_runtime_capabilities.py --out .bagel/runtime_capabilities.yaml
+python scripts/detect_runtime_capabilities.py <project-root>
+# writes <project-root>/.bagel/runtime_capabilities.yaml (positional, like every
+# other BAGEL script). `--out <path>` still overrides; no args prints to stdout.
 ```
 
 The detector gives conservative observed facts; platform adapter references explain how to upgrade or bind the available primitives.
+
+`true_subagents.observed` starts as **`unknown`**, not `true` — CLI presence is an *adapter claim*, never an observation. It is flipped to `observed: true` only by the Task PostToolUse hook (`scripts/attest_subagent.py`) when a real isolated dispatch actually runs, which also writes the bound proof. Under attested mode the proof must trace to that signed dispatch (see `references/platform-attestation.md`).
 
 ## Required Artifact
 

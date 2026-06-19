@@ -1,0 +1,25 @@
+# Copy to: .bagel/research/reproducibility-checklist.yaml
+# Required for any research run with a confirmatory/headline claim.
+# reproducibility_checklist_check.py requires EVERY item answered yes|no|na; a `yes`
+# needs a non-empty evidence_ref (no empty boxes); the hard-required items
+# (seeds/compute/error_bars/significance/train_test_split/limitations) cannot be no/na;
+# and each mechanical `yes` is cross-checked against the real artifact — so the
+# checklist can never be greener than the work:
+#   seeds_reported=yes        => analysis_plan.seeds has >= 3 seeds
+#   compute_reported=yes      => compute_budget has accelerator + total_runs
+#   error_bars_reported=yes   => confirmatory claims carry dispersion
+#   significance_reported=yes => comparative claims carry a p_value
+#   train_test_split_documented=yes => plan.data_hygiene.test_set_policy exists
+reproducibility_checklist:
+  items:
+    code_released:        { answer: yes, evidence_ref: "repo/commit or release URL" }
+    datasets_documented:  { answer: yes, evidence_ref: "dataset id + version/hash" }
+    seeds_reported:       { answer: yes, evidence_ref: "experiment-plan.yaml analysis_plan.seeds" }
+    hyperparameters_reported: { answer: yes, evidence_ref: "configs/ or plan" }
+    compute_reported:     { answer: yes, evidence_ref: "experiment-plan.yaml compute_budget" }
+    error_bars_reported:  { answer: yes, evidence_ref: "claim-evidence.yaml claim statistics" }
+    significance_reported: { answer: yes, evidence_ref: "claim-evidence.yaml claim statistics" }
+    train_test_split_documented: { answer: yes, evidence_ref: "experiment-plan.yaml data_hygiene.test_set_policy" }
+    limitations_section:  { answer: yes, evidence_ref: "STATUS.md or report limitations" }
+    broader_impacts:      { answer: yes, evidence_ref: "report broader-impacts section" }
+    assets_licensed:      { answer: yes, evidence_ref: "LICENSE / third-party notices" }
